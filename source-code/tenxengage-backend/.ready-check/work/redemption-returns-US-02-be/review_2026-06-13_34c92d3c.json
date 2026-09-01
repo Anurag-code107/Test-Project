@@ -1,0 +1,257 @@
+{
+  "branch": "work/redemption-returns-US-02-be",
+  "baseBranch": "features/redemption-returns",
+  "storyId": "US-02",
+  "storyTitle": "Admin return review",
+  "featureId": "redemption-returns",
+  "validatedAtCommit": "a5987b1f86884942d21e5348d4014c2528db828d",
+  "runDate": "2026-06-13",
+  "softStages": ["adversarial-review"],
+  "overallStatus": "pass",
+  "stages": {
+    "prerequisites": {
+      "status": "passed",
+      "notes": "Compilation and tests pass (6 pre-existing failures unrelated to US-02 in XtrmVendorServiceTest and RedemptionSubmissionServiceTest — confirmed not in diff)"
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java",
+        "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+        "src/main/java/com/tenxengage/app/dto/request/redemption/RejectReturnRequest.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnQueueItemResponse.java",
+        "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+        "src/main/java/com/tenxengage/app/repository/RedemptionReturnRepository.java",
+        "src/test/java/com/tenxengage/app/controller/redemption/ReturnAdminControllerTest.java",
+        "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+          "line": 34,
+          "rule": "exception-handling",
+          "message": "@Async void method silently discards exceptions. Spring default AsyncUncaughtExceptionHandler only logs to ERROR.",
+          "suggestion": "Change return type to CompletableFuture<Void> or register a custom AsyncUncaughtExceptionHandler — defer to US-03 implementation.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "high",
+          "file": "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java",
+          "line": 387,
+          "rule": "null-safety",
+          "message": "approveReturn_happyPath missing verify(returnVendorService).notifyXoxodayReturn() — async side-effect of approveReturn uncovered.",
+          "suggestion": "Added verify(returnVendorService).notifyXoxodayReturn(any(RedemptionReturn.class))",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/repository/RedemptionReturnRepository.java",
+          "line": 63,
+          "rule": "api-design",
+          "message": "CAST(:status AS STRING) IS NULL is a non-standard Hibernate 6 idiom for nullable enum params. Not JPQL-spec and can silently break on ORM upgrade.",
+          "suggestion": "Use two named queries dispatched conditionally, or Specification API. Deferred as low-risk for current Hibernate 6 / Spring Boot 3.2.5 stack.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "line": 357,
+          "rule": "api-design",
+          "message": "endDate boundary used 23:59:59.999 (millisecond precision) leaving nanosecond gap.",
+          "suggestion": "Changed to endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant() with JPQL < (exclusive upper bound).",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+          "line": 33,
+          "rule": "async-pitfall",
+          "message": "@Async without executor name falls back to SimpleAsyncTaskExecutor if bean naming convention changes.",
+          "suggestion": "Changed to @Async(\"taskExecutor\") to explicitly bind to configured ThreadPoolTaskExecutor.",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java",
+          "line": 496,
+          "rule": "api-design",
+          "message": "No test covers the LocalDate→Instant conversion in getAdminReturns (startDate/endDate branch).",
+          "suggestion": "Add getAdminReturns_withDateRange_convertsLocalDateToInstantBoundaries test using ArgumentCaptor. Deferred — medium priority.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/test/java/com/tenxengage/app/controller/redemption/ReturnAdminControllerTest.java",
+          "line": 283,
+          "rule": "api-design",
+          "message": "No controller test exercises startDate/endDate query params — @DateTimeFormat parsing path untested.",
+          "suggestion": "Add test passing ?startDate=2026-01-01&endDate=2026-06-30 with ArgumentCaptor verification. Deferred — medium priority.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnQueueItemResponse.java",
+          "line": 27,
+          "rule": "api-design",
+          "message": "Static factory from() couples DTO record to JPA entity.",
+          "suggestion": "Move factory to service layer or mapper. Pre-existing pattern in ReturnDetailResponse — deferred as tech debt.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java",
+          "line": 61,
+          "rule": "api-design",
+          "message": "@MockitoSettings(strictness = LENIENT) at class level can mask unused stubs.",
+          "suggestion": "Remove class-level annotation and fix per-test UnnecessaryStubbingException violations. Deferred.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java",
+          "line": 106,
+          "rule": "api-design",
+          "message": "getReturnById passes hard-coded null as userId — intent opaque, silently breaks if service signature changes.",
+          "suggestion": "Add dedicated admin overload in ReturnService or use Optional<UUID>. Deferred as low-risk today.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "line": 282,
+          "rule": "async-pitfall",
+          "message": "approveReturn registers two afterCommit synchronizations — Kafka event and vendor notify — in implicit FIFO order.",
+          "suggestion": "Add comment documenting intended ordering: Kafka first, vendor notify second. Deferred.",
+          "autoFixable": false,
+          "fixed": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnQueueItemResponse.java",
+          "line": 28,
+          "rule": "input-validation",
+          "message": "reason field returned without explicit content validation at response layer — input validation on inbound SubmitReturnRequest covers it.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "rule": "logging",
+          "message": "approveReturn/rejectReturn rely on @Audited for decision audit — if audit system fails silently, no fallback log captures the decision.",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java",
+          "line": 60,
+          "rule": "input-validation",
+          "message": "sortDirection accepted as raw String and validated manually — Spring MVC Sort.Direction enum binding would be cleaner.",
+          "autoFixable": false,
+          "fixed": false
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "notes": "All US-02 endpoints present and matching contract: GET /, GET /{id}, POST /{id}/approve, POST /{id}/reject. /resolve endpoint is US-03 scope. amount as BigDecimal vs contract string is pre-existing tech debt (affects ReturnDetailResponse from US-01) — tracked separately.",
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnQueueItemResponse.java",
+          "rule": "response-consistency",
+          "message": "amount is BigDecimal (serialized as JSON number) but contract specifies type: string. Pre-existing pattern in ReturnDetailResponse (US-01 tech debt).",
+          "autoFixable": false,
+          "fixed": false,
+          "priorArt": "Same issue in ReturnDetailResponse from US-01 — classified as pre-existing tech debt, not US-02 regression"
+        }
+      ]
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "verdict": "needs-attention",
+      "codexSummary": "No-ship: approving a return commits an APPROVED state while the vendor handoff is non-durable and currently a no-op.",
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "lineStart": 273,
+          "lineEnd": 295,
+          "confidence": 0.55,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — ReturnTimeoutScheduler provides the documented recovery path for APPROVED returns where Xoxoday never responds; stub is intentionally scoped to US-02 with US-03 implementing the real call",
+          "alreadyHandled": true,
+          "summary": "Return approval can permanently advance state without notifying the vendor",
+          "details": "approveReturn saves the return as APPROVED and publishes approval before the only vendor handoff, an afterCommit async call. That handoff is not durable, and ReturnVendorService is currently a stub. The timeout scheduler (RETURN_TIMED_OUT after 7 days) is the documented recovery mechanism.",
+          "recommendation": "Add durable vendor-notification job/attempt record before relying on APPROVED as committed state. Implement in US-03.",
+          "fixed": false
+        }
+      ]
+    },
+    "tests": {
+      "status": "passed",
+      "newTestsAdded": 9,
+      "controllerTests": 13,
+      "serviceTests": 9,
+      "preExistingFailures": 6,
+      "preExistingFailureFiles": [
+        "XtrmVendorServiceTest",
+        "RedemptionSubmissionServiceTest"
+      ],
+      "notes": "All US-02 tests pass. 6 pre-existing failures unrelated to US-02 (not in diff, confirmed by git diff check)."
+    },
+    "coverage": {
+      "status": "passed",
+      "ReturnAdminController": "92% (24/26 lines)",
+      "ReturnService": "87% (187/215 lines)",
+      "ReturnVendorService": "20% (1/5 lines — stub, US-03 will implement)",
+      "notes": "ReturnService$1 (0/3) is the anonymous TransactionSynchronization afterCommit lambda — uncovered by design in unit tests (isActualTransactionActive() guard fires else-branch). Acceptable for stub phase."
+    }
+  },
+  "autoFixesApplied": [
+    {
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+      "change": "@Async → @Async(\"taskExecutor\") for explicit executor binding"
+    },
+    {
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+      "change": "endDate boundary: 23:59:59.999 → plusDays(1).atStartOfDay() exclusive upper bound"
+    },
+    {
+      "file": "src/main/java/com/tenxengage/app/repository/RedemptionReturnRepository.java",
+      "change": "JPQL endDate predicate: <= → < (exclusive upper bound to match service-layer change)"
+    },
+    {
+      "file": "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java",
+      "change": "Added verify(returnVendorService).notifyXoxodayReturn(any()) to approveReturn happy-path test"
+    }
+  ],
+  "advisoryItems": [
+    "US-03: implement AsyncUncaughtExceptionHandler or CompletableFuture return on ReturnVendorService.notifyXoxodayReturn",
+    "US-03: implement durable vendor-notification attempt tracking before relying on APPROVED state",
+    "Tech debt: amount as BigDecimal vs contract string (pre-existing, affects ReturnDetailResponse US-01 + ReturnQueueItemResponse US-02)",
+    "Tech debt: CAST(:status AS STRING) IS NULL non-standard JPQL null-enum pattern in findByClientIdWithFilters",
+    "Medium: add date-range test coverage in ReturnServiceTest and ReturnAdminControllerTest",
+    "Low: remove class-level LENIENT strictness from ReturnServiceTest",
+    "Low: getReturnById hard-coded null userId in admin path — consider dedicated admin overload"
+  ]
+}

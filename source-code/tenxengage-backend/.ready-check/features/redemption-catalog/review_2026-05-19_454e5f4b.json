@@ -1,0 +1,28 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "454e5f4b2bac8fac323f25e8e0bd0b5b7eba85a6",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T05:15:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "fixes": 0 },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "fixes": 5 },
+    "contract-compliance": { "status": "not_applicable" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "454e5f4b2bac8fac323f25e8e0bd0b5b7eba85a6",
+      "source": "job-store",
+      "codexJobId": "review-mpc66qrw-3gy3zy",
+      "findings": [
+        { "summary": "Advisory lock query declared @Modifying — reward grants fail before any award is written", "severity": "critical", "confidence": 0.86, "tier": "blocking", "alreadyHandled": false },
+        { "summary": "Production context has no XoxodayApiClient bean — app context will not start in prod", "severity": "critical", "confidence": 0.98, "tier": "blocking", "alreadyHandled": false },
+        { "summary": "WalletController.getMyWallets lacks @RequiresPermission — will fail EndpointSecurityValidator in prod", "severity": "high", "confidence": 0.9, "tier": "blocking", "alreadyHandled": false }
+      ]
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d" },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d" }
+  },
+  "overall": "failed"
+}

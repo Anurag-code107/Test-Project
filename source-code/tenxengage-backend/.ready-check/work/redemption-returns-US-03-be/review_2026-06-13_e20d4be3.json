@@ -1,0 +1,26 @@
+{
+  "_archive": true,
+  "_archivedAt": "2026-06-13T10:00:00Z",
+  "_headCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+  "_branch": "work/redemption-returns-US-03-be",
+  "_overall": "passed",
+  "featureId": "redemption-returns",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-returns-US-03-be",
+  "headCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+  "startedAt": "2026-06-13T00:00:00Z",
+  "updatedAt": "2026-06-13T10:00:00Z",
+  "steps": {
+    "prerequisites": {"status": "passed"},
+    "code-review": {"status": "passed", "fixes": 6},
+    "security-review": {"status": "passed", "fixes": 3},
+    "contract-compliance": {"status": "passed", "notes": "X-Xoxoday-Hmac-Sha256 → X-Webhook-Signature drift fixed"},
+    "adversarial-review": {"status": "advisory", "softStagePromotion": true},
+    "tests": {"status": "passed"},
+    "coverage": {"status": "passed", "notes": "9 new tests added for resolveTimedOut()"}
+  },
+  "overall": "passed",
+  "totalAutoFixes": 10,
+  "totalAdvisories": 8,
+  "diffStat": "14 files changed, 1299 insertions(+), 16 deletions(-)"
+}

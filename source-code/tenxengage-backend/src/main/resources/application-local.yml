@@ -1,0 +1,84 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tenxengage}
+    username: tenxengage
+    password: localdev
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      fail-fast: false
+    listener:
+      missing-topics-fatal: false
+  mail:
+    password: ${RESEND_API_KEY:}
+
+app:
+  mail:
+    enabled: true
+    from: ${MAIL_FROM:onboarding@resend.dev}
+
+#this webhook for local testing, replaced by transaction poll reconcilation
+redemption:
+  webhook:
+    xtrm:
+      signing-secret: dev-xtrm-secret-local
+    xoxoday:
+      signing-secret: dev-xoxoday-secret-local
+  return-webhook:
+    xoxoday:
+      signing-secret: dev-return-xoxoday-secret-local
+  xoxoday:
+    return-api-url: https://api.xoxoday.com/api/v1/plum/returns
+  xtrm:
+    base-url: https://xapisandbox.xtrm.com
+    token-url: https://xapisandbox.xtrm.com/oAuth/token
+    # Set real values via environment variables or .env.local (never commit credentials)
+    client-id: ${XTRM_CLIENT_ID:placeholder-client-id}
+    client-secret: ${XTRM_CLIENT_SECRET:placeholder-client-secret}
+    issuer-account-number: ${XTRM_ISSUER_ACCOUNT:SPN26237883}
+    # Cash payout rails: AnyPay Individual (XTR94502) is the default; Bank/ACH (XTR94500) when the user picks BANK.
+    payment-method-id: ${XTRM_PAYMENT_METHOD:XTR94502}
+    bank-payment-method-id: ${XTRM_BANK_PAYMENT_METHOD:XTR94500}
+    # Rapid Transfer (card) rail — used for CARD payout method + card withdrawals.
+    rapid-transfer-payment-method-id: ${XTRM_RAPID_TRANSFER_PAYMENT_METHOD:XTR94508}
+    wallet-id: ${XTRM_WALLET_ID:203871}
+    program-id: ${XTRM_PROGRAM_ID:2314}
+  # Scheduled batch payout sweep (BatchRedemptionProcessor). Collects matured RESERVED batch items per client
+  # and sends them via XTRM BatchTransfer, split into chunks so one request never exceeds XTRM's per-request limit.
+  batch:
+    # Spring cron for the sweep. Local demo = every 2 minutes. (Prod default is daily at 2 AM: "0 0 2 * * *")
+    cron: ${REDEMPTION_BATCH_CRON:0 */2 * * * *}
+    # Max line items per BatchTransfer request — a client's eligible set is chunked into batches of this size.
+    # XTRM allows up to 20 items per BatchTransfer.
+    max-items-per-batch: ${REDEMPTION_BATCH_MAX_ITEMS:20}
+  # Missed-webhook recovery cron (RedemptionReconciliationService): polls XTRM for in-flight payout status
+  # and settles via the shared settlement path. 3-day cap; past that → manual review, never auto-released.
+  reconciliation:
+    # Spring cron. Local demo = every minute. (Prod default is every 30 min: "0 */30 * * * *")
+    cron: ${REDEMPTION_RECONCILIATION_CRON:0 */1 * * * *}
+    cap-days: ${REDEMPTION_RECONCILIATION_CAP_DAYS:3}
+    success-statuses: Success,Completed,Released
+    failed-statuses: Failed
+    batch-page-size: 50
+  # Balance-expiration warn+expire sweep (BalanceExpiryBatchService): warns partners before expiry,
+  # then debits expired reward balances. Local demo = every 2 minutes. (Prod default is daily at 2 AM: "0 0 2 * * *")
+  balance-expiry:
+    cron: ${REDEMPTION_BALANCE_EXPIRY_CRON:0 */2 * * * *}
+
+logging:
+  level:
+    # Keep our own logs verbose (redemption / XTRM / reconciliation [step=...] lines).
+    com.tenxengage: DEBUG
+    # Quiet the noise that made the console race by. Raise any of these back to DEBUG/TRACE when debugging
+    # SQL or security specifically.
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN
+    org.apache.kafka: ERROR

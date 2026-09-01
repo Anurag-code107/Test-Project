@@ -1,0 +1,75 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+      "completedAt": "2026-05-19T06:45:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mpc9kopu-73juu5",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T06:42:51.687Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "RewardBalanceService signature change leaves existing tests/callers uncompilable",
+          "details": "The service removed the existing 4-argument credit/debit API and now only exposes methods requiring referenceType/referenceId. A repository-wide search still finds unchanged tests calling rewardBalanceService.credit(clientId, userId, currencyId, amount) and debit(..., amount), so test compilation will fail before behavior can be verified. This is a direct compatibility break in an existing service surface.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardBalanceService.java",
+          "lineStart": 30,
+          "lineEnd": 41,
+          "severity": "critical",
+          "confidence": 0.95,
+          "tier": "blocking",
+          "tierReason": "severity=critical, confidence=0.95 (>=0.70), alreadyHandled=false",
+          "recommendation": "Either restore backward-compatible overloads that supply a safe reference type/id policy, or update every remaining caller/test to the new signature and run the full test compile.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Xoxoday sync makes placeholder products globally active",
+          "details": "The sync path says new products are placeholders that admins must enrich before use, but the builder does not set isActive(false). RedemptionCatalogItem defaults isActive to true, so newly synced products are globally active with name=productId, currencyId=POINTS, and min amount=1. Tenant admins can then configure and expose incomplete vendor products to users before platform enrichment, creating wrong-currency/wrong-amount redemption catalog entries.",
+          "file": "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java",
+          "lineStart": 98,
+          "lineEnd": 106,
+          "severity": "high",
+          "confidence": 0.88,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.88 (>=0.70), alreadyHandled=false",
+          "recommendation": "Create new synced placeholders inactive, or fully map trusted vendor fields before activation; require explicit platform admin activation after enrichment.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Tenant catalog config endpoint ignores requested filters",
+          "details": "getTenantCatalog accepts enabled and category but immediately loads findAllByOrderByNameAsc(pageable) and maps everything, so /api/v1/redemption/catalog/config?enabled=true or ?category=CASH returns unfiltered global catalog rows. This violates the controller contract and can cause admins to act on disabled or wrong-category items while believing the server-side filter was applied.",
+          "file": "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+          "lineStart": 79,
+          "lineEnd": 88,
+          "severity": "medium",
+          "confidence": 0.9,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Apply enabled/category filters before pagination, preferably with repository queries that join/overlay tenant config where needed, and add tests asserting filtered result sets.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nFindings:\n- [critical] RewardBalanceService signature change leaves existing tests/callers uncompilable\n- [high] Xoxoday sync makes placeholder products globally active\n- [medium] Tenant catalog config endpoint ignores requested filters"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review"
+}

@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: Client Role Endpoints
+  description: Per-tenant role management with permission assignment
+  version: 1.0.0
+
+paths:
+  /api/v1/client-roles:
+    get:
+      summary: List roles for current client
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.view
+      responses:
+        "200":
+          description: List of client roles
+
+    post:
+      summary: Create custom role
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, roleType]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                roleType:
+                  type: string
+                  enum: [INTERNAL, EXTERNAL]
+                permissionKeys:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "201":
+          description: Role created
+
+  /api/v1/client-roles/{id}:
+    get:
+      summary: Get role with permissions
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.view
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Role with permission details
+
+    put:
+      summary: Update role name/description
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.edit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+      responses:
+        "200":
+          description: Role updated
+
+    delete:
+      summary: Delete custom role
+      description: System roles (isSystem = true) cannot be deleted
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Role deleted
+        "422":
+          description: Cannot delete system role
+
+  /api/v1/client-roles/{id}/permissions:
+    put:
+      summary: Update role permissions
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.edit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: object
+                  additionalProperties:
+                    type: boolean
+                  description: Map of permissionKey to granted (true/false)
+      responses:
+        "200":
+          description: Permissions updated
+
+  /api/v1/client-roles/{id}/clone:
+    post:
+      summary: Clone role
+      tags: [Client Roles]
+      security:
+        - bearerAuth: []
+      x-permission: action.roles.create
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+      responses:
+        "201":
+          description: Role cloned
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,1598 @@
+openapi: 3.0.3
+info:
+  title: Incentive Endpoints
+  description: Incentive program CRUD, status management, cloning, forecasting, and document uploads
+  version: 2.0.0
+
+paths:
+  /api/v1/incentives:
+    get:
+      summary: List incentives (paginated)
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/sortBy"
+        - $ref: "#/components/parameters/sortDirection"
+        - $ref: "#/components/parameters/search"
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, PENDING_APPROVAL, DENIED, ACTIVE, INACTIVE]
+      responses:
+        "200":
+          description: Paginated incentive list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedIncentiveResponse"
+
+    post:
+      summary: Create an incentive
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIncentiveRequest"
+      responses:
+        "201":
+          description: Incentive created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveDetailResponse"
+        "400":
+          description: Validation error
+
+  /api/v1/incentives/{id}:
+    get:
+      summary: Get incentive by ID (full detail)
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: Incentive detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveDetailResponse"
+        "404":
+          description: Incentive not found
+
+    put:
+      summary: Update incentive
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateIncentiveRequest"
+      responses:
+        "200":
+          description: Incentive updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveDetailResponse"
+        "404":
+          description: Incentive not found
+
+    delete:
+      summary: Delete incentive (soft delete)
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "204":
+          description: Incentive deleted
+        "404":
+          description: Incentive not found
+
+  /api/v1/incentives/{id}/status:
+    patch:
+      summary: Update incentive status
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [DRAFT, PENDING_APPROVAL, DENIED, ACTIVE, INACTIVE]
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveResponse"
+        "422":
+          description: Invalid status transition
+
+  /api/v1/incentives/{id}/submit:
+    post:
+      summary: Submit incentive for approval
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.submit_approval
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: Submitted for approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveResponse"
+
+  /api/v1/incentives/{id}/resubmit:
+    post:
+      summary: Resubmit incentive for approval (after denial)
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.submit_approval
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: Resubmitted for approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveResponse"
+
+  /api/v1/incentives/{id}/resend-approvals:
+    post:
+      summary: Resend all approval emails
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.resend_approval
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: Approval emails resent
+
+  /api/v1/incentives/{id}/resend-approval:
+    post:
+      summary: Resend approval to a single approver
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.resend_approval
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Approval email resent
+
+  /api/v1/incentives/{id}/approval-status:
+    get:
+      summary: Get approval status for an incentive
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.submit_approval
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: Approval status with per-approver decisions
+
+  /api/v1/incentives/{id}/clone:
+    post:
+      summary: Clone an existing incentive
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+        - name: description
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 2000
+      responses:
+        "201":
+          description: Incentive cloned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveDetailResponse"
+
+  /api/v1/incentives/{id}/forecast:
+    post:
+      summary: Generate AI forecast (SSE stream)
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.forecast
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: SSE stream with status updates and final forecast
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+    get:
+      summary: Get latest cached forecast
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.forecast
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      responses:
+        "200":
+          description: Most recent forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastResponse"
+        "404":
+          description: No forecast generated yet
+
+  /api/v1/incentives/forecast-preview:
+    post:
+      summary: Preview forecast from builder state (SSE stream)
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.forecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForecastPreviewRequest"
+      responses:
+        "200":
+          description: SSE stream with preview forecast
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/v1/incentives/{id}/documents:
+    post:
+      summary: Upload program documents
+      description: >
+        Upload one or more program documents (terms & conditions, eligible products, etc.)
+        for an incentive. Files are sent as multipart/form-data with paired categories.
+        Files are stored in MinIO (S3-compatible storage).
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: >
+                    One or more files to upload. Max 10 files per request.
+                    Allowed types: pdf, xlsx, xls, docx, doc. Max 10 MB per file, 50 MB total.
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      [terms-conditions, eligible-products, program-rules, faq]
+                  description: >
+                    Document category for each file (positional — categories[0] applies to files[0]).
+                    Defaults to "program-rules" if not provided.
+      responses:
+        "201":
+          description: Documents uploaded
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentSummaryResponse"
+        "400":
+          description: Validation error (invalid file type, size limit exceeded, etc.)
+        "404":
+          description: Incentive not found
+        "422":
+          description: Business rule violation
+
+  /api/v1/incentives/{id}/documents/{documentId}/download:
+    get:
+      summary: Download a document file
+      description: >
+        Stream download a document file from MinIO storage. Returns the file binary
+        with appropriate Content-Type and Content-Disposition headers.
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: File binary
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Incentive or document not found
+        "422":
+          description: No file stored for this document (metadata-only)
+
+  /api/v1/incentives/{id}/documents/{documentId}:
+    delete:
+      summary: Delete a document
+      description: Remove a specific document from an incentive. Deletes both the DB record and the MinIO object.
+      tags: [Incentives]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/incentiveId"
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Document deleted
+        "404":
+          description: Incentive or document not found
+        "422":
+          description: Document does not belong to this incentive
+
+  /api/v1/incentive-templates/download:
+    get:
+      summary: Download blank Excel template
+      tags: [IncentiveTemplates]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+      responses:
+        "200":
+          description: Excel file
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/v1/incentive-templates/upload:
+    post:
+      summary: Upload filled Excel template to create incentive
+      tags: [IncentiveTemplates]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Incentive created from template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IncentiveDetailResponse"
+        "400":
+          description: Invalid template format
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────
+
+    CreateIncentiveRequest:
+      type: object
+      required: [name, incentiveType]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        incentiveType:
+          type: string
+          enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 50
+        budget:
+          $ref: "#/components/schemas/BudgetInput"
+        audienceRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudienceRuleInput"
+        rewardCurrencies:
+          type: array
+          items:
+            type: string
+          description: Currency IDs (e.g. ["cash", "points"])
+        rewardMessage:
+          type: string
+          maxLength: 500
+          description: Message shown to partners (e.g. "Earn up to $5,000")
+        rewardAmounts:
+          type: object
+          additionalProperties:
+            type: string
+          description: Per-currency amounts (e.g. {"cash":"500","points":"100"})
+        salesRequirements:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesRequirementInput"
+        trainingCourses:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrainingCourseInput"
+        activityDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityDefinitionInput"
+        journeyStages:
+          type: array
+          items:
+            $ref: "#/components/schemas/JourneyStageInput"
+        journeySequential:
+          type: boolean
+          default: true
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentInput"
+          description: Document metadata to attach to the incentive
+
+    UpdateIncentiveRequest:
+      type: object
+      description: All fields are optional — only provided fields are updated.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+          maxLength: 50
+        budget:
+          $ref: "#/components/schemas/BudgetInput"
+        audienceRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudienceRuleInput"
+        rewardCurrencies:
+          type: array
+          items:
+            type: string
+        rewardMessage:
+          type: string
+          maxLength: 500
+        rewardAmounts:
+          type: object
+          additionalProperties:
+            type: string
+        salesRequirements:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesRequirementInput"
+        trainingCourses:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrainingCourseInput"
+        activityDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityDefinitionInput"
+        journeyStages:
+          type: array
+          items:
+            $ref: "#/components/schemas/JourneyStageInput"
+        journeySequential:
+          type: boolean
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentInput"
+          description: Document metadata — replaces all existing documents
+
+    BudgetInput:
+      type: object
+      required: [totalBudget, currencyId, allocationMethod]
+      description: >
+        Per-currency budget entry. When `budgetMode` is `PER_LOCATION`,
+        `locationAllocations` should carry the per-LocationValue amounts
+        (any depth in the location hierarchy). Children at any depth must
+        sum to their parent's total, with blanks auto-filled by the client
+        before save.
+      properties:
+        totalBudget:
+          type: string
+          description: Decimal string (e.g. "50000.00")
+        currencyId:
+          type: string
+          maxLength: 50
+          description: Currency identifier (e.g. "cash", "points", "credits", "tickets")
+        allocationMethod:
+          type: string
+          enum: [EQUAL, WEIGHTED, PERFORMANCE_BASED]
+        budgetMode:
+          type: string
+          enum: [GLOBAL, PER_LOCATION]
+          default: GLOBAL
+        budgetLocationLevelId:
+          type: string
+          format: uuid
+          nullable: true
+          description: >
+            LocationLevel UUID indicating the "default" depth at which the
+            user allocated when `budgetMode = PER_LOCATION`. Hint only —
+            actual allocations are in `locationAllocations` and may span
+            multiple depths.
+        locationAllocations:
+          type: array
+          nullable: true
+          description: >
+            Per-LocationValue budget allocations for this currency. Empty
+            or omitted when `budgetMode = GLOBAL`. Each entry maps a
+            LocationValue (at any depth) to a decimal amount.
+          items:
+            $ref: "#/components/schemas/LocationAllocationInput"
+        maxPerPartner:
+          type: string
+          description: Decimal string
+        maxPerUser:
+          type: string
+          description: Decimal string
+
+    LocationAllocationInput:
+      type: object
+      required: [locationValueId, amount]
+      properties:
+        locationValueId:
+          type: string
+          format: uuid
+          description: FK to LocationValue at any depth (Region, Country, State, City, ...)
+        amount:
+          type: string
+          description: Decimal string (e.g. "12500.00")
+
+    AudienceRuleInput:
+      type: object
+      required: [ruleType, ruleValue]
+      properties:
+        ruleType:
+          type: string
+          maxLength: 20
+          enum: [LOCATION, PARTNER_TYPE, ROLE]
+          description: |
+            Type of eligibility rule. LOCATION rules target a LocationValue at
+            any depth in the tenant's hierarchy (Region/Country/State/...).
+            ROLE rules target a ClientRole. PARTNER_TYPE rules target a partner
+            classification string. Legacy REGION/COUNTRY ruleTypes were retired
+            in BUG-034 and now return 400.
+        ruleValue:
+          type: string
+          maxLength: 255
+          description: |
+            BUG-079: now a UUID for LOCATION and ROLE rules; a free-text label
+            for PARTNER_TYPE rules. Names are resolved to UUIDs at the
+            frontend boundary (mapper for picker selections, parser for Excel
+            uploads) so the wire format is identity-stable across renames.
+            For LOCATION rules, this is a LocationValue.id at any depth.
+            For ROLE rules, this is a ClientRole.id (BUG-020).
+            For PARTNER_TYPE rules, this is a free-text type label.
+        locationLevelId:
+          type: string
+          format: uuid
+          description: |
+            Required when ruleType=LOCATION. Disambiguates which level of the
+            tenant's hierarchy the LocationValue sits at — protects against
+            collisions when distinct levels share a name (e.g. "Georgia" the
+            country vs the state). Null for ROLE and PARTNER_TYPE rules.
+
+    SalesRequirementInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        eligibilityGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/EligibilityRuleGroupInput"
+        payouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutConfigInput"
+
+    EligibilityRuleGroupInput:
+      type: object
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/EligibilityRuleInput"
+
+    EligibilityRuleInput:
+      type: object
+      properties:
+        ruleType:
+          type: string
+          enum: [PRODUCTS, BOOKING_AMOUNT, CUSTOMER_TYPE]
+        operator:
+          type: string
+          enum:
+            [
+              EQUALS,
+              GREATER_THAN,
+              GREATER_THAN_OR_EQUAL,
+              LESS_THAN,
+              BETWEEN,
+              IN,
+              NOT_IN,
+            ]
+        value:
+          type: string
+        valueMax:
+          type: string
+        selectedProducts:
+          type: array
+          items:
+            type: string
+          description: Product IDs (when ruleType = PRODUCTS)
+        customerTypes:
+          type: array
+          items:
+            type: string
+          description: Customer type values (when ruleType = CUSTOMER_TYPE)
+
+    PayoutConfigInput:
+      type: object
+      properties:
+        currencyId:
+          type: string
+        payoutType:
+          type: string
+          enum: [PERCENTAGE, FLAT]
+        against:
+          type: string
+          enum: [TOTAL_BOOKING, ELIGIBLE_PRODUCTS]
+        maxPerDeal:
+          type: string
+          description: Decimal string
+        bands:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutBandInput"
+
+    PayoutBandInput:
+      type: object
+      properties:
+        minAmount:
+          type: string
+          description: Decimal string
+        maxAmount:
+          type: string
+          description: Decimal string (nullable)
+        payoutValue:
+          type: string
+          description: Decimal string
+
+    TrainingCourseInput:
+      type: object
+      required: [courseId, courseName]
+      properties:
+        courseId:
+          type: string
+        courseName:
+          type: string
+        courseCategory:
+          type: string
+        courseProvider:
+          type: string
+        courseDuration:
+          type: string
+        courseLevel:
+          type: string
+          enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+        required:
+          type: boolean
+          default: true
+
+    ActivityDefinitionInput:
+      type: object
+      required: [name, categoryId]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: string
+        sortOrder:
+          type: integer
+        requiredDocuments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityDocumentInput"
+
+    ActivityDocumentInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+          default: true
+
+    JourneyStageInput:
+      type: object
+      required: [linkedIncentiveId, sortOrder]
+      properties:
+        linkedIncentiveId:
+          type: string
+          format: uuid
+        sortOrder:
+          type: integer
+
+    # ─── Response Schemas ────────────────────────────────────────────
+
+    IncentiveResponse:
+      type: object
+      description: >
+        Summary response for list views. Includes computed fields like budget utilization,
+        document counts, progress, and journey stage summaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        incentiveType:
+          type: string
+          enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+        status:
+          type: string
+          enum: [DRAFT, PENDING_APPROVAL, ACTIVE, PAUSED, COMPLETED, EXPIRED]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        budgetTotal:
+          type: string
+          description: From budget.totalBudget (decimal string)
+        budgetCurrency:
+          type: string
+          description: From budget.currency
+        createdByName:
+          type: string
+          description: Resolved from User (firstName + lastName)
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        rewardCurrencies:
+          type: array
+          items:
+            type: string
+          description: Parsed from JSON (e.g. ["cash", "points"])
+        rewardMessage:
+          type: string
+          description: Message shown to partners
+        budgetUtilizationPercent:
+          type: integer
+          description: Computed floor(budgetUtilized / totalBudget * 100)
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentSummaryResponse"
+        trainingCourseCount:
+          type: integer
+          description: Only for TRAINING type
+        activityDefinitionCount:
+          type: integer
+          description: Only for ACTIVITY type
+        partnerProgressCompleted:
+          type: integer
+          description: Computed partner completion progress
+        partnerProgressLabel:
+          type: string
+          description: '"courses" for TRAINING, "activities" for ACTIVITY'
+        journeyStages:
+          type: array
+          items:
+            $ref: "#/components/schemas/JourneyStageSummaryResponse"
+          description: Only for JOURNEY type
+
+    IncentiveDetailResponse:
+      type: object
+      description: >
+        Full detail response with nested entities. Does NOT include the computed list-level fields
+        (budgetUtilizationPercent, trainingCourseCount, activityDefinitionCount,
+        partnerProgressCompleted, partnerProgressLabel, journeyStages as summaries).
+        Clients needing those fields should fall back to the IncentiveResponse from the list endpoint.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        incentiveType:
+          type: string
+          enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+        status:
+          type: string
+          enum: [DRAFT, PENDING_APPROVAL, ACTIVE, PAUSED, COMPLETED, EXPIRED]
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        budgetTotal:
+          type: string
+        budgetCurrency:
+          type: string
+        createdByName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        timezone:
+          type: string
+        budget:
+          $ref: "#/components/schemas/BudgetResponse"
+        rewardCurrencies:
+          type: array
+          items:
+            type: string
+        rewardMessage:
+          type: string
+        rewardAmounts:
+          type: object
+          additionalProperties:
+            type: string
+          description: Per-currency amounts (e.g. {"cash":"500","points":"100"})
+        audienceRules:
+          type: array
+          items:
+            $ref: "#/components/schemas/AudienceRuleResponse"
+        salesRequirements:
+          type: array
+          items:
+            $ref: "#/components/schemas/SalesRequirementResponse"
+        trainingCourses:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrainingCourseResponse"
+        activityDefinitions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityDefinitionResponse"
+        journeyStages:
+          type: array
+          items:
+            $ref: "#/components/schemas/JourneyStageResponse"
+          description: Raw stage data (linkedIncentiveId + sortOrder), not summaries
+        journeySequential:
+          type: boolean
+        forecast:
+          $ref: "#/components/schemas/ForecastResponse"
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentSummaryResponse"
+          description: Attached program documents
+
+    BudgetResponse:
+      type: object
+      description: Budget detail returned inside IncentiveDetailResponse
+      properties:
+        totalBudget:
+          type: string
+          description: Decimal string
+        currencyId:
+          type: string
+          description: Currency identifier (e.g. "cash", "points")
+        allocationMethod:
+          type: string
+          enum: [EQUAL, WEIGHTED, PERFORMANCE_BASED]
+        budgetMode:
+          type: string
+          enum: [GLOBAL, PER_LOCATION]
+        budgetLocationLevelId:
+          type: string
+          format: uuid
+          nullable: true
+          description: LocationLevel UUID hint for the depth at which the user allocated.
+        locationAllocations:
+          type: array
+          description: >
+            Per-LocationValue budget allocations for this currency. Each entry
+            includes the LocationValue's UUID, level, and display name so the
+            client can reconstruct the allocation tree without a separate
+            hierarchy lookup.
+          items:
+            $ref: "#/components/schemas/LocationAllocationResponse"
+        maxPerPartner:
+          type: string
+        maxPerUser:
+          type: string
+        budgetUtilized:
+          type: string
+          description: Decimal string (e.g. "0.00")
+
+    LocationAllocationResponse:
+      type: object
+      properties:
+        locationValueId:
+          type: string
+          format: uuid
+        locationLevelId:
+          type: string
+          format: uuid
+        locationValueName:
+          type: string
+          description: Display name (e.g. "California")
+        levelName:
+          type: string
+          description: Display name of the level (e.g. "State")
+        amount:
+          type: string
+          description: Decimal string
+
+    DocumentSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Sanitized filename
+        documentType:
+          type: string
+          description: Category key (terms-conditions, eligible-products, program-rules, faq)
+        fileType:
+          type: string
+          description: File extension (pdf, xlsx, xls, docx, doc)
+        size:
+          type: string
+          description: Human-readable size (e.g. "1.2 MB", "245 KB")
+        downloadUrl:
+          type: string
+          nullable: true
+          description: >
+            Relative URL for downloading the file (e.g. "/api/v1/incentives/{id}/documents/{docId}/download").
+            Null when no file binary is stored (metadata-only documents).
+
+    DocumentInput:
+      type: object
+      required: [name, documentType, fileType, size]
+      description: >
+        Document metadata sent in create/update requests.
+        Only metadata is stored — no file binary. Validated server-side
+        against allowed extensions and categories.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Original filename (sanitized server-side)
+        documentType:
+          type: string
+          maxLength: 50
+          description: Category key (terms-conditions, eligible-products, program-rules, faq)
+        fileType:
+          type: string
+          maxLength: 10
+          description: File extension (pdf, xlsx, xls, docx, doc)
+        size:
+          type: string
+          maxLength: 20
+          description: Human-readable file size (e.g. "1.2 MB")
+
+    JourneyStageSummaryResponse:
+      type: object
+      description: Summary of a journey stage (used in IncentiveResponse list view)
+      properties:
+        sortOrder:
+          type: integer
+        incentiveType:
+          type: string
+          enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+          description: Type of the linked incentive
+        incentiveName:
+          type: string
+          description: Name of the linked incentive
+        incentiveStatus:
+          type: string
+          enum: [DRAFT, PENDING_APPROVAL, ACTIVE, PAUSED, COMPLETED, EXPIRED]
+          description: Status of the linked incentive
+
+    AudienceRuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ruleType:
+          type: string
+        ruleValue:
+          type: string
+
+    SalesRequirementResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        eligibilityGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/EligibilityRuleGroupResponse"
+        payouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutConfigResponse"
+
+    EligibilityRuleGroupResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/EligibilityRuleResponse"
+
+    EligibilityRuleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ruleType:
+          type: string
+          enum: [PRODUCTS, BOOKING_AMOUNT, CUSTOMER_TYPE]
+        operator:
+          type: string
+          enum:
+            [
+              EQUALS,
+              GREATER_THAN,
+              GREATER_THAN_OR_EQUAL,
+              LESS_THAN,
+              BETWEEN,
+              IN,
+              NOT_IN,
+            ]
+        value:
+          type: string
+        valueMax:
+          type: string
+        selectedProducts:
+          type: array
+          items:
+            type: string
+          description: Product IDs (when ruleType = PRODUCTS)
+        customerTypes:
+          type: array
+          items:
+            type: string
+          description: Customer type values (when ruleType = CUSTOMER_TYPE, parsed from selectedProducts column)
+
+    PayoutConfigResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        currencyId:
+          type: string
+        payoutType:
+          type: string
+          enum: [PERCENTAGE, FLAT]
+        against:
+          type: string
+          enum: [TOTAL_BOOKING, ELIGIBLE_PRODUCTS]
+        maxPerDeal:
+          type: string
+        bands:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutBandResponse"
+
+    PayoutBandResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        minAmount:
+          type: string
+        maxAmount:
+          type: string
+          description: Nullable
+        payoutValue:
+          type: string
+
+    TrainingCourseResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        courseId:
+          type: string
+        courseName:
+          type: string
+        courseCategory:
+          type: string
+        courseProvider:
+          type: string
+        courseDuration:
+          type: string
+        courseLevel:
+          type: string
+          enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+        required:
+          type: boolean
+
+    ActivityDefinitionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        categoryId:
+          type: string
+        sortOrder:
+          type: integer
+        requiredDocuments:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityDocumentResponse"
+
+    ActivityDocumentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+
+    JourneyStageResponse:
+      type: object
+      description: Raw journey stage (used in IncentiveDetailResponse)
+      properties:
+        id:
+          type: string
+          format: uuid
+        linkedIncentiveId:
+          type: string
+          format: uuid
+        sortOrder:
+          type: integer
+
+    ForecastPreviewRequest:
+      type: object
+      required: [incentiveType, regions]
+      description: >
+        Builder-state snapshot for the forecast-preview endpoint. The `regions`
+        field is the depth-0 (region) names from Participant Eligibility and is
+        kept for backward compatibility; `locationSelections` carries the full
+        level-keyed hierarchy (Region → Country → State → ...) so the forecast
+        can narrow its population to the actual targeted scope, not just the
+        region pool. When both are supplied, `locationSelections` takes
+        precedence.
+      properties:
+        incentiveType:
+          type: string
+          description: Incentive type discriminator (e.g. SALES, TRAINING).
+        regions:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: Depth-0 region names (back-compat — see locationSelections).
+        locationSelections:
+          type: object
+          description: >
+            Full level-keyed eligibility scope, mirroring the builder's
+            `audience.locationSelections` shape. Keys are LocationLevel UUIDs
+            (the same id used by the location-builder-options endpoint); values
+            are the LocationValue names selected at that level. Optional —
+            when omitted, the legacy `regions` flat list is used.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            "11111111-1111-1111-1111-111111111111": ["Americas"]
+            "22222222-2222-2222-2222-222222222222": ["United States"]
+            "33333333-3333-3333-3333-333333333333": ["California"]
+        startDate:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          nullable: true
+        totalBudget:
+          type: string
+          nullable: true
+        budgetCurrency:
+          type: string
+          nullable: true
+        budgetMode:
+          type: string
+          enum: [GLOBAL, PER_REGION, PER_LOCATION]
+          nullable: true
+        selectedCurrencies:
+          type: array
+          items:
+            type: string
+          nullable: true
+        partnerTypes:
+          type: array
+          items:
+            type: string
+          nullable: true
+        maxPerPartner:
+          type: string
+          nullable: true
+        maxPerUser:
+          type: string
+          nullable: true
+        productSkus:
+          type: array
+          items:
+            type: string
+          nullable: true
+        payoutType:
+          type: string
+          nullable: true
+        payoutAgainst:
+          type: string
+          nullable: true
+        payoutBands:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              minAmount:
+                type: string
+              maxAmount:
+                type: string
+                nullable: true
+              payoutValue:
+                type: string
+        maxPerDeal:
+          type: string
+          nullable: true
+        regionBudgets:
+          type: object
+          nullable: true
+          description: >
+            Per-region per-currency budget allocations. Outer key is region
+            name, inner key is currency id (cash/points/credits/tickets).
+          additionalProperties:
+            type: object
+            additionalProperties:
+              type: string
+
+    ForecastResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        incentiveId:
+          type: string
+          format: uuid
+        estimatedRoi:
+          type: string
+        estimatedParticipation:
+          type: integer
+        estimatedParticipationRate:
+          type: string
+        estimatedTotalCost:
+          type: string
+        estimatedRevenue:
+          type: string
+        confidenceScore:
+          type: string
+        locationBreakdown:
+          type: array
+          description: >
+            Per-location predictions at any depth in the location hierarchy.
+            Includes one entry per targeted node plus its ancestor chain up to
+            depth 0; children at the same parent must sum to the parent within
+            rounding tolerance for net-new metrics and budget fields. Replaces
+            the legacy flat `regionalBreakdown`.
+          items:
+            $ref: "#/components/schemas/LocationBreakdown"
+        monthlyProjections:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              revenue:
+                type: string
+              cost:
+                type: string
+              participants:
+                type: integer
+        insights:
+          type: array
+          description: >
+            Claude-generated GLOBAL insights for this forecast. Capped at 3,
+            selected by Claude's self-rated confidence.
+          items:
+            $ref: "#/components/schemas/AiInsight"
+        topLevelInsights:
+          type: object
+          description: >
+            Per-top-level-location insights. Keys are top-level location names
+            (whatever depth-0 is in the client's hierarchy — Region / Theater /
+            Country / etc.); values are arrays of up to 3 AiInsight entries.
+            Only populated for top-level locations the user actually targeted.
+            Children inherit their parent's insights via the UI.
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/AiInsight"
+        reasoning:
+          type: string
+          nullable: true
+          description: 2-4 sentence Claude-generated explanation of how the forecast was derived.
+        generatedAt:
+          type: string
+          format: date-time
+
+    AiInsight:
+      type: object
+      required:
+        - type
+        - title
+        - detail
+      properties:
+        type:
+          type: string
+          enum: [strength, risk, opportunity, warning]
+        title:
+          type: string
+          maxLength: 60
+        detail:
+          type: string
+          description: 1-2 sentence explanation
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: >
+            Self-rated confidence (0-100). Used to select the top 3 insights
+            per scope. Higher = more data-backed claim.
+
+    LocationBreakdown:
+      type: object
+      required:
+        - locationValueId
+        - name
+      properties:
+        locationValueId:
+          type: string
+          format: uuid
+          description: Target node id from `location_values`.
+        name:
+          type: string
+          description: Display name at time of forecast (e.g. "AMERICAS", "United States").
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+          description: >
+            Parent `locationValueId`; null at top-level. Used to validate that
+            children-at-the-same-parent metrics sum to the parent's metrics
+            within rounding tolerance. Display fields (level, depth, parent
+            name) are intentionally omitted — consumers resolve them from
+            `locationValueId` against the client's location hierarchy.
+        budgetAllocated:
+          type: string
+        budgetPredictedSpend:
+          type: string
+        budgetUtilizedPct:
+          type: string
+        netNewDeals:
+          type: integer
+        netNewBookings:
+          type: string
+        roi:
+          type: string
+        participationRate:
+          type: string
+
+    PaginatedIncentiveResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncentiveResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+  parameters:
+    incentiveId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    pageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+    sortBy:
+      name: sortBy
+      in: query
+      schema:
+        type: string
+        default: createdAt
+    sortDirection:
+      name: sortDirection
+      in: query
+      schema:
+        type: string
+        enum: [ASC, DESC]
+        default: DESC
+    search:
+      name: search
+      in: query
+      schema:
+        type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

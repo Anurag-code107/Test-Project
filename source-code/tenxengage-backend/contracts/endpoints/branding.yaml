@@ -1,0 +1,171 @@
+openapi: 3.0.3
+info:
+  title: Branding Endpoints
+  description: Tenant-scoped branding configuration — color tokens and fonts applied to the UI
+  version: 1.0.0
+
+paths:
+  /api/v1/branding:
+    get:
+      summary: Get branding configuration for the current tenant
+      tags: [Branding]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Branding configuration for the current tenant (defaults if no row exists)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingConfig"
+
+    put:
+      summary: Upsert branding configuration for the current tenant
+      tags: [Branding]
+      security:
+        - bearerAuth: []
+      x-permission: action.branding.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBrandingRequest"
+      responses:
+        "200":
+          description: Branding configuration saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingConfig"
+
+  /api/v1/branding/logo:
+    post:
+      summary: Upload a custom logo for the current tenant
+      description: |
+        Uploads a logo image and persists its public URL onto the tenant's branding row.
+        Accepted MIME types — image/png, image/jpeg, image/svg+xml, image/webp.
+        Maximum size — 2 MB. Replaces any existing logo.
+      tags: [Branding]
+      security:
+        - bearerAuth: []
+      x-permission: action.branding.manage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Branding configuration with the new logoUrl
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingConfig"
+        "400":
+          description: Invalid file (unsupported MIME type, empty file, or exceeds size limit)
+        "413":
+          description: File exceeds the 2 MB size limit
+    delete:
+      summary: Remove the custom logo for the current tenant
+      description: Clears `logoUrl` on the tenant's branding row and deletes the stored object.
+      tags: [Branding]
+      security:
+        - bearerAuth: []
+      x-permission: action.branding.manage
+      responses:
+        "200":
+          description: Branding configuration with logoUrl set to null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingConfig"
+
+components:
+  schemas:
+    BrandingConfig:
+      type: object
+      required:
+        - primary
+        - primaryLight
+        - secondary
+        - accent
+        - success
+        - warning
+        - destructive
+        - background
+        - foreground
+        - muted
+        - mutedForeground
+        - card
+        - cardForeground
+        - border
+        - headingFont
+        - bodyFont
+      properties:
+        primary:           { type: string, maxLength: 32, description: "HSL H S% L%" }
+        primaryLight:      { type: string, maxLength: 32 }
+        secondary:         { type: string, maxLength: 32 }
+        accent:            { type: string, maxLength: 32 }
+        success:           { type: string, maxLength: 32 }
+        warning:           { type: string, maxLength: 32 }
+        destructive:       { type: string, maxLength: 32 }
+        background:        { type: string, maxLength: 32 }
+        foreground:        { type: string, maxLength: 32 }
+        muted:             { type: string, maxLength: 32 }
+        mutedForeground:   { type: string, maxLength: 32 }
+        card:              { type: string, maxLength: 32 }
+        cardForeground:    { type: string, maxLength: 32 }
+        border:            { type: string, maxLength: 32 }
+        headingFont:       { type: string, maxLength: 64 }
+        bodyFont:          { type: string, maxLength: 64 }
+        logoUrl:           { type: string, maxLength: 512, nullable: true, description: "Public URL of the tenant's custom logo, or null to use the default tenXengage logo" }
+
+    UpdateBrandingRequest:
+      type: object
+      required:
+        - primary
+        - primaryLight
+        - secondary
+        - accent
+        - success
+        - warning
+        - destructive
+        - background
+        - foreground
+        - muted
+        - mutedForeground
+        - card
+        - cardForeground
+        - border
+        - headingFont
+        - bodyFont
+      properties:
+        primary:           { type: string, maxLength: 32 }
+        primaryLight:      { type: string, maxLength: 32 }
+        secondary:         { type: string, maxLength: 32 }
+        accent:            { type: string, maxLength: 32 }
+        success:           { type: string, maxLength: 32 }
+        warning:           { type: string, maxLength: 32 }
+        destructive:       { type: string, maxLength: 32 }
+        background:        { type: string, maxLength: 32 }
+        foreground:        { type: string, maxLength: 32 }
+        muted:             { type: string, maxLength: 32 }
+        mutedForeground:   { type: string, maxLength: 32 }
+        card:              { type: string, maxLength: 32 }
+        cardForeground:    { type: string, maxLength: 32 }
+        border:            { type: string, maxLength: 32 }
+        headingFont:       { type: string, maxLength: 64 }
+        bodyFont:          { type: string, maxLength: 64 }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

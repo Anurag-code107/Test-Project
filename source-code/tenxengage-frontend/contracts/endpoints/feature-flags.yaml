@@ -1,0 +1,143 @@
+openapi: 3.0.3
+info:
+  title: FeatureFlag Endpoints
+  description: Feature flag management — TENX_ADMIN manages, authenticated users read own
+  version: 1.0.0
+
+paths:
+  /api/v1/feature-flags:
+    get:
+      summary: List all feature flags
+      description: Returns all feature flag definitions. TENX_ADMIN sees full details; other users see only their enabled features.
+      tags: [Feature Flags]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Feature flag list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FeatureFlagResponse"
+
+    post:
+      summary: Create feature flag
+      tags: [Feature Flags]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.features.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [featureKey]
+              properties:
+                featureKey:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                starterEnabled:
+                  type: boolean
+                  default: false
+                professionalEnabled:
+                  type: boolean
+                  default: false
+                enterpriseEnabled:
+                  type: boolean
+                  default: true
+                category:
+                  type: string
+                  maxLength: 50
+                  default: general
+      responses:
+        "201":
+          description: Feature flag created
+
+  /api/v1/feature-flags/{id}:
+    put:
+      summary: Update feature flag
+      tags: [Feature Flags]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.features.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  maxLength: 500
+                starterEnabled:
+                  type: boolean
+                professionalEnabled:
+                  type: boolean
+                enterpriseEnabled:
+                  type: boolean
+                category:
+                  type: string
+                  maxLength: 50
+      responses:
+        "200":
+          description: Feature flag updated
+
+  /api/v1/feature-flags/my-features:
+    get:
+      summary: Get enabled features for current user
+      description: Returns a list of enabled feature keys for the authenticated user's client.
+      tags: [Feature Flags]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Enabled feature keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+components:
+  schemas:
+    FeatureFlagResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        featureKey:
+          type: string
+        description:
+          type: string
+        starterEnabled:
+          type: boolean
+        professionalEnabled:
+          type: boolean
+        enterpriseEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

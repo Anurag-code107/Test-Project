@@ -1,0 +1,119 @@
+{
+  "featureId": "reward-balance-expiration",
+  "repo": "tenxengage-backend",
+  "branch": "work/reward-balance-expiration-US-01-be",
+  "headCommit": "0a29f9cc",
+  "startedAt": "2026-06-25T00:19:12Z",
+  "updatedAt": "2026-06-25T07:30:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "detail": "gradlew check BUILD SUCCESSFUL"
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 5,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/BalanceExpirationController.java",
+        "src/main/java/com/tenxengage/app/dto/request/UpsertBalanceExpirationPolicyRequest.java",
+        "src/main/java/com/tenxengage/app/dto/response/BalanceExpirationPolicyResponse.java",
+        "src/main/java/com/tenxengage/app/dto/response/ExpiringBalancePreviewResponse.java",
+        "src/main/java/com/tenxengage/app/exception/BusinessRuleException.java",
+        "src/main/java/com/tenxengage/app/exception/GlobalExceptionHandler.java",
+        "src/main/java/com/tenxengage/app/repository/BalanceExpiryNoticeRepository.java",
+        "src/main/java/com/tenxengage/app/repository/projection/ExpiringBalancePreviewProjection.java",
+        "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java",
+        "src/test/java/com/tenxengage/app/controller/BalanceExpirationControllerTest.java",
+        "src/test/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyServiceTest.java"
+      ],
+      "findings": [
+        { "severity": "high", "message": "int vs Integer unsafe comparison in isMaterialChange + objectsEqual duplicates Objects.equals()", "autoFixable": true, "fixed": true },
+        { "severity": "high", "message": "Concurrent insert race (check-then-act) — addressed by DataIntegrityViolationException → 409 handler", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "medium", "message": "Missing @Min(1) on leadTimeDays DTO", "autoFixable": true, "fixed": true },
+        { "severity": "medium", "message": "Missing @Min(1) on withinDays query param", "autoFixable": true, "fixed": true },
+        { "severity": "medium", "message": "upsertPolicy_setsEnabledAt test missing enabledAt assertion", "autoFixable": true, "fixed": true },
+        { "severity": "medium", "message": "LocalDate.now()/Instant.now() without Clock injection", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "medium", "message": "resolveWithinDays extra DB query — could be aggregate", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "medium", "message": "Cross-field modal exclusion enforced only in service, not DTO", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "medium", "message": "CURRENCY_DISPLAY_NAMES duplicated in two response records", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "low", "message": "objectsEqual replaced with Objects.equals", "autoFixable": true, "fixed": true }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "fixes": 4,
+      "findings": [
+        { "severity": "medium", "message": "Missing @Pattern on currencyId query param in getExpiringSoon", "autoFixable": true, "fixed": true },
+        { "severity": "medium", "message": "Missing @Max(3650) on withinDays (DoS via date overflow)", "autoFixable": true, "fixed": true },
+        { "severity": "medium", "message": "Raw user-value echo in MethodArgumentTypeMismatchException handler", "autoFixable": true, "fixed": true },
+        { "severity": "low", "message": "Redundant log of unrecognised currencyId", "autoFixable": true, "fixed": true },
+        { "severity": "low", "message": "Missing @Max on leadTimeDays DTO", "autoFixable": true, "fixed": false, "advisory": true }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "fixes": 1,
+      "findings": [
+        { "severity": "high", "message": "totalAmountAtRisk serialized as JSON number — contract requires type:string; fixed with @JsonSerialize(ToStringSerializer)", "autoFixable": true, "fixed": true },
+        { "severity": "high", "message": "@Pattern on @PathVariable fires 400; contract says unrecognised currencyId → 422. Mitigated: format-invalid (non-alpha) correctly 400; semantic-invalid (valid format, not in set) correctly 422 via service.", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "medium", "message": "currencyId filter in expiring-soon not validated against known set in service (passes unknown values to DB query)", "autoFixable": false, "fixed": false, "advisory": true },
+        { "severity": "low", "message": "Instant serialization confirmed ISO 8601 via write-dates-as-timestamps=false in application.yml", "autoFixable": false, "fixed": false, "advisory": false }
+      ]
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "verdict": "needs-attention",
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Disabling/relaxing policy does not cancel pending expiry notices",
+          "alreadyHandled": true,
+          "tierReason": "FR-09.10 cancel-on-relax is explicitly deferred to US-03 per spec Out-of-Scope section",
+          "tier": "advisory"
+        },
+        {
+          "severity": "medium",
+          "title": "Concurrent policy creates produce 500 instead of 409",
+          "alreadyHandled": false,
+          "tierReason": "severity=medium → advisory; fixed by adding DataIntegrityViolationException + ObjectOptimisticLockingFailureException handlers → 409",
+          "tier": "advisory",
+          "fixed": true
+        }
+      ]
+    },
+    "tests": {
+      "status": "passed",
+      "detail": "19/19 service tests + 10/10 controller tests = 29 total, 0 failures"
+    },
+    "coverage": {
+      "status": "passed",
+      "detail": "jacocoTestCoverageVerification BUILD SUCCESSFUL"
+    }
+  },
+  "overall": "passed",
+  "advisory_findings": [
+    "FR-09.10 cancel-on-relax (disable/relax cancels pending notices) — deferred to US-03 by spec design",
+    "Concurrent insert race (check-then-act in upsertPolicy) — backstop: DataIntegrityViolationException → 409 now handled",
+    "LocalDate.now()/Instant.now() without Clock injection — advisory; deferred",
+    "resolveWithinDays fires extra DB query for max(leadTimeDays) — cold path advisory; deferred",
+    "Cross-field modal exclusion (INACTIVITY vs FIXED_DATE fields) validated in service — intentional per spec (domain 422 errorCode required)",
+    "CURRENCY_DISPLAY_NAMES duplication — 4-entry map, low maintenance burden; deferred",
+    "@Pattern on path variable fires 400 for format-invalid values vs 422 — layered defense by design; semantic check in service returns 422"
+  ],
+  "rc_fixes": [
+    "Objects.equals() replaces unsafe int!=Integer and objectsEqual() helper",
+    "@Min(1) on leadTimeDays DTO field",
+    "@Min(1) + @Max(3650) on withinDays query param",
+    "@Pattern on currencyId query param in getExpiringSoon",
+    "Test assertion enabledAt non-null added",
+    "@JsonSerialize(ToStringSerializer) on totalAmountAtRisk per contract type:string",
+    "Raw user-value redacted from type-mismatch error handler",
+    "Redundant currencyId log removed from validateCurrencyId",
+    "ObjectOptimisticLockingFailureException + DataIntegrityViolationException → 409 handlers added"
+  ],
+  "rc_manual": [],
+  "rc_blocked": [],
+  "test_result": "29 tests, 0 failures, 0 errors",
+  "antipattern_pass": true,
+  "diff_stat": "11 files changed, 1108 insertions(+), 3 deletions(-)"
+}

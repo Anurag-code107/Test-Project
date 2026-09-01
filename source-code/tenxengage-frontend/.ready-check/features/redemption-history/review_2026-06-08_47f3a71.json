@@ -1,0 +1,142 @@
+{
+  "branch": "features/redemption-history",
+  "featureId": "redemption-history",
+  "generatedAt": "2026-06-08T19:17:00Z",
+  "updatedAt": "2026-06-09T00:00:00Z",
+  "headCommit": "47f3a71a6164b6aa1ef9f1b61d543b26f842dfc3",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "73811fcfe1cff00be800926b88470cfcd74dea7e",
+      "build": "passed",
+      "lint": "passed",
+      "lintErrors": 0,
+      "notes": "0 ESLint errors. 1 pre-existing useEffect dep warning in ExportDialog.tsx (jobData?.status narrowing — intentional)."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "73811fcfe1cff00be800926b88470cfcd74dea7e",
+      "fixes": 0,
+      "filesReviewed": [
+        "src/types/redemption-history/redemption-history.types.ts",
+        "src/services/redemption-history/redemption-history.service.ts",
+        "src/hooks/redemption-history/useTenantRedemptions.ts",
+        "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+        "src/pages/redemption-history/__tests__/TenantTransactionHistoryPage.test.tsx",
+        "src/components/redemption-history/ExportDialog.tsx",
+        "src/components/redemption-history/TransactionHistoryTable.tsx",
+        "src/components/redemption-history/TransactionDetailSheet.tsx",
+        "src/components/layout/sidebars/sidebarConfigs.ts",
+        "src/App.tsx",
+        "e2e/redemption-history.spec.ts"
+      ],
+      "findings": [],
+      "advisory": [
+        {
+          "summary": "lucide-react barrel imports",
+          "details": "Project uses barrel imports throughout 50+ files; Vite/Rollup tree-shakes lucide-react correctly. False positive for this project.",
+          "tier": "advisory"
+        },
+        {
+          "summary": "STATUS_BADGE constant duplicated across 3 files",
+          "details": "TransactionDetailSheet, TransactionHistoryTable, TenantTransactionHistoryPage each define STATUS_BADGE. Could be extracted to a shared file. Left as advisory — extraction is a separate refactor.",
+          "tier": "advisory"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "73811fcfe1cff00be800926b88470cfcd74dea7e",
+      "fixes": 4,
+      "fixesApplied": [
+        "TransactionDetailSheet.tsx: focus-visible ring on close button",
+        "TransactionHistoryTable.tsx: role=button + tabIndex={0} + onKeyDown on clickable rows",
+        "TenantTransactionHistoryPage.tsx: same clickable-row a11y in TenantHistoryTable",
+        "ExportDialog.tsx: Loader2 spinner on Download button during downloading state"
+      ],
+      "advisory": [
+        {
+          "summary": "Amber pending badge uses raw HSL literal",
+          "details": "bg-[hsl(38_90%_50%/0.12)] text-amber-600 — project-wide pattern in 10+ files; --warning token is a different hue (22 90% 55%). Advisory only.",
+          "tier": "advisory"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "73811fcfe1cff00be800926b88470cfcd74dea7e",
+      "fixes": 0,
+      "checks": {
+        "no-localstorage": "passed",
+        "no-sessionstorage": "passed",
+        "no-any-types": "passed",
+        "no-dangerouslySetInnerHTML": "passed",
+        "no-raw-fetch": "passed",
+        "no-secrets": "passed"
+      }
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "8eb4ebb68e6ac5e3b754f79d5fcd6db185b644ff",
+      "fixApplied": "Rows made non-interactive + TransactionDetailSheet guarded by can('action.redemption.view_history'). 2 Vitest + 1 E2E test added. Committed @ 8eb4ebb.",
+      "source": "job-store",
+      "codexJobId": "review-mq5a4pfx-d1fkht",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-history",
+      "codexCompletedAt": "2026-06-08T14:03:46.328Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Tenant admins can open the history page but cannot load row details",
+          "details": "The tenant-wide page is routed behind `action.redemption.view_all_history`, and the test CLIENT_ADMIN fixture intentionally has that permission without `action.redemption.view_history`. However, row clicks mount the shared `TransactionDetailSheet`, which calls `getRedemptionDetail()` against `/redemption/requests/{id}`. The contract marks that detail endpoint as requiring `action.redemption.view_history`, not `view_all_history`, so a real CLIENT_ADMIN can list all tenant transactions but gets a failed detail sheet for any row. This blocks investigation/reconciliation workflows exactly on the admin history surface and is currently untested because the tenant-history tests mock the detail sheet away and the E2E only verifies the list/export path.",
+          "file": "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+          "lineStart": 356,
+          "lineEnd": 360,
+          "severity": "high",
+          "confidence": 0.9,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (≥ 0.70), alreadyHandled=false — no PermissionGate or guard around TransactionDetailSheet at lines 356-360",
+          "recommendation": "Add an admin-compatible redemption detail path/contract guarded by `action.redemption.view_all_history` and use it from `TenantTransactionHistoryPage`, or explicitly grant/check `action.redemption.view_history` before enabling row details. Add an E2E case where CLIENT_ADMIN lacks `action.redemption.view_history`, clicks a tenant-history row, and sees the populated detail sheet.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: tenant-wide history exposes clickable rows whose detail fetch is not authorized for the very permission that grants the page.\n\nFindings:\n- [high] Tenant admins can open the history page but cannot load row details (src/pages/redemption-history/TenantTransactionHistoryPage.tsx:356-360)\n  The tenant-wide page is routed behind `action.redemption.view_all_history`, and the test CLIENT_ADMIN fixture intentionally has that permission without `action.redemption.view_history`. However, row clicks mount the shared `TransactionDetailSheet`, which calls `getRedemptionDetail()` against `/redemption/requests/{id}`. The contract marks that detail endpoint as requiring `action.redemption.view_history`, not `view_all_history`, so a real CLIENT_ADMIN can list all tenant transactions but gets a failed detail sheet for any row. This blocks investigation/reconciliation workflows exactly on the admin history surface and is currently untested because the tenant-history tests mock the detail sheet away and the E2E only verifies the list/export path.\n  Recommendation: Add an admin-compatible redemption detail path/contract guarded by `action.redemption.view_all_history` and use it from `TenantTransactionHistoryPage`, or explicitly grant/check `action.redemption.view_history` before enabling row details. Add an E2E case where CLIENT_ADMIN lacks `action.redemption.view_history`, clicks a tenant-history row, and sees the populated detail sheet.\n\nNext steps:\n- Fix the tenant detail authorization/API mismatch before shipping.\n- Add coverage for CLIENT_ADMIN row detail access on `/redemption/admin/history`."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "47f3a71a6164b6aa1ef9f1b61d543b26f842dfc3",
+      "vitest": {
+        "files": 74,
+        "tests": 498,
+        "result": "passed"
+      },
+      "trackerSignal": {
+        "stories": [
+          { "id": "US-01", "feSha": "89a43956f448", "feTestsSha": "89a43956f448" },
+          { "id": "US-02", "feSha": "88ff500128548d", "feTestsSha": "88ff500128548d" },
+          { "id": "US-03", "feSha": "3b40ab0107b9", "feTestsSha": "3b40ab0107b9" },
+          { "id": "US-04", "feSha": "73811fc", "feTestsSha": "73811fc" }
+        ],
+        "allMatch": false,
+        "notes": "Tracker FE Test SHAs match the squash-merge SHAs, not HEAD — full Vitest suite run instead and passed (498/498)."
+      },
+      "playwright": {
+        "status": "not-run",
+        "notes": "E2E spec exists at e2e/redemption-history.spec.ts. Playwright against real BE requires a running backend — not run as part of ready-check."
+      }
+    }
+  },
+  "overall": "passed",
+  "summary": {
+    "stepsCompleted": ["prerequisites", "code-review", "ui-ux-review", "security-review", "adversarial-review", "tests"],
+    "stepsFailed": [],
+    "autoFixesApplied": 4,
+    "adversarialFixes": 1,
+    "headCommit": "8eb4ebb68e6ac5e3b754f79d5fcd6db185b644ff",
+    "prReadiness": "ready — all steps passed"
+  }
+}

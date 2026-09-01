@@ -1,0 +1,672 @@
+openapi: 3.0.3
+info:
+  title: Redemption Advanced Analytics Endpoints
+  description: >
+    Phase 2 dimensional and trend analytics for CLIENT_ADMIN, served from a sibling
+    controller at /api/v1/redemption/analytics/advanced. Complements the F-07 aggregate
+    dashboard with breakdowns by catalog item, partner segment, time-to-first-redemption,
+    redemption-rate trend, unredeemed-balance liability trend, and failure-mode breakdown.
+    All data is read from PostgreSQL materialized views (refreshed every 15-30 min) plus a
+    refresh-tracking table; the API exposes only aggregate metrics (no per-user identifiers).
+    Dimensional JSON responses are Redis-cached (TTL 60 s, keyed
+    {clientId}:{endpoint}:{dateFrom}:{dateTo}:{region}:{role}). All endpoints require both the
+    F-07 view permission and the advanced permission, and are gated by the
+    redemption_analytics_advanced feature flag (checked in the service layer; 403 if disabled).
+    Dimensional date ranges are capped at 365 days. The liability-trend CSV export is
+    rate-limited to 3 req/min per tenant and emits an audit record on each download.
+  version: 1.0.0
+
+paths:
+  # ─── Item Breakdown (FR-08.1) ──────────────────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/item-breakdown:
+    get:
+      summary: Redemption breakdown by catalog item
+      description: >
+        CLIENT_ADMIN retrieves redemption metrics broken down by catalog item, ranked by
+        total redeemed count descending. Each item carries currency type, total redeemed
+        count, total redeemed amount, and redemption rate. Filterable by date range and
+        region. Served from mv_item_redemption_breakdown via Redis cache (TTL 60 s).
+        Empty items list indicates no redemption data for the filters.
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/Region"
+      responses:
+        "200":
+          description: Item breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemBreakdownResponse"
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Segment Breakdown (FR-08.2) ───────────────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/segment-breakdown:
+    get:
+      summary: Redemption breakdown by partner segment
+      description: >
+        CLIENT_ADMIN retrieves redemption metrics broken down by partner segment: one row per
+        unique (region × role × currency) combination with at least one redemption.
+        Zero-count combinations are omitted. Filterable by region, role, and date range.
+        Served from mv_segment_redemption_breakdown via Redis cache (TTL 60 s).
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/Region"
+        - $ref: "#/components/parameters/Role"
+      responses:
+        "200":
+          description: Segment breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SegmentBreakdownResponse"
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Time to First Redemption (FR-08.3) ────────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/time-to-first-redemption:
+    get:
+      summary: Average time-to-first-redemption by region
+      description: >
+        CLIENT_ADMIN retrieves the mean and median hours from partner account creation to the
+        partner's first COMPLETED RedemptionRequest, segmented by region. Uses current profile
+        attributes at time of analysis (not point-in-time). dateFrom/dateTo scope which partner
+        cohort is included by join date. A region with no completed redemptions returns a row
+        with sampleCount = 0 and null avg/median. Served from mv_time_to_first_redemption via
+        Redis cache (TTL 60 s).
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/Region"
+      responses:
+        "200":
+          description: Time-to-first-redemption by region
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeToFirstRedemptionResponse"
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Redemption Rate Trend (FR-08.4) ───────────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/trend:
+    get:
+      summary: Redemption rate trend over time
+      description: >
+        CLIENT_ADMIN retrieves a redemption-rate time series with one data point per calendar
+        day within the selected window, plotting redeemed count and redemption rate per
+        currency type. Trend is tenant-wide — no tier/region filter. Default window is
+        today-minus-30-days to today. Served from mv_redemption_rate_trend via Redis cache
+        (TTL 60 s).
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: Redemption rate trend
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionTrendResponse"
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Liability Trend JSON (FR-08.5) ────────────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/liability-trend:
+    get:
+      summary: Unredeemed balance liability trend
+      description: >
+        CLIENT_ADMIN retrieves the unredeemed balance liability (available + reserved) at each
+        period-end data point within the selected window, per currency type. Served from the
+        mv_liability_trend snapshot table via Redis cache (TTL 60 s).
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: Liability trend
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiabilityTrendResponse"
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Liability Trend CSV Export (FR-08.5 / FR-08.10) ───────────────────────────
+
+  /api/v1/redemption/analytics/advanced/liability-trend/export:
+    get:
+      summary: Export unredeemed balance liability trend as CSV
+      description: >
+        CLIENT_ADMIN downloads the liability trend as a CSV attachment. Delivered synchronously;
+        not cached (live MV read). Rate limited to 3 req/min per tenant via the shared
+        AnalyticsExportRateLimiter; 429 includes a Retry-After header. Each successful 200 emits
+        an audit record (action=DATA_EXPORTED, resourceType=REDEMPTION_ADVANCED_ANALYTICS_EXPORT)
+        written after the CSV bytes are built — 403, 422, and 429 never produce an audit row.
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: >
+            CSV file delivered as a binary attachment.
+            Columns (in order): period_date, currency_type, total_unredeemed_balance.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="redemption-liability-trend.csv"'
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Failure Mode Breakdown (FR-08.7) ──────────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/failure-breakdown:
+    get:
+      summary: Failed and cancelled redemption breakdown by processing mode and item
+      description: >
+        CLIENT_ADMIN retrieves failed and cancelled redemption metrics broken down by
+        processing mode and catalog item: each row shows failed count, cancelled count, total
+        count, and failure rate within the date range. Default sort is failureRate descending.
+        Filterable by region and date range. Served from mv_failure_mode_breakdown via
+        Redis cache (TTL 60 s).
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      parameters:
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - $ref: "#/components/parameters/Region"
+      responses:
+        "200":
+          description: Failure mode breakdown
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FailureBreakdownResponse"
+        "400": { $ref: "#/components/responses/InvalidDateFormat" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "422": { $ref: "#/components/responses/DateRangeViolation" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ─── Refresh Status (FR-08.8 / FR-08.11) ───────────────────────────────────────
+
+  /api/v1/redemption/analytics/advanced/refresh-status:
+    get:
+      summary: Materialized view refresh status
+      description: >
+        CLIENT_ADMIN retrieves the timestamp of the most recent successful materialized view
+        refresh and a staleness flag (isStale = true when the data is older than 4 hours).
+        Reflects live analytics_mv_refresh_log state — not cached. lastRefreshedAt is null when
+        no refresh has run yet (first deploy); the client treats null as stale.
+      tags: [Redemption Advanced Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.analytics.advanced
+      responses:
+        "200":
+          description: Refresh status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsRefreshStatusResponse"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+
+components:
+  parameters:
+    DateFrom:
+      name: dateFrom
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+      description: >
+        Start of the date window (ISO 8601: YYYY-MM-DD), inclusive. Defaults to today minus
+        30 days (UTC). Must not be after dateTo. Span (dateFrom..dateTo) must not exceed 365 days.
+    DateTo:
+      name: dateTo
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+      description: >
+        End of the date window (ISO 8601: YYYY-MM-DD), inclusive. Defaults to today (UTC).
+        Span (dateFrom..dateTo) must not exceed 365 days.
+    Region:
+      name: region
+      in: query
+      required: false
+      schema:
+        type: string
+      description: >
+        Multi-value region filter as a comma-separated list. Combined with other filters using
+        AND semantics. Omit for no region filtering. A value matching no region yields an empty
+        result, not an error.
+    Role:
+      name: role
+      in: query
+      required: false
+      schema:
+        type: string
+      description: >
+        Multi-value role filter as a comma-separated list (client_roles.base_role_name values).
+        Combined with other filters using AND semantics. Omit for no role filtering.
+        A value matching no role yields an empty result, not an error.
+
+  responses:
+    InvalidDateFormat:
+      description: Invalid date format (non-ISO-8601 string)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthenticated:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ForbiddenOrFlagDisabled:
+      description: >
+        Caller does not hold action.redemption.analytics.advanced, or the
+        redemption_analytics_advanced feature flag is disabled for the tenant's subscription tier.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    DateRangeViolation:
+      description: dateFrom after dateTo, or date range exceeds 365 days
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimited:
+      description: >
+        Rate limit exceeded. Query endpoints: 10 req/min per tenant on the /analytics path.
+        Export endpoint: 3 req/min per tenant; Retry-After header contains seconds until reset.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until the rate limit resets (present on the export endpoint)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    # ─── Shared ───────────────────────────────────────────────────────────────────
+
+    DateWindowDto:
+      type: object
+      description: Echoes the effective date window applied to the query. Reuses the F-07 shape.
+      properties:
+        from:
+          type: string
+          format: date
+          description: Start of the selected window (inclusive, ISO 8601 date)
+        to:
+          type: string
+          format: date
+          description: End of the selected window (inclusive, ISO 8601 date)
+
+    # ─── Item Breakdown (FR-08.1) ──────────────────────────────────────────────────
+
+    ItemRedemptionDto:
+      type: object
+      description: Redemption metrics for a single catalog item.
+      properties:
+        catalogItemId:
+          type: string
+          format: uuid
+          description: Catalog item identifier
+        catalogItemName:
+          type: string
+          description: Catalog item display name
+        currencyId:
+          type: string
+          description: 'Platform currency identifier (e.g. "CASH", "POINTS", "CREDITS", "TICKETS")'
+        totalRedeemedCount:
+          type: integer
+          format: int64
+          description: Total number of completed redemptions for this item in the window
+        totalRedeemedAmount:
+          type: string
+          description: Total redeemed amount (BigDecimal string representation)
+        redemptionRate:
+          type: number
+          format: double
+          description: Redemption rate as a percentage (0-100)
+
+    ItemBreakdownResponse:
+      type: object
+      description: Catalog-item redemption breakdown, ranked by totalRedeemedCount descending.
+      properties:
+        dateWindow:
+          $ref: "#/components/schemas/DateWindowDto"
+        items:
+          type: array
+          description: One entry per catalog item with redemptions in the window. Empty when no data.
+          items:
+            $ref: "#/components/schemas/ItemRedemptionDto"
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent materialized view refresh (FR-08.8)
+
+    # ─── Segment Breakdown (FR-08.2) ───────────────────────────────────────────────
+
+    SegmentRedemptionDto:
+      type: object
+      description: Redemption metrics for a unique (region × role × currency) segment.
+      properties:
+        region:
+          type: string
+          nullable: true
+          description: Region value (partner company's top-level location). Null when partner has no location.
+        role:
+          type: string
+          nullable: true
+          description: Partner role value (client_roles.base_role_name). Null when user has no client role.
+        currencyId:
+          type: string
+          description: Platform currency identifier
+        totalRedeemedCount:
+          type: integer
+          format: int64
+          description: Total number of completed redemptions for this segment
+        totalRedeemedAmount:
+          type: string
+          description: Total redeemed amount (BigDecimal string representation)
+        redemptionRate:
+          type: number
+          format: double
+          description: Redemption rate as a percentage (0-100)
+
+    SegmentBreakdownResponse:
+      type: object
+      description: Partner-segment (region × role × currency) redemption breakdown. Zero-count segments are omitted.
+      properties:
+        dateWindow:
+          $ref: "#/components/schemas/DateWindowDto"
+        segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/SegmentRedemptionDto"
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent materialized view refresh (FR-08.8)
+
+    # ─── Time to First Redemption (FR-08.3) ────────────────────────────────────────
+
+    RegionTimeToRedemptionDto:
+      type: object
+      description: Time-to-first-redemption summary for a single region.
+      properties:
+        region:
+          type: string
+          nullable: true
+          description: Region value (partner company's top-level location). Null when partner has no location.
+        avgHoursToFirstRedemption:
+          type: number
+          format: double
+          nullable: true
+          description: Mean hours from account creation to first COMPLETED redemption. Null when sampleCount = 0.
+        medianHoursToFirstRedemption:
+          type: number
+          format: double
+          nullable: true
+          description: Median hours from account creation to first COMPLETED redemption. Null when sampleCount = 0.
+        sampleCount:
+          type: integer
+          format: int64
+          description: Number of partners in this tier with at least one completed redemption
+
+    TimeToFirstRedemptionResponse:
+      type: object
+      description: Average time-to-first-redemption segmented by region.
+      properties:
+        filters:
+          type: object
+          additionalProperties: true
+          description: Active region filter values applied to the query
+        regions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegionTimeToRedemptionDto"
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent materialized view refresh (FR-08.8)
+
+    # ─── Redemption Rate Trend (FR-08.4) ───────────────────────────────────────────
+
+    TrendDataPointDto:
+      type: object
+      description: One calendar-day data point in the redemption rate trend, per currency type.
+      properties:
+        periodDate:
+          type: string
+          format: date
+          description: Calendar day for this data point (ISO 8601 date)
+        currencyId:
+          type: string
+          description: Platform currency identifier
+        redeemedCount:
+          type: integer
+          format: int64
+          description: Total redeemed count on this day
+        redemptionRate:
+          type: number
+          format: double
+          description: Redemption rate as a percentage (0-100) on this day
+
+    RedemptionTrendResponse:
+      type: object
+      description: Redemption rate trend time series (tenant-wide, one point per calendar day).
+      properties:
+        dateWindow:
+          $ref: "#/components/schemas/DateWindowDto"
+        dataPoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendDataPointDto"
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent materialized view refresh (FR-08.8)
+
+    # ─── Liability Trend (FR-08.5) ─────────────────────────────────────────────────
+
+    LiabilityDataPointDto:
+      type: object
+      description: One period-end liability data point, per currency type.
+      properties:
+        periodDate:
+          type: string
+          format: date
+          description: Period-end calendar day for this data point (ISO 8601 date)
+        currencyId:
+          type: string
+          description: Platform currency identifier
+        totalUnredeemedBalance:
+          type: string
+          description: Total unredeemed balance (available + reserved) as a BigDecimal string
+
+    LiabilityTrendResponse:
+      type: object
+      description: Unredeemed balance liability trend time series, per currency type.
+      properties:
+        dateWindow:
+          $ref: "#/components/schemas/DateWindowDto"
+        dataPoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiabilityDataPointDto"
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent materialized view refresh (FR-08.8)
+
+    # ─── Failure Mode Breakdown (FR-08.7) ──────────────────────────────────────────
+
+    FailureModeDto:
+      type: object
+      description: >
+        Failed/cancelled redemption metrics for a (processing mode × catalog item) combination.
+      properties:
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+          description: >
+            Redemption processing mode (RedemptionProcessingMode, established by F-03).
+          x-spec-note: >
+            The spec DTO labelled this field "MANUAL | AUTOMATED", but those values do not exist
+            in the codebase or BRD. Per the BRD's three processing modes and the F-03
+            RedemptionProcessingMode enum, the canonical values are INSTANT, BATCH,
+            APPROVAL_REQUIRED. Flag the spec for correction.
+        catalogItemId:
+          type: string
+          format: uuid
+          description: Catalog item identifier
+        catalogItemName:
+          type: string
+          description: Catalog item display name
+        currencyId:
+          type: string
+          description: Platform currency identifier
+        failedCount:
+          type: integer
+          format: int64
+          description: Count of FAILED redemptions for this combination in the window
+        cancelledCount:
+          type: integer
+          format: int64
+          description: Count of CANCELLED redemptions for this combination in the window
+        totalCount:
+          type: integer
+          format: int64
+          description: Total count of redemptions for this combination in the window
+        failureRate:
+          type: number
+          format: double
+          description: Failure rate as a percentage (0-100) — (failed + cancelled) / total
+
+    FailureBreakdownResponse:
+      type: object
+      description: Failed/cancelled redemption breakdown by processing mode and catalog item.
+      properties:
+        dateWindow:
+          $ref: "#/components/schemas/DateWindowDto"
+        failureModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/FailureModeDto"
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent materialized view refresh (FR-08.8)
+
+    # ─── Refresh Status (FR-08.8 / FR-08.11) ───────────────────────────────────────
+
+    AnalyticsRefreshStatusResponse:
+      type: object
+      description: Materialized view refresh status and staleness indicator.
+      properties:
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            Timestamp of the most recent successful MV refresh. Null when no refresh has run
+            yet (first deploy); the client treats null as stale.
+        isStale:
+          type: boolean
+          description: True when now − lastRefreshedAt > 4 hours, or when lastRefreshedAt is null
+        stalenessThresholdHours:
+          type: integer
+          description: Staleness threshold in hours; always 4 (included for the client to render a countdown)
+
+    # ─── Error ──────────────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

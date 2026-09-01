@@ -1,0 +1,18 @@
+{
+  "featureId": "redemption-approval-queue",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-approval-queue",
+  "headCommit": "3ef7e3b8a98e8e85d49dead34c5dcb5b1b756a0a",
+  "startedAt": "2026-05-30T13:11:44Z",
+  "updatedAt": "2026-05-30T13:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed" },
+    "code-review": { "status": "passed", "fixes": 5 },
+    "security-review": { "status": "passed", "fixes": 2 },
+    "contract-compliance": { "status": "passed" },
+    "adversarial-review": { "status": "awaiting-user-review" },
+    "tests": { "status": "passed", "fixes": 2 },
+    "coverage": { "status": "failed", "gaps": ["WalletService.releaseReservedBalance — no direct unit test"] }
+  },
+  "overall": "in-progress"
+}

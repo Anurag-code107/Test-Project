@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: LMS Course Endpoints
+  description: LMS course catalog (read-only)
+  version: 1.0.0
+
+paths:
+  /api/v1/lms-courses:
+    get:
+      summary: List courses
+      tags: [LMS Courses]
+      security:
+        - bearerAuth: []
+      x-permission: action.data.view
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of LMS courses
+
+  /api/v1/lms-courses/categories:
+    get:
+      summary: List course categories
+      tags: [LMS Courses]
+      security:
+        - bearerAuth: []
+      x-permission: action.data.view
+      responses:
+        "200":
+          description: List of distinct category strings
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

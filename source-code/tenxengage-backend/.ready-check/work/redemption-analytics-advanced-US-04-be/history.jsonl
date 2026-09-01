@@ -1,0 +1,1 @@
+{"commit":"1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb","timestamp":"2026-06-22T22:45:00Z","trigger":"ready-check","steps":{"prerequisites":"passed","code-review":"passed","security-review":"passed","contract-compliance":"passed","adversarial-review":"passed","tests":"passed","coverage":"passed"},"overall":"passed","fixes":3}

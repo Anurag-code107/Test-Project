@@ -1,0 +1,1020 @@
+openapi: 3.0.3
+info:
+  title: Redemption Returns Endpoints
+  description: >
+    Non-cash return request lifecycle for partners and admin review.
+    Partners submit returns for eligible completed Xoxoday (non-cash) redemptions within
+    the client-configured return window. Return requests go through a CLIENT_ADMIN or
+    ACTIVITY_APPROVER approval gate before being forwarded to Xoxoday's return API.
+    Partner balance is restored only after Xoxoday confirms — never on admin approval alone.
+    A 7-day RETURN_TIMED_OUT safeguard protects partners from indefinite limbo if Xoxoday
+    is slow to respond. Webhook endpoints use HMAC-SHA256 authentication — excluded from JWT filter chain.
+  version: 1.0.0
+
+paths:
+  # ─── Partner — Return Submission ──────────────────────────────────────────────
+
+  /api/v1/redemption/returns:
+    post:
+      summary: Submit a return request
+      description: >
+        Partner submits a return for an eligible completed non-cash (Xoxoday) redemption.
+        Return window and isReturnable eligibility validated server-side. Amount is always
+        copied from the originating redemption — caller cannot set it. Returns 422 if not
+        eligible (outside return window, isReturnable=false, XTRM cash redemption, non-COMPLETED
+        status). Returns 409 if an active return already exists for this redemption.
+        Rate limited to 5 req/min per tenant.
+      tags: [Redemption Returns]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitReturnRequest"
+      responses:
+        "201":
+          description: Return request submitted — status is PENDING_APPROVAL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReturnDetailResponse"
+        "400":
+          description: Validation error — reason exceeds 500 characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: An active return request already exists for this redemption (PENDING_APPROVAL or APPROVED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            Return eligibility failure — outside return window, isReturnable=false, XTRM
+            (cash) redemption, or redemption not in COMPLETED status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (5 req/min per tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      summary: List own return requests (paginated)
+      description: >
+        Partner views their own return requests. Filterable by status.
+        Page size capped at 50. sortBy allowlist enforced server-side.
+      tags: [Redemption Returns]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.request
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+          description: Page size — max 50; returns 400 if exceeded
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, APPROVED, RETURN_CONFIRMED, RETURN_REJECTED, CANCELLED, RETURN_TIMED_OUT]
+          description: Filter by return status
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, amount]
+            default: createdAt
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        "200":
+          description: Paginated list of own return requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedReturnSummaryResponse"
+        "400":
+          description: Validation error — size > 50; unknown sortBy; invalid status enum
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/returns/{id}:
+    get:
+      summary: Get own return request detail
+      description: >
+        Partner retrieves full detail for a single return request.
+        Cross-tenant or cross-user id returns 404, never 403.
+      tags: [Redemption Returns]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.request
+      parameters:
+        - $ref: "#/components/parameters/returnId"
+      responses:
+        "200":
+          description: Return request detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReturnDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Return not found, not owned by caller, or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      summary: Cancel own return request
+      description: >
+        Partner cancels their own return request. Only allowed while status is
+        PENDING_APPROVAL. Transitions return to CANCELLED. No admin action required.
+        Returns 409 if return is not in PENDING_APPROVAL state.
+        Cross-tenant or cross-user id returns 404, never 403.
+      tags: [Redemption Returns]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.request
+      parameters:
+        - $ref: "#/components/parameters/returnId"
+      responses:
+        "204":
+          description: Return request cancelled
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Return not found, not owned by caller, or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Return is not in PENDING_APPROVAL state — cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Admin — Return Review ──────────────────────────────────────────────────
+
+  /api/v1/redemption/admin/returns:
+    get:
+      summary: List return review queue (paginated)
+      description: >
+        Admin views all return requests for the current tenant. Filterable by status and
+        date range. Page size capped at 50. Rate limited to 30 req/min per admin user.
+      tags: [Redemption Returns Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.review
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+          description: Page size — max 50; returns 400 if exceeded
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, APPROVED, RETURN_CONFIRMED, RETURN_REJECTED, CANCELLED, RETURN_TIMED_OUT]
+          description: Filter by return status
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter createdAt >= startDate (ISO-8601 date, e.g. "2026-05-01")
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter createdAt <= endDate (ISO-8601 date, e.g. "2026-05-31")
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, amount]
+            default: createdAt
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        "200":
+          description: Paginated return review queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedReturnQueueResponse"
+        "400":
+          description: Validation error — size > 50; unknown sortBy; invalid date format; invalid status enum
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.return.review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/admin/returns/{id}:
+    get:
+      summary: Get return request detail (admin)
+      description: >
+        Admin retrieves full detail for any return request within the tenant.
+        Includes admin-only fields: reviewNotes, vendorReturnReference.
+        Cross-tenant id returns 404, never 403.
+      tags: [Redemption Returns Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.review
+      parameters:
+        - $ref: "#/components/parameters/returnId"
+      responses:
+        "200":
+          description: Return request detail (includes admin-only fields)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReturnDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.return.review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Return not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/admin/returns/{id}/approve:
+    post:
+      summary: Approve a return request
+      description: >
+        Transitions the return from PENDING_APPROVAL to APPROVED and asynchronously
+        notifies Xoxoday's return API. Partner balance is NOT credited at approval time —
+        credit only issued after Xoxoday webhook confirms. Records reviewedBy and approvedAt.
+        Returns 409 if return is not in PENDING_APPROVAL state or concurrent optimistic lock conflict.
+        Cross-tenant id returns 404, never 403. Emits audit record with action=APPROVED,
+        resourceType=REDEMPTION_RETURN. Rate limited to 30 req/min per admin user.
+      tags: [Redemption Returns Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.review
+      parameters:
+        - $ref: "#/components/parameters/returnId"
+      responses:
+        "200":
+          description: Return approved — status transitions to APPROVED; Xoxoday notification initiated asynchronously
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReturnDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.return.review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Return not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            Return is not in PENDING_APPROVAL state — already actioned or concurrent conflict
+            via optimistic locking. FE must show "This return was updated concurrently. Please refresh."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/admin/returns/{id}/reject:
+    post:
+      summary: Reject a return request
+      description: >
+        Transitions the return from PENDING_APPROVAL to RETURN_REJECTED. Xoxoday is NOT
+        contacted. Records reviewedBy, rejectedAt, and reviewNotes (mandatory rejection reason).
+        Returns 400 if rejectionReason is blank. Returns 409 if not in PENDING_APPROVAL state.
+        Cross-tenant id returns 404, never 403. Emits audit record with action=REJECTED,
+        resourceType=REDEMPTION_RETURN. Rate limited to 30 req/min per admin user.
+      tags: [Redemption Returns Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.review
+      parameters:
+        - $ref: "#/components/parameters/returnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectReturnRequest"
+      responses:
+        "200":
+          description: Return rejected — status transitions to RETURN_REJECTED; partner notified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReturnDetailResponse"
+        "400":
+          description: Validation error — rejectionReason is blank or exceeds 1000 characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.return.review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Return not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Return is not in PENDING_APPROVAL state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/admin/returns/{id}/resolve:
+    post:
+      summary: Manually resolve a timed-out return
+      description: >
+        Admin manually resolves a return in RETURN_TIMED_OUT state (7+ days since approval
+        with no Xoxoday webhook). CONFIRM writes RETURN_CREDIT ledger entry and transitions
+        to RETURN_CONFIRMED; REJECT transitions to RETURN_REJECTED with no wallet credit.
+        Returns 409 if return is not in RETURN_TIMED_OUT state. Cross-tenant id returns 404.
+        Emits audit record with action=COMPLETED (CONFIRM) or action=REJECTED (REJECT),
+        resourceType=REDEMPTION_RETURN.
+      tags: [Redemption Returns Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.return.review
+      parameters:
+        - $ref: "#/components/parameters/returnId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolveTimedOutReturnRequest"
+      responses:
+        "200":
+          description: >
+            Return resolved — transitions to RETURN_CONFIRMED (resolution=CONFIRM) or
+            RETURN_REJECTED (resolution=REJECT)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReturnDetailResponse"
+        "400":
+          description: Validation error — resolution is null or unknown enum value; notes exceeds 1000 characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.return.review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Return not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Return is not in RETURN_TIMED_OUT state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Webhook — Xoxoday Return Confirmation ────────────────────────────────────
+
+  /api/v1/webhooks/redemption-returns/{vendor}:
+    post:
+      summary: Receive Xoxoday return confirmation webhook
+      description: >
+        Inbound webhook from Xoxoday reporting return confirmation or rejection.
+        Authenticated via HMAC-SHA256 signature in X-Webhook-Signature header —
+        excluded from JWT filter chain. Idempotent: duplicate webhook returns 200 with no
+        side effects. On confirmation: writes RETURN_CREDIT ledger entry and transitions
+        return to RETURN_CONFIRMED. On rejection: transitions return to RETURN_REJECTED
+        with no wallet credit. Valid vendor values: "xoxoday" only; all other values return 404.
+        Rate limited to 100 req/min per source IP.
+      tags: [Redemption Return Webhooks]
+      parameters:
+        - name: vendor
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [xoxoday]
+          description: Vendor identifier — only "xoxoday" is valid; other values return 404
+        - name: X-Webhook-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature computed using Xoxoday signing secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Xoxoday return webhook payload — stored as JSONB; structure defined by Xoxoday API
+      responses:
+        "200":
+          description: Webhook received and processed (or idempotently discarded as duplicate)
+        "400":
+          description: Malformed request (missing Content-Type or unparseable body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Invalid or missing HMAC-SHA256 signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown vendor value or returnId in payload not found in resolved tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (100 req/min per source IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Modified Existing Endpoints (F-06: isReturnEligible added) ──────────────
+
+  /api/v1/redemption/requests:
+    get:
+      x-modified: true
+      summary: List personal redemption history (paginated)
+      description: >
+        PARTNER_SELLER / PARTNER_ADMIN: returns their own personal wallet redemption requests
+        only. Extended by F-06 with isReturnEligible flag per item — true only for eligible
+        completed non-cash redemptions within the configured return window that do not already
+        have an active return and have isReturnable=true on the catalog item. Used by FE to
+        show/hide the "Request Return" CTA. All filters are optional and combinable.
+        Sort allowlist enforced server-side.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_history
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt >= dateFrom (ISO-8601 date). Applied as 00:00:00 UTC.
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt <= dateTo (ISO-8601 date). Applied as 23:59:59.999 UTC.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        - name: currencyId
+          in: query
+          schema:
+            type: string
+            description: Filter by currency ID — "cash", "points", "credits", "tickets"
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CASH, NON_CASH]
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [submittedAt, amount, status]
+            default: submittedAt
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        "200":
+          description: Paginated personal redemption history (includes isReturnEligible per item)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedRedemptionRequestResponse"
+        "400":
+          description: >
+            Validation error — pageSize > 50; invalid status/category enum; unknown sortBy;
+            invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: dateFrom > dateTo — invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────────────────
+
+    SubmitReturnRequest:
+      type: object
+      required: [redemptionId]
+      properties:
+        redemptionId:
+          type: string
+          format: uuid
+          description: ID of the completed non-cash redemption to return
+        reason:
+          type: string
+          maxLength: 500
+          description: Optional partner-provided reason for the return (max 500 characters)
+
+    RejectReturnRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Required reason for rejection. Must be non-blank; max 1000 characters.
+
+    ResolveTimedOutReturnRequest:
+      type: object
+      required: [resolution]
+      properties:
+        resolution:
+          type: string
+          enum: [CONFIRM, REJECT]
+          description: >
+            CONFIRM — writes RETURN_CREDIT ledger entry and transitions to RETURN_CONFIRMED.
+            REJECT — transitions to RETURN_REJECTED with no wallet credit.
+        notes:
+          type: string
+          maxLength: 1000
+          description: Optional admin notes for the resolution (max 1000 characters)
+
+    # ─── Response Schemas ─────────────────────────────────────────────────────────
+
+    ReturnSummaryResponse:
+      type: object
+      description: >
+        Lightweight summary view for partner's own return list. resolvedAt is the latest of
+        confirmedAt, rejectedAt, cancelledAt — null while still PENDING_APPROVAL or APPROVED.
+        Never includes clientId, deleted, version, reviewNotes, or vendorReturnReference.
+      properties:
+        id:
+          type: string
+          format: uuid
+        redemptionId:
+          type: string
+          format: uuid
+          description: UUID of the originating redemption request
+        catalogItemName:
+          type: string
+          description: Display name of the redeemed catalog item
+        amount:
+          type: string
+          description: Full redemption amount as decimal string (e.g. "150.00"); always equals original redemption amount
+        currencyId:
+          type: string
+          description: Currency ID (e.g. "cash", "points")
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, APPROVED, RETURN_CONFIRMED, RETURN_REJECTED, CANCELLED, RETURN_TIMED_OUT]
+        reason:
+          type: string
+          description: Partner-provided return reason. Null if not provided at submission time.
+        resolvedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the return reached a terminal or timed-out state. Null while PENDING_APPROVAL or APPROVED.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ReturnDetailResponse:
+      type: object
+      description: >
+        Full detail view for a return request. reviewNotes and vendorReturnReference are
+        admin-only fields — omitted from partner-facing responses per null-omission convention.
+        Never includes clientId, deleted, version, or raw reviewed_by UUID.
+      properties:
+        id:
+          type: string
+          format: uuid
+        redemptionId:
+          type: string
+          format: uuid
+          description: UUID of the originating redemption request
+        catalogItemName:
+          type: string
+          description: Display name of the redeemed catalog item
+        partnerDisplayName:
+          type: string
+          description: Display name of the partner who submitted the return
+        amount:
+          type: string
+          description: Full redemption amount as decimal string (e.g. "150.00")
+        currencyId:
+          type: string
+          description: Currency ID (e.g. "cash", "points")
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, APPROVED, RETURN_CONFIRMED, RETURN_REJECTED, CANCELLED, RETURN_TIMED_OUT]
+        reason:
+          type: string
+          description: Partner-provided return reason. Null if not provided.
+        reviewedAt:
+          type: string
+          format: date-time
+          description: Timestamp when admin took action (approve or reject). Null until a decision is made.
+        reviewNotes:
+          type: string
+          description: >
+            Admin notes on rejection or manual resolve. Admin role only — omitted from
+            partner-facing responses.
+        vendorReturnReference:
+          type: string
+          description: >
+            Xoxoday return reference ID set after successful approval API call. Admin role
+            only — omitted from partner-facing responses.
+        approvedAt:
+          type: string
+          format: date-time
+          description: Set when admin approves. Null until approved.
+        timedOutAt:
+          type: string
+          format: date-time
+          description: Set by scheduler when return transitions to RETURN_TIMED_OUT. Null unless timed out.
+        confirmedAt:
+          type: string
+          format: date-time
+          description: Set when Xoxoday confirms the return. Null until RETURN_CONFIRMED.
+        rejectedAt:
+          type: string
+          format: date-time
+          description: Set on RETURN_REJECTED (admin rejection or Xoxoday webhook rejection). Null otherwise.
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Set on CANCELLED by partner. Null unless cancelled.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ReturnQueueItemResponse:
+      type: object
+      description: >
+        Lightweight list item for the admin return review queue. catalogItemName,
+        partnerDisplayName, and partnerCompanyName sourced from JOIN FETCH — no N+1 per-item
+        lookups. Never includes clientId, deleted, or version.
+      properties:
+        id:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the redeemed catalog item
+        partnerDisplayName:
+          type: string
+          description: Display name of the partner who submitted the return
+        partnerCompanyName:
+          type: string
+          description: Partner company name associated with the requesting partner
+        amount:
+          type: string
+          description: Redemption amount as decimal string (e.g. "150.00")
+        currencyId:
+          type: string
+          description: Currency ID (e.g. "cash", "points")
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, APPROVED, RETURN_CONFIRMED, RETURN_REJECTED, CANCELLED, RETURN_TIMED_OUT]
+        reason:
+          type: string
+          description: Partner-provided return reason. Null if not provided.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Modified Response Schemas ────────────────────────────────────────────────
+
+    RedemptionRequestResponse:
+      type: object
+      description: >
+        Summary list item for personal and company history. Extended by F-06 with
+        isReturnEligible flag. Never includes clientId, deleted, or version.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string (e.g. "150.00")
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the redeemed catalog item. Joined at query time.
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        submittedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          description: Null until vendor confirms or failure occurs. Present when status=COMPLETED or FAILED.
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH and status=RESERVED
+        estimatedDelivery:
+          type: string
+          description: Human-readable payout timeline
+        isReturnEligible:
+          type: boolean
+          description: >
+            True if this redemption is eligible for a return: status=COMPLETED, category=NON_CASH,
+            within the catalog item's configured return window, isReturnable=true on the catalog
+            item, and no active (PENDING_APPROVAL or APPROVED) return already exists for this
+            redemption. Used by FE to show/hide the "Request Return" CTA.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Paginated Response Wrappers ─────────────────────────────────────────────
+
+    PaginatedReturnSummaryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReturnSummaryResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    PaginatedReturnQueueResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReturnQueueItemResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    PaginatedRedemptionRequestResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedemptionRequestResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  parameters:
+    returnId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

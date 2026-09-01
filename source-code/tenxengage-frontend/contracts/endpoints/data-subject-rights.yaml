@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: Data Subject Rights Endpoints
+  description: GDPR/CCPA data subject rights — profile correction, data export, and anonymization
+  version: 1.0.0
+
+paths:
+  /api/v1/me/profile-fields:
+    get:
+      summary: Get profile fields with values
+      description: Returns the editable profile fields and their current values for the authenticated user
+      tags: [Data Subject Rights]
+      security:
+        - bearerAuth: []
+      x-permission: action.profile.edit
+      responses:
+        "200":
+          description: Profile fields with current values
+
+  /api/v1/me/profile:
+    patch:
+      summary: Update own profile
+      description: Allows the authenticated user to correct their own personal data (right to rectification)
+      tags: [Data Subject Rights]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  maxLength: 100
+                lastName:
+                  type: string
+                  maxLength: 100
+                phone:
+                  type: string
+                  maxLength: 20
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+        "400":
+          description: Validation error
+        "401":
+          description: Not authenticated
+
+  /api/v1/me/data-export:
+    get:
+      summary: Export own data
+      description: Returns a portable JSON export of all personal data held for the authenticated user (right to data portability)
+      tags: [Data Subject Rights]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Data export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataExportResponse"
+        "401":
+          description: Not authenticated
+
+  /api/v1/users/{id}/data-export:
+    get:
+      summary: Export user data (admin)
+      description: Returns a portable JSON export of all personal data held for the specified user. Restricted to CLIENT_ADMIN.
+      tags: [Data Subject Rights]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Data export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataExportResponse"
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User not found
+
+  /api/v1/users/{id}/anonymize:
+    post:
+      summary: Anonymize user (admin)
+      description: Irreversibly anonymizes all personal data for the specified user (right to erasure). Replaces PII with anonymized values and deactivates the account.
+      tags: [Data Subject Rights]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Reason for anonymization (audit trail)
+      responses:
+        "200":
+          description: User anonymized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+                  anonymizedAt:
+                    type: string
+                    format: date-time
+                  fieldsAnonymized:
+                    type: integer
+                    description: Number of fields that were anonymized
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: User not found
+        "409":
+          description: User already anonymized
+
+components:
+  schemas:
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    DataExportResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        exportedAt:
+          type: string
+          format: date-time
+        profile:
+          type: object
+          description: User profile data
+        consentPreferences:
+          type: array
+          items:
+            type: object
+          description: Current consent preferences
+        policyAcceptances:
+          type: array
+          items:
+            type: object
+          description: History of policy acceptances
+        rewardTransactions:
+          type: array
+          items:
+            type: object
+          description: Reward transaction history
+        activityHistory:
+          type: array
+          items:
+            type: object
+          description: Platform activity history
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

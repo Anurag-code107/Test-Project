@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: PartnerCompany Endpoints
+  description: Partner company management — CLIENT_ADMIN CRUD, scoped by tenant
+  version: 1.0.0
+
+paths:
+  /api/v1/partner-companies:
+    get:
+      summary: List partner companies
+      description: Returns paginated list of partner companies within the current tenant.
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: createdAt }
+        - name: sortDirection
+          in: query
+          schema: { type: string, enum: [ASC, DESC], default: DESC }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search by name
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE, SUSPENDED] }
+      responses:
+        '200':
+          description: Paginated partner company list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPartnerCompanyResponse'
+        '403':
+          description: Insufficient permissions
+
+    post:
+      summary: Create partner company
+      description: Creates a new partner company within the current tenant. CLIENT_ADMIN only.
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePartnerCompanyRequest'
+      responses:
+        '201':
+          description: Partner company created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '400':
+          description: Validation error
+        '409':
+          description: Partner company name already exists within this client
+
+  /api/v1/partner-companies/{id}:
+    get:
+      summary: Get partner company by ID
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Partner company details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '404':
+          description: Partner company not found
+
+    put:
+      summary: Update partner company
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePartnerCompanyRequest'
+      responses:
+        '200':
+          description: Partner company updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '404':
+          description: Partner company not found
+
+    delete:
+      summary: Delete partner company
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Partner company deleted
+        '404':
+          description: Partner company not found
+
+components:
+  schemas:
+    CreatePartnerCompanyRequest:
+      type: object
+      required: [name, externalPartnerId, partnerType, locationValueIds]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        externalPartnerId:
+          type: string
+          maxLength: 100
+        locationValueIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+          description: >-
+            Location value IDs (from the location hierarchy) to assign this
+            partner to. At least one is required.
+        partnerType:
+          type: string
+          maxLength: 50
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+          default: ACTIVE
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        contactEmail:
+          type: string
+          format: email
+          maxLength: 255
+        contactPhone:
+          type: string
+          maxLength: 20
+        metadata:
+          type: string
+          description: JSON string of additional partner attributes.
+
+    UpdatePartnerCompanyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        externalPartnerId:
+          type: string
+          maxLength: 100
+        locationValueIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: >-
+            When provided, replaces the partner's location assignments with
+            these location value IDs.
+        partnerType:
+          type: string
+          maxLength: 50
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        contactEmail:
+          type: string
+          format: email
+          maxLength: 255
+        contactPhone:
+          type: string
+          maxLength: 20
+        metadata:
+          type: string
+
+    LocationAssignmentResponse:
+      type: object
+      properties:
+        locationValueId:
+          type: string
+          format: uuid
+        locationValueName:
+          type: string
+        locationLevelName:
+          type: string
+        locationLevelId:
+          type: string
+          format: uuid
+
+    PartnerCompanyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        externalPartnerId:
+          type: string
+        locations:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationAssignmentResponse'
+        partnerType:
+          type: string
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        website:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        activeUserCount:
+          type: integer
+          format: int64
+        metadata:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedPartnerCompanyResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerCompanyResponse'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

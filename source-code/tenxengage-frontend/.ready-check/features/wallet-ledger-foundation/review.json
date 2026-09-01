@@ -1,0 +1,178 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-frontend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+  "startedAt": "2026-05-15T12:00:00Z",
+  "updatedAt": "2026-05-15T14:30:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+      "completedAt": "2026-05-15T14:00:00Z",
+      "fixes": 0,
+      "notes": "Build passes. Lint: 0 errors, 1 pre-existing warning (react-hooks/exhaustive-deps in DealQualifierForm — segmentOptions). No wallet contract yet — acceptable."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+      "completedAt": "2026-05-15T14:10:00Z",
+      "fixes": 0,
+      "filesReviewed": [
+        "src/components/layout/AppLayout.tsx",
+        "src/components/layout/BaseLayout.tsx",
+        "src/components/ui/skeleton.tsx",
+        "src/services/wallet.service.ts",
+        "src/types/wallet.types.ts",
+        "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+        "src/components/deal-qualifier/DealQualifierForm.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "rule": "js-batch-dom-css",
+          "file": "src/components/layout/BaseLayout.tsx",
+          "lineStart": 28,
+          "lineEnd": 32,
+          "message": "Intentional forced reflow (offsetWidth read between classList.remove/add) to restart CSS animation — advisory.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "medium severity — advisory per classification rules"
+        },
+        {
+          "severity": "medium",
+          "rule": "useEffect-derived-state",
+          "file": "src/components/deal-qualifier/DealQualifierForm.tsx",
+          "lineStart": 50,
+          "lineEnd": 60,
+          "message": "useEffect for derived state — pre-existing; raw useState instead of react-hook-form+zod.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "medium severity — advisory; pre-existing"
+        },
+        {
+          "severity": "medium",
+          "rule": "unstable-dep",
+          "file": "src/components/deal-qualifier/DealQualifierForm.tsx",
+          "lineStart": 70,
+          "lineEnd": 80,
+          "message": "segmentOptions array created inline — unstable reference in useEffect deps. Pre-existing.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "medium severity — advisory"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+      "completedAt": "2026-05-15T14:15:00Z",
+      "fixes": 6,
+      "fixesSummary": [
+        "src/index.css: Added .animate-fade-in suppression in @media (prefers-reduced-motion: reduce)",
+        "ForecastingPanel.tsx:1196 — grid grid-cols-3 → grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+        "ForecastingPanel.tsx:925-930 — confidenceColor → design tokens (--success, --warning, --destructive)",
+        "ForecastingPanel.tsx:317 — fallback text-gray-600 bg-gray-50 border-gray-200 → muted tokens",
+        "ForecastingPanel.tsx: console.log/error gated on import.meta.env.DEV",
+        "DealQualifierForm.tsx — Added htmlFor='close-date' to Label, id='close-date' to Button"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "rule": "hardcoded-palette",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "lineStart": 169,
+          "lineEnd": 174,
+          "message": "insightColors map uses hardcoded palette (emerald, red, blue, amber) — design decision.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "design decision — manual action item"
+        },
+        {
+          "severity": "medium",
+          "rule": "hardcoded-palette",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "lineStart": 1236,
+          "lineEnd": 1237,
+          "message": "Card 2/3 icon colours hardcoded (emerald/blue) — design decision.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "design decision — advisory"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+      "completedAt": "2026-05-15T14:18:00Z",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "rule": "raw-fetch",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "lineStart": 622,
+          "lineEnd": 625,
+          "message": "raw fetch() for SSE streaming — intentional exception; axios doesn't support SSE. Uses credentials: 'include' correctly.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "intentional exception — advisory"
+        }
+      ],
+      "notes": "No tokens in localStorage/sessionStorage. No any types. No dangerouslySetInnerHTML. No secrets. All non-SSE API calls via axios instance."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+      "completedAt": "2026-05-15T14:20:00Z",
+      "source": "user-paste",
+      "pasteWarning": "Codex review ran against 605061b; blocking finding resolved in 4b8492d. Fix directly addresses the timer-cancellation race — renderedInsights.length removed from dep array, replaced by renderedLengthRef.",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Insights swap can cancel its own completion timer",
+          "details": "renderedInsights.length in effect dep array caused cleanup to cancel the entering→open timer when insight count changed after a scope swap. Fixed by introducing renderedLengthRef (same pattern as phaseRef) and removing the length from the dep array.",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "lineStart": 276,
+          "lineEnd": 277,
+          "severity": "high",
+          "confidence": 0.80,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — fix committed at 4b8492d",
+          "alreadyHandled": true,
+          "recommendation": "RESOLVED — renderedLengthRef introduced; renderedInsights.length removed from dep array."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main (run against 605061b)\nVerdict: needs-attention\n\nFindings:\n- [high] Insights swap can cancel its own completion timer (ForecastingPanel.tsx:276-277)\n  RESOLVED in commit 4b8492d: renderedLengthRef introduced, renderedInsights.length removed from dep array."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "4b8492db425c45c27309289db0ea00d96586626d",
+      "completedAt": "2026-05-15T14:30:00Z",
+      "testsRun": ["full Vitest suite (397 tests, 53 files)"],
+      "fixes": 0,
+      "trackerSignal": null,
+      "testPlanCoverage": {
+        "planned": 0,
+        "implemented": 0,
+        "generated": 0,
+        "passing": 397
+      },
+      "notes": "397/397 passed. No tracker stories yet (foundation branch). No wallet-specific test file — foundation branch, no UI exposed yet."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests",
+  "updatedAt": "2026-05-15T14:30:00Z",
+  "mergeRequest": {
+    "url": "https://gitlab.com/genidev/tenxengage-new/tenxengage-frontend/-/merge_requests/1",
+    "title": "feat(wallet-ledger): wallet types and service layer foundation",
+    "targetBranch": "roadmaps/redemption-store",
+    "status": "merged",
+    "mergedAt": "2026-05-15"
+  }
+}

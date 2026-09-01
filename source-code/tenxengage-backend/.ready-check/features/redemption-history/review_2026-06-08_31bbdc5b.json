@@ -1,0 +1,136 @@
+{
+  "featureId": "redemption-history",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-history",
+  "headCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+  "startedAt": "2026-06-08T13:10:00Z",
+  "updatedAt": "2026-06-08T13:36:02Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:12:00Z",
+      "notes": "gradlew check BUILD SUCCESSFUL. spec.md exists."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:25:00Z",
+      "fixes": 1,
+      "filesReviewed": [
+        "RedemptionHistoryService.java",
+        "RedemptionExportService.java",
+        "RedemptionHistoryController.java",
+        "RedemptionExportController.java",
+        "RedemptionExportJob.java",
+        "RedemptionHistoryRepository.java",
+        "ExportRateLimiter.java"
+      ],
+      "fixesApplied": [
+        "RedemptionExportService.processExportJob: null-safe failureReason using Objects.toString(e.getMessage(), e.getClass().getSimpleName())"
+      ],
+      "manualItems": [
+        "CRITICAL: ExportRateLimiter — synchronized on instance creates global lock bottleneck; not production-grade for multi-instance deployments",
+        "HIGH: RedemptionExportService.processExportJobAsync — @Async self-invocation bypasses Spring proxy (runs synchronously); needs self-reference or separate bean",
+        "HIGH: RedemptionExportService.processExportJob — Integer.MAX_VALUE page size for async jobs risks OOM on large datasets; use chunked streaming",
+        "HIGH: RedemptionHistoryRepository — COALESCE pattern is non-sargable (prevents index use on status/category); trade-off vs PostgreSQL type-inference bug fixed in T1",
+        "HIGH: ExportRateLimiter — in-memory state lost on restart; not distributed (bypassed in multi-pod deployments)",
+        "MEDIUM: RedemptionExportService — CSV generation lacks RFC 4180 escaping; commas/newlines in field values would corrupt output"
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:25:00Z",
+      "fixes": 0,
+      "manualItems": [
+        "HIGH: ExportRateLimiter — in-memory state not distributed; trivially bypassable in multi-instance deployment",
+        "MEDIUM: RedemptionHistoryController — sortBy echoes raw user input in error message (minor information leakage)",
+        "MEDIUM: TriggerExportRequest — no cross-field dateFrom≤dateTo validation at DTO level (service validates, but DTO-level guard recommended)",
+        "MEDIUM: TriggerExportRequest — no maximum date range cap; could cause DoS via unbounded export queries",
+        "MEDIUM: RedemptionExportController — filename extension sourced from enum but could benefit from explicit RFC 5987 header encoding",
+        "LOW: RedemptionHistoryController — page/pageSize lack @Min(0)/@Min(1) guards; invalid values produce 500 instead of 400",
+        "LOW: ExportRateLimiter — requestLog map grows unboundedly; should use time-based eviction"
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:28:00Z",
+      "notes": "All 7 endpoints align with redemption-history.yaml contract. Permissions, DTOs, and paths confirmed correct."
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:50:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mq59dfpe-wldzop",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-history",
+      "codexCompletedAt": "2026-06-08T13:42:37.496Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Async exports run inline and can exhaust the request path",
+          "details": "triggerExport calls processExportJobAsync on the same service instance. With Spring proxy-based @Async, self-invocation is not intercepted, so the >1000-row path runs export generation before the POST can return 202. That same path fetches PageRequest.of(0, Integer.MAX_VALUE), so a large export can tie up the request transaction, time out, or run out of memory instead of behaving like a background job.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionExportService.java",
+          "lineStart": 113,
+          "lineEnd": 142,
+          "severity": "high",
+          "confidence": 0.92,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.92 (>=0.70), alreadyHandled=false — @Async self-invocation bypasses proxy; Integer.MAX_VALUE page load confirmed in code",
+          "recommendation": "Move export processing into a separate proxied bean, queue/event it after commit, and generate files by streaming or paging in bounded chunks rather than requesting Integer.MAX_VALUE rows.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Tenant-wide export contract is implemented as personal-only export",
+          "details": "The contract describes CLIENT_ADMIN exports with userId/companyId filters and ALL_TENANT scope, but TriggerExportRequest has no such fields and triggerExport always calls countPersonalHistory/findPersonalHistory for the caller and persists scope(PERSONAL). A client admin attempting a tenant-wide export will get only their own redemption rows, or a false 422 if they have none, which is a high-risk reporting/compliance data omission.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionExportService.java",
+          "lineStart": 82,
+          "lineEnd": 108,
+          "severity": "high",
+          "confidence": 0.95,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.95 (>=0.70), alreadyHandled=false — triggerExport hardcodes personal queries with no scope branching",
+          "recommendation": "Add explicit export scope plus admin-only userId/companyId filters to the request handling, authorize scope by permission, and route admin exports through tenant-history count/query methods while persisting the actual scope.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Company history drops redemptions from every company wallet except the first",
+          "details": "getCompanyHistory loads all COMPANY wallets for the caller partner company, then chooses companyWallets.get(0) and queries by that single wallet id. The schema supports one company wallet per currency, so any redemptions from the company other currency wallets disappear from company history without an error.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionHistoryService.java",
+          "lineStart": 106,
+          "lineEnd": 118,
+          "severity": "medium",
+          "confidence": 0.88,
+          "tier": "advisory",
+          "tierReason": "severity=medium — advisory regardless of confidence or alreadyHandled",
+          "recommendation": "Query company history by clientId and partnerCompanyId or by walletId IN (:walletIds), preserving pagination and sorting across all matching company wallets.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:34:00Z",
+      "testsRun": ["RedemptionHistoryServiceTest", "RedemptionExportServiceTest", "RedemptionHistoryControllerTest", "RedemptionExportControllerTest", "full suite"],
+      "fixes": 0,
+      "notes": "Full unit suite BUILD SUCCESSFUL. Integration tests run separately via ./gradlew integrationTest (Docker required)."
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "31bbdc5ba7c46b34842b1528fa5f2e0a66afb277",
+      "completedAt": "2026-06-08T13:36:00Z",
+      "gaps": []
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-06-08T13:50:00Z"
+}

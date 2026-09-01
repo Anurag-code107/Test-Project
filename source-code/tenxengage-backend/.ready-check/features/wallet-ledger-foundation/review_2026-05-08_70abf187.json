@@ -1,0 +1,273 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-backend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "70abf187add31107111e3c8f987970fd185b9869",
+  "startedAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-08T12:10:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T00:05:00Z",
+      "notes": "Compilation passes. No checkstyle plugin configured. Spec and Flyway migrations (V6, V7, V8) verified. 2 pre-existing test failures (LocationServiceTest, LocalStorageProviderTest) exist on main — not introduced by this branch."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T00:40:00Z",
+      "fixes": 2,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/RewardBalanceController.java",
+        "src/main/java/com/tenxengage/app/controller/WalletController.java",
+        "src/main/java/com/tenxengage/app/dto/response/LedgerEntryResponse.java",
+        "src/main/java/com/tenxengage/app/dto/response/RewardBalanceResponse.java",
+        "src/main/java/com/tenxengage/app/dto/response/RewardWalletResponse.java",
+        "src/main/java/com/tenxengage/app/entity/LedgerEntry.java",
+        "src/main/java/com/tenxengage/app/entity/RewardBalance.java",
+        "src/main/java/com/tenxengage/app/entity/RewardWallet.java",
+        "src/main/java/com/tenxengage/app/entity/enums/AuditResourceType.java",
+        "src/main/java/com/tenxengage/app/entity/enums/LedgerEntryType.java",
+        "src/main/java/com/tenxengage/app/entity/enums/WalletType.java",
+        "src/main/java/com/tenxengage/app/repository/LedgerEntryRepository.java",
+        "src/main/java/com/tenxengage/app/repository/RewardBalanceRepository.java",
+        "src/main/java/com/tenxengage/app/repository/RewardWalletRepository.java",
+        "src/main/java/com/tenxengage/app/service/RewardBalanceService.java",
+        "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+        "src/main/java/com/tenxengage/app/service/WalletService.java"
+      ],
+      "findings": [
+        {
+          "severity": "critical",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "line": 404,
+          "rule": "exception-handling",
+          "message": "NPE when lastEx is null after InterruptedException breaks out of retry loop before any attempt catches an exception",
+          "fixed": true
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "line": 95,
+          "rule": "null-safety",
+          "message": "SUM aggregate returns null when no rows exist; partnerTotal and userTotal would NPE on subtract",
+          "fixed": true
+        },
+        {
+          "severity": "critical",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "line": 47,
+          "rule": "api-design",
+          "message": "@Lazy @Autowired field injection on self violates constructor-injection-only convention",
+          "fixed": false,
+          "manualAction": "Extract REQUIRES_NEW methods into a delegate bean or use ApplicationContextAware pattern"
+        },
+        {
+          "severity": "critical",
+          "file": "src/main/java/com/tenxengage/app/entity/RewardBalance.java",
+          "line": 18,
+          "rule": "idioms",
+          "message": "Two @Entity classes (RewardBalance, RewardWallet) mapped to the same table 'reward_wallets' — risk of cache conflicts and accidental writes",
+          "fixed": false,
+          "manualAction": "Remove @Entity/@Table from deprecated RewardBalance; use plain POJO adapter only"
+        },
+        {
+          "severity": "critical",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "line": 385,
+          "rule": "concurrency",
+          "message": "DataIntegrityViolationException caught in retry loop masks genuine constraint violations — FIXED: isUniqueViolation() helper now narrows retry to SQLState 23505 only",
+          "fixed": true
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "line": 380,
+          "rule": "concurrency",
+          "message": "findWallet() uses non-locking findById() in mutation paths; @Version + retry handles correctness but pessimistic lock would avoid wasted retries",
+          "fixed": false,
+          "manualAction": "Add findByIdForUpdate(@Lock PESSIMISTIC_WRITE) to RewardWalletRepository"
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/entity/LedgerEntry.java",
+          "line": 1,
+          "rule": "api-design",
+          "message": "Ledger idempotency — FIXED: V7 adds uq_ledger_credit_idempotency partial unique index on (reward_wallet_id, reference_type, reference_id) WHERE entry_type='CREDIT'",
+          "fixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T00:55:00Z",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "auth",
+          "message": "getUserWallets() applies clientId tenant isolation but does no explicit ownership/existence check on the target user. Cross-tenant access is prevented but a valid-tenant userId with no wallets returns 404 (prevents enumeration, but no explicit user lookup).",
+          "fixed": false,
+          "manualAction": "Consider adding explicit user-in-tenant lookup before wallet query to prevent information leakage in edge cases"
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "auth",
+          "message": "hasRole() prefers SecurityContextHolder over CustomUserDetails parameter; in async contexts, SecurityContextHolder may hold wrong principal",
+          "fixed": false,
+          "manualAction": "Use user.getAuthorities() exclusively; remove SecurityContextHolder dual-source"
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "logging",
+          "message": "AccessDeniedException throws not logged — financial access denials should be recorded for audit",
+          "fixed": false,
+          "manualAction": "Add structured log.warn() before each AccessDeniedException throw with caller userId and requested resource"
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T01:00:00Z",
+      "notes": "All 3 endpoints match contract exactly: GET /api/v1/wallets/me, GET /api/v1/wallets/company/{companyId}, GET /api/v1/wallets/users/{userId}. HTTP methods, path parameters, status codes (200/401/403/404), and RewardWalletResponse schema all align with contracts/endpoints/wallet.yaml."
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T12:10:00Z",
+      "findings": [
+        {
+          "summary": "grantReward is @Transactional(REQUIRED); walletService.credit() calls REQUIRES_NEW which commits the wallet credit independently. If the outer tx later fails at commit time (e.g. DB infrastructure failure during two-phase commit, or RewardTransaction unique constraint violation from duplicate processing), the credit stays permanently but the RewardTransaction and BudgetUtilization update are rolled back — wallet balance has no corresponding transaction record.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 87,
+          "lineEnd": 215,
+          "severity": "high",
+          "confidence": 0.70,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.70 (≥0.70), not already handled. Notification wrapping reduced the prior trigger but the outer-tx-commit-failure path (e.g. RewardTransaction constraint) remains open.",
+          "recommendation": "Remove @Transactional from grantReward and manage atomicity at the caller, OR restructure so the credit happens last with no further DB writes in the same outer tx after it, OR publish a domain event from the outer tx and have a consumer apply the credit after outer commit (outbox pattern).",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "DataIntegrityViolationException catch too broad in withOptimisticRetry — retried FK/NOT NULL failures indefinitely",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "lineStart": 402,
+          "lineEnd": 405,
+          "severity": "high",
+          "confidence": 0.75,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — isUniqueViolation() helper added, checks SQLState 23505; non-unique violations are immediately re-thrown",
+          "recommendation": "Already fixed (uncommitted). Commit the working-tree changes.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "applyBudgetCap first-call upsert race — concurrent INSERTs both find no row, both attempt INSERT, loser gets uncaught DataIntegrityViolationException",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 251,
+          "lineEnd": 263,
+          "severity": "high",
+          "confidence": 0.70,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — ensureExists() now uses INSERT ... ON CONFLICT DO NOTHING backed by V9 unique indexes (uq_budget_util_global, uq_budget_util_location); race is eliminated at DB level",
+          "recommendation": "Already fixed (uncommitted). Commit the working-tree changes.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "@Modifying ensureExists() missing clearAutomatically=true — if BudgetUtilization was previously loaded in same Hibernate session, first-level cache may return stale entity for the subsequent findByIncentiveIdAndCurrencyId...ForUpdate call",
+          "file": "src/main/java/com/tenxengage/app/repository/BudgetUtilizationRepository.java",
+          "lineStart": 35,
+          "lineEnd": 41,
+          "severity": "medium",
+          "confidence": 0.60,
+          "tier": "advisory",
+          "tierReason": "severity=medium — advisory regardless of confidence. Also confidence=0.60 (<0.70); @Lock PESSIMISTIC_WRITE typically forces a DB round-trip in Hibernate so the risk may not materialise.",
+          "recommendation": "Add clearAutomatically=true to the @Modifying annotation on ensureExists() to guarantee the first-level cache is evicted after the INSERT, ensuring the subsequent locking query always reads fresh data.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "findWallet() uses non-locking findById() in mutation paths — @Version + retry provides correctness but wastes retry cycles",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "lineStart": 381,
+          "lineEnd": 384,
+          "severity": "high",
+          "confidence": 0.55,
+          "tier": "advisory",
+          "tierReason": "confidence=0.55 (<0.70) — @Version optimistic locking + retry provides correctness",
+          "recommendation": "Add findByIdForUpdate(@Lock PESSIMISTIC_WRITE) to RewardWalletRepository for use in reserve/debit/release/returnCredit mutation paths",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "@Lazy @Autowired self field — non-final mutable field violates constructor-injection convention",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "lineStart": 48,
+          "lineEnd": 50,
+          "severity": "critical",
+          "confidence": 0.45,
+          "tier": "advisory",
+          "tierReason": "confidence=0.45 (<0.70) — standard Spring self-proxy pattern; production-safe in singleton scope",
+          "recommendation": "Use ApplicationContextAware or extract REQUIRES_NEW methods to a delegate bean",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "NPE on lastEx==null in withOptimisticRetry after InterruptedException",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "lineStart": 408,
+          "lineEnd": 411,
+          "severity": "critical",
+          "confidence": 1.0,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — null guard added in working tree (throws IllegalStateException when lastEx is null)",
+          "recommendation": "Already fixed (uncommitted). Commit the working-tree changes.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "SUM aggregate returns null when no rows exist — partnerTotal/userTotal NPE on subtract",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 95,
+          "lineEnd": 100,
+          "severity": "high",
+          "confidence": 1.0,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — wrapped with Optional.ofNullable(...).orElse(BigDecimal.ZERO) in working tree",
+          "recommendation": "Already fixed (uncommitted). Commit the working-tree changes.",
+          "alreadyHandled": true
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled=true"
+      },
+      "codexOutput": "Re-run by Claude Sonnet 4.6 on 2026-05-08 (second pass, resume from step 5). Files reviewed from working tree: WalletService.java, RewardGrantService.java, BudgetUtilizationRepository.java. Confirmed working-tree diffs vs HEAD: (1) WalletService — isUniqueViolation() helper + lastEx null guard applied but not committed; (2) RewardGrantService — Optional.ofNullable null safety + notification try/catch + ensureExists() + applyBudgetCap refactor applied but not committed; (3) BudgetUtilizationRepository — ensureExists() method added but not committed. Blocking finding re-assessed: @Transactional(REQUIRED) on grantReward (L87) + REQUIRES_NEW credit() (L178) atomicity gap is STILL PRESENT — notification try/catch removed one outer-rollback trigger but the primary path (DB infrastructure failure during outer tx commit) remains. Result: 1 blocking, 7 advisory (4 alreadyHandled, 3 open advisory)."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T01:20:00Z",
+      "testsRun": [
+        "WalletServiceTest",
+        "RewardGrantServiceTest",
+        "WalletControllerTest",
+        "RewardBalanceControllerTest",
+        "WalletIntegrationTest",
+        "WalletContractConformanceTest"
+      ],
+      "fixes": 0,
+      "testQualityFindings": [],
+      "notes": "All wallet-related tests pass. 2 pre-existing failures (LocationServiceTest, LocalStorageProviderTest) exist on main and are unrelated. Integration tests run via ./gradlew integrationTest (@Tag('integration') excluded from default test task)."
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T01:25:00Z",
+      "gaps": [],
+      "notes": "All new service methods covered: WalletService→WalletServiceTest, RewardGrantService→RewardGrantServiceTest, RewardBalanceService→RewardBalanceServiceTest(pre-existing). All new endpoints covered: WalletController→WalletControllerTest, RewardBalanceController→RewardBalanceControllerTest. Integration + contract conformance: WalletIntegrationTest, WalletContractConformanceTest."
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "coverage"
+}

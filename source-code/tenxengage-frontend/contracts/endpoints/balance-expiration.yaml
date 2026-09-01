@@ -1,0 +1,513 @@
+openapi: 3.0.3
+info:
+  title: Balance Expiration Endpoints
+  description: >
+    Phase 2 redemption-store capability (reward-balance-expiration / F-09) for CLIENT_ADMIN,
+    served at /api/v1/redemption/expiration. Lets a Client Admin configure, per currency type,
+    when unused reward balances expire — either after a period of partner inactivity or on a
+    fixed calendar date — and view/export the resulting breakage. Expiration is off by default
+    and opt-in per currency type; cash never expires unless explicitly enabled. Built entirely
+    on the existing ledger-first wallet engine: expiry is a new LedgerEntryType.EXPIRY debit
+    against a wallet's availableBalance, never a deletion of balance. All endpoints require a
+    CLIENT_ADMIN-only permission and are gated by the reward_balance_expiration feature flag
+    (checked in the service layer). The breakage CSV export is rate-limited to 3 req/min per
+    tenant and emits an audit record on each download. The expiry sweep itself runs as a
+    scheduled SYSTEM batch and is not part of this HTTP contract.
+  version: 1.0.0
+
+paths:
+  # ─── List policies (FR-09.1 / FR-09.2) ─────────────────────────────────────────
+
+  /api/v1/redemption/expiration/policies:
+    get:
+      summary: List balance expiration policies
+      description: >
+        CLIENT_ADMIN retrieves all balance expiration policies for the tenant — one row per
+        currency type (cash, points, credits, tickets), at most four rows. Currencies with no
+        configured policy may be omitted or returned with enabled=false depending on
+        server-side defaulting. No pagination (bounded result set).
+      tags: [Balance Expiration]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.expiration.configure
+      responses:
+        "200":
+          description: All balance expiration policies for the tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BalanceExpirationPolicyResponse"
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+
+  # ─── Upsert policy (FR-09.1 / FR-09.3 / FR-09.9 / FR-09.10) ─────────────────────
+
+  /api/v1/redemption/expiration/policies/{currencyId}:
+    put:
+      summary: Create or update a balance expiration policy
+      description: >
+        CLIENT_ADMIN creates or updates the expiration policy for a single currency type
+        (upsert by currencyId — there is one policy per (client, currency)). Enabling or
+        materially changing a policy sets the grace-window anchor. Disabling or relaxing a
+        policy cancels not-yet-executed (already-notified) expirations and re-notifies the
+        affected partners (FR-09.10). Structural field validation (@NotNull) fails with 400;
+        cross-field and bounds rules (FR-09.9) fail with 422 carrying an errorCode. Concurrent
+        admin edits are guarded by optimistic locking and surface as 409.
+      tags: [Balance Expiration]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.expiration.configure
+      parameters:
+        - $ref: "#/components/parameters/CurrencyIdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertBalanceExpirationPolicyRequest"
+      responses:
+        "200":
+          description: The created or updated policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceExpirationPolicyResponse"
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/InvalidPolicyConfiguration" }
+
+  # ─── Expiring-soon preview (FR-09.4) ───────────────────────────────────────────
+
+  /api/v1/redemption/expiration/expiring-soon:
+    get:
+      summary: Preview balances approaching expiry
+      description: >
+        CLIENT_ADMIN retrieves an aggregate, read-only preview of balances scheduled to expire
+        within a lead window — per currency type, the scheduled expiry date, the count of
+        affected wallets, and the total amount at risk. Aggregate-only: no per-wallet identity
+        is surfaced. Used beside the policy form to show the impact of the current configuration.
+      tags: [Balance Expiration]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.expiration.configure
+      parameters:
+        - $ref: "#/components/parameters/WithinDays"
+        - $ref: "#/components/parameters/CurrencyIdFilter"
+      responses:
+        "200":
+          description: Aggregate preview of balances approaching expiry
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExpiringBalancePreviewResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+
+  # ─── Breakage report (FR-09.6) ─────────────────────────────────────────────────
+
+  /api/v1/redemption/expiration/breakage:
+    get:
+      summary: Balance expiration breakage report
+      description: >
+        CLIENT_ADMIN retrieves the breakage (expired value) report — aggregated from ledger
+        entries where entry_type = EXPIRY — broken down by currency type and period. Aggregate
+        only: counts of expiry events and summed expired amounts per (period × currency); no
+        per-user identity. The date range is required and capped at 24 months.
+      tags: [Balance Expiration]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.expiration.view_breakage
+      parameters:
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/CurrencyIdFilter"
+        - $ref: "#/components/parameters/Granularity"
+      responses:
+        "200":
+          description: Breakage report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceBreakageReportResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+
+  # ─── Breakage CSV export (FR-09.6) ─────────────────────────────────────────────
+
+  /api/v1/redemption/expiration/breakage/export:
+    get:
+      summary: Export the balance expiration breakage report as CSV
+      description: >
+        CLIENT_ADMIN downloads the breakage report as a CSV attachment. Delivered synchronously.
+        Rate limited to 3 req/min per tenant via the shared AnalyticsExportRateLimiter; 429
+        includes a Retry-After header. Each successful 200 emits an audit record
+        (action=DATA_EXPORTED, resourceType=BALANCE_EXPIRY_BREAKAGE_EXPORT) written after the CSV
+        bytes are built — 403 and 429 never produce an audit row. All string cells are escaped
+        against CSV formula injection (leading = + - @).
+      tags: [Balance Expiration]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.expiration.view_breakage
+      parameters:
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/CurrencyIdFilter"
+        - $ref: "#/components/parameters/Granularity"
+      responses:
+        "200":
+          description: >
+            CSV file delivered as a binary attachment.
+            Columns (in order): period_start, period_end, currency_id, expired_count,
+            total_expired_amount.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="balance-expiration-breakage.csv"'
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/ForbiddenOrFlagDisabled" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+components:
+  parameters:
+    CurrencyIdPath:
+      name: currencyId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: >
+        Currency type the policy applies to — one of the platform currency codes
+        ("cash", "points", "credits", "tickets"). An unrecognised value is rejected with 422.
+    From:
+      name: from
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+      description: >
+        Start of the reporting window (ISO 8601: YYYY-MM-DD), inclusive. Must not be after `to`.
+        The span (from..to) must not exceed 24 months.
+    To:
+      name: to
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+      description: >
+        End of the reporting window (ISO 8601: YYYY-MM-DD), inclusive. Must not be before `from`.
+        The span (from..to) must not exceed 24 months.
+    CurrencyIdFilter:
+      name: currencyId
+      in: query
+      required: false
+      schema:
+        type: string
+      description: >
+        Optional filter to a single currency type ("cash", "points", "credits", "tickets").
+        An unrecognised value is rejected with 400.
+    Granularity:
+      name: granularity
+      in: query
+      required: false
+      schema:
+        type: string
+        enum: [MONTH, QUARTER]
+        default: MONTH
+      description: Period bucketing for the breakage report. Defaults to MONTH.
+    WithinDays:
+      name: withinDays
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int32
+      description: >
+        Lead window in days — preview balances scheduled to expire within this many days from
+        today. Defaults to the maximum configured leadTimeDays across the tenant's policies.
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters (e.g. to < from, range > 24 months, unknown currencyId filter, unknown granularity)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ValidationFailed:
+      description: Structural request validation failed (a required field is missing or malformed)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+    Unauthenticated:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ForbiddenOrFlagDisabled:
+      description: >
+        Caller does not hold the required permission, or the reward_balance_expiration feature
+        flag is disabled for the tenant's subscription tier.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Conflict:
+      description: Concurrent policy update — optimistic lock conflict (@Version)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InvalidPolicyConfiguration:
+      description: >
+        Invalid policy configuration (FR-09.9): inactivityDays out of bounds, fixedExpiryDate
+        not in the future, leadTimeDays < 1 or not strictly less than inactivityDays, the wrong
+        mode field supplied, or an unrecognised currencyId in the path. Returned with a specific
+        errorCode (not the generic VALIDATION_FAILED shape).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimited:
+      description: >
+        Rate limit exceeded on the CSV export (3 req/min per tenant). The Retry-After header
+        contains the number of seconds until the limit resets.
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until the rate limit resets
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    # ─── Request ────────────────────────────────────────────────────────────────────
+
+    UpsertBalanceExpirationPolicyRequest:
+      type: object
+      description: >
+        Create-or-update payload for a single currency type's expiration policy. Structural
+        validation only at the API layer (enabled, expirationMode, leadTimeDays are required);
+        cross-field and bounds rules (FR-09.9) are enforced in the service and surface as 422.
+      required: [enabled, expirationMode, leadTimeDays]
+      properties:
+        enabled:
+          type: boolean
+          description: Whether expiration is active for this currency type (opt-in; default off).
+        expirationMode:
+          type: string
+          enum: [INACTIVITY, FIXED_DATE]
+          description: >
+            Which expiry rule applies. INACTIVITY requires inactivityDays; FIXED_DATE requires
+            fixedExpiryDate.
+        inactivityDays:
+          type: integer
+          format: int32
+          nullable: true
+          description: >
+            Inactivity window in days. Required when expirationMode = INACTIVITY (bounds
+            [30, 1825]); must be null when expirationMode = FIXED_DATE.
+        fixedExpiryDate:
+          type: string
+          format: date
+          nullable: true
+          description: >
+            Fixed calendar expiry date (ISO 8601). Required when expirationMode = FIXED_DATE and
+            must be strictly in the future at config time; must be null when
+            expirationMode = INACTIVITY.
+        leadTimeDays:
+          type: integer
+          format: int32
+          description: >
+            Advance-notice lead time in days. Must be >= 1, and strictly less than inactivityDays
+            when expirationMode = INACTIVITY.
+
+    # ─── Responses ────────────────────────────────────────────────────────────────
+
+    BalanceExpirationPolicyResponse:
+      type: object
+      description: >
+        A single currency type's expiration policy. Addressed by currencyId (no surrogate id is
+        surfaced — policies are upsert-by-currency).
+      properties:
+        currencyId:
+          type: string
+          description: Currency code this policy governs ("cash", "points", "credits", "tickets").
+        currencyDisplayName:
+          type: string
+          description: >
+            Human-readable currency label for the form header. Convenience mirror only — the FE
+            renders labels from config/currencies.ts as the source of truth and treats this as a
+            fallback.
+        enabled:
+          type: boolean
+          description: Whether expiration is currently active for this currency type.
+        expirationMode:
+          type: string
+          enum: [INACTIVITY, FIXED_DATE]
+          description: Which expiry rule applies.
+        inactivityDays:
+          type: integer
+          format: int32
+          nullable: true
+          description: Inactivity window in days (present when expirationMode = INACTIVITY).
+        fixedExpiryDate:
+          type: string
+          format: date
+          nullable: true
+          description: Fixed calendar expiry date (present when expirationMode = FIXED_DATE).
+        leadTimeDays:
+          type: integer
+          format: int32
+          description: Advance-notice lead time in days.
+        enabledAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: >
+            When the policy was last (re-)enabled or materially changed — the grace-window
+            anchor. Null when the policy has never been enabled.
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the policy was last changed (ISO 8601).
+
+    ExpiringBalancePreviewResponse:
+      type: object
+      description: >
+        Aggregate preview of balances scheduled to expire for one currency type. No per-wallet
+        identity is surfaced.
+      properties:
+        currencyId:
+          type: string
+          description: Currency code.
+        currencyDisplayName:
+          type: string
+          description: Human-readable currency label (fallback; FE source of truth is currencies.ts).
+        scheduledExpiryDate:
+          type: string
+          format: date
+          description: The date these balances are scheduled to expire (ISO 8601).
+        affectedWalletCount:
+          type: integer
+          format: int64
+          description: Number of wallets with balance scheduled to expire on this date.
+        totalAmountAtRisk:
+          type: string
+          description: Total amount scheduled to expire (BigDecimal string representation).
+
+    BalanceBreakageReportResponse:
+      type: object
+      description: >
+        Breakage (expired value) report aggregated from EXPIRY ledger entries, bucketed by the
+        requested granularity and broken down by currency type.
+      properties:
+        from:
+          type: string
+          format: date
+          description: Start of the reporting window (inclusive, ISO 8601 date).
+        to:
+          type: string
+          format: date
+          description: End of the reporting window (inclusive, ISO 8601 date).
+        granularity:
+          type: string
+          enum: [MONTH, QUARTER]
+          description: Period bucketing applied to the report.
+        rows:
+          type: array
+          description: One row per (period × currency type) with at least one expiry event.
+          items:
+            $ref: "#/components/schemas/BreakageRowDto"
+
+    BreakageRowDto:
+      type: object
+      description: One (period × currency type) breakage row.
+      properties:
+        periodStart:
+          type: string
+          format: date
+          description: Start of the period bucket (ISO 8601 date).
+        periodEnd:
+          type: string
+          format: date
+          description: End of the period bucket (ISO 8601 date).
+        currencyId:
+          type: string
+          description: Currency code.
+        currencyDisplayName:
+          type: string
+          description: Human-readable currency label (fallback; FE source of truth is currencies.ts).
+        expiredCount:
+          type: integer
+          format: int64
+          description: Number of expiry events in this period for this currency type.
+        totalExpiredAmount:
+          type: string
+          description: Total expired amount for this period and currency (BigDecimal string representation).
+
+    # ─── Error ──────────────────────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      description: Structural (field-level) validation failure. Extends the standard error shape with per-field details.
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+          example: VALIDATION_FAILED
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+        details:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of field name to validation message.
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

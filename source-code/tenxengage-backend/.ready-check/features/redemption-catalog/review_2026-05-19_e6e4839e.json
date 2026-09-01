@@ -1,0 +1,76 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "e6e4839e2eeb80816e3bc1952b9c72facac0ad53",
+      "completedAt": "2026-05-19T09:03:20.852Z",
+      "source": "job-store",
+      "codexJobId": "review-mpcehhxy-wf4v80",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T09:03:20.852Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Xoxoday sync tests still assert the pre-fail-closed empty response behavior",
+          "details": "The tests mock `fetchAllProducts()` as `List.of()` and then call `service.runSync()` expecting a successful deactivation path. The implementation now throws on an empty catalog before any deactivation, so these tests will fail instead of validating the new fail-closed contract.",
+          "file": "src/test/java/com/tenxengage/app/service/XoxodaySyncJobServiceTest.java",
+          "lineStart": 39,
+          "lineEnd": 42,
+          "severity": "high",
+          "confidence": 0.98,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.98 (>=0.70), alreadyHandled=false",
+          "recommendation": "Update these tests to assert an `IllegalStateException` and no repository writes for empty responses, and add a separate non-empty response case that verifies absent returned product IDs deactivate existing items.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Per-currency partner caps are calculated with a currency-agnostic total",
+          "details": "The code reads a per-currency partner cap from `maxPerPartnerByCurrency`, but then subtracts `partnerTotal` from `sumAwardedByClientIdAndIncentiveIdAndPartnerCompanyId`, which does not filter by `currencyId`. A partner's USD awards can consume a POINTS cap, or vice versa.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 131,
+          "lineEnd": 138,
+          "severity": "high",
+          "confidence": 0.9,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false",
+          "recommendation": "Add and use a repository aggregate scoped by client, incentive, partner company, and currency when applying `maxPerPartnerByCurrency`.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Tenant catalog filters are accepted by the API but ignored before pagination",
+          "details": "`getTenantCatalog(Boolean enabled, String category, Pageable pageable)` accepts `enabled` and `category`, but immediately pages over all catalog items without applying either filter.",
+          "file": "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+          "lineStart": 79,
+          "lineEnd": 88,
+          "severity": "medium",
+          "confidence": 0.87,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Apply `enabled` and `category` in the database query before pagination.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nFindings:\n- [high] Xoxoday sync tests still assert the pre-fail-closed empty response behavior\n- [high] Per-currency partner caps are calculated with a currency-agnostic total\n- [medium] Tenant catalog filters are accepted by the API but ignored before pagination"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T08:27:11.039Z"
+}

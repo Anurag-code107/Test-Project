@@ -1,0 +1,94 @@
+{
+  "featureId": "redemption-approval-queue",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-approval-queue",
+  "headCommit": "a2f9e1163afb49fa74fb5faa6b4244b33530106d",
+  "startedAt": "2026-06-01T11:10:04Z",
+  "updatedAt": "2026-06-01T11:44:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "a2f9e1163afb49fa74fb5faa6b4244b33530106d",
+      "completedAt": "2026-06-01T11:10:04Z",
+      "notes": "Build OK. Lint: 0 errors (fixed empty formState destructure in RejectDialog.tsx). 2 pre-existing warnings in non-feature files."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "a2f9e1163afb49fa74fb5faa6b4244b33530106d",
+      "completedAt": "2026-06-01T11:28:56Z",
+      "fixes": 4,
+      "filesReviewed": [
+        "src/types/redemption/redemption.types.ts",
+        "src/services/redemption/redemption-approval.service.ts",
+        "src/hooks/redemption/useApprovalQueue.ts",
+        "src/hooks/redemption/useRedemptionApproval.ts",
+        "src/components/redemption/ApprovalQueueTable.tsx",
+        "src/components/redemption/ApprovalQueueFilters.tsx",
+        "src/components/redemption/ApproveConfirmDialog.tsx",
+        "src/components/redemption/RejectDialog.tsx",
+        "src/pages/redemption/ApprovalQueuePage.tsx"
+      ],
+      "findings": []
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "a2f9e1163afb49fa74fb5faa6b4244b33530106d",
+      "completedAt": "2026-06-01T11:28:56Z",
+      "fixes": 5,
+      "findings": []
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "a2f9e1163afb49fa74fb5faa6b4244b33530106d",
+      "completedAt": "2026-06-01T11:28:56Z",
+      "fixes": 0
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "a2f9e1163afb49fa74fb5faa6b4244b33530106d",
+      "completedAt": "2026-06-01T11:44:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mpv4t76x-9ozzpf",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-approval-queue",
+      "codexCompletedAt": "2026-06-01T11:36:59.839Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Approval queue date filters shift selected dates across time zones",
+          "details": "The filter serializes the calendar Date with toISOString(). For users east of UTC, a local midnight selection becomes the previous UTC day before split('T')[0], so selecting June 1 can send startDate/endDate=May 31. The contract treats these as date filters against submittedAt, so approvers can silently hide the requests they meant to review or include the wrong day's redemptions.",
+          "file": "src/components/redemption/ApprovalQueueFilters.tsx",
+          "lineStart": 34,
+          "lineEnd": 35,
+          "severity": "high",
+          "confidence": 0.9,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false",
+          "recommendation": "Format date-only values from local calendar fields, e.g. `${year}-${month}-${day}`, or use a date library's local date formatter; avoid Date.toISOString() and new Date('YYYY-MM-DD') for date-only UI state."
+        },
+        {
+          "summary": "Tenant catalog config consumers assume flattened fields that the API contract nests under tenantConfig",
+          "details": "TenantCatalogItemResponse declares configId, enabled, and override fields at the top level, and components read item.enabled / item.processingModeOverride directly. The checked-in contract defines TenantCatalogItemResponse with a nested tenantConfig object containing ClientCatalogItemConfigResponse. Against the contracted backend shape, switches render disabled, existing overrides do not populate, and saving from the override panel can overwrite tenant config with stale or inherited values.",
+          "file": "src/types/redemption-catalog.types.ts",
+          "lineStart": 88,
+          "lineEnd": 105,
+          "severity": "high",
+          "confidence": 0.87,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.87 (>=0.70), alreadyHandled=false",
+          "recommendation": "Align the frontend type with the contract by adding `tenantConfig: ClientCatalogItemConfigResponse | null`, then update table/form/panel consumers to read and preserve `item.tenantConfig?.enabled` and nested override fields."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: approval filtering can query the wrong dates, and tenant catalog config is wired against a response shape that does not match the contract.\n\nFindings:\n- [high] Approval queue date filters shift selected dates across time zones (src/components/redemption/ApprovalQueueFilters.tsx:34-35)\n  The filter serializes the calendar Date with toISOString(). For users east of UTC, a local midnight selection becomes the previous UTC day before split('T')[0], so selecting June 1 can send startDate/endDate=May 31. The contract treats these as date filters against submittedAt, so approvers can silently hide the requests they meant to review or include the wrong day's redemptions.\n  Recommendation: Format date-only values from local calendar fields, e.g. `${year}-${month}-${day}`, or use a date library's local date formatter; avoid Date.toISOString() and new Date('YYYY-MM-DD') for date-only UI state.\n- [high] Tenant catalog config consumers assume flattened fields that the API contract nests under tenantConfig (src/types/redemption-catalog.types.ts:88-105)\n  TenantCatalogItemResponse declares configId, enabled, and override fields at the top level, and components read item.enabled / item.processingModeOverride directly. The checked-in contract defines TenantCatalogItemResponse with a nested tenantConfig object containing ClientCatalogItemConfigResponse. Against the contracted backend shape, switches render disabled, existing overrides do not populate, and saving from the override panel can overwrite tenant config with stale or inherited values.\n  Recommendation: Align the frontend type with the contract by adding `tenantConfig: ClientCatalogItemConfigResponse | null`, then update table/form/panel consumers to read and preserve `item.tenantConfig?.enabled` and nested override fields."
+    },
+    "tests": { "status": "pending" }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review"
+}

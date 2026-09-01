@@ -1,0 +1,130 @@
+openapi: 3.0.3
+info:
+  title: Currency Endpoints
+  description: Tenant-scoped reward currency management
+  version: 1.0.0
+
+paths:
+  /api/v1/currencies:
+    get:
+      summary: List currencies
+      tags: [Currencies]
+      security:
+        - bearerAuth: []
+      x-permission: action.currency.view
+      responses:
+        "200":
+          description: List of currencies for the tenant
+
+    post:
+      summary: Create currency
+      tags: [Currencies]
+      security:
+        - bearerAuth: []
+      x-permission: action.currency.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, name, type, conversionRate]
+              properties:
+                code:
+                  type: string
+                  maxLength: 50
+                name:
+                  type: string
+                  maxLength: 100
+                type:
+                  type: string
+                  enum: [MONETARY, NON_MONETARY]
+                conversionRate:
+                  type: string
+                  description: Decimal string (e.g. "0.005")
+                unit:
+                  type: string
+                  maxLength: 20
+                isCurrencyFormatted:
+                  type: boolean
+                  default: false
+                isDefault:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Currency created
+
+  /api/v1/currencies/{id}:
+    get:
+      summary: Get currency by ID
+      tags: [Currencies]
+      security:
+        - bearerAuth: []
+      x-permission: action.currency.view
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Currency details
+
+    put:
+      summary: Update currency
+      tags: [Currencies]
+      security:
+        - bearerAuth: []
+      x-permission: action.currency.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [MONETARY, NON_MONETARY]
+                conversionRate:
+                  type: string
+                unit:
+                  type: string
+                isCurrencyFormatted:
+                  type: boolean
+                isDefault:
+                  type: boolean
+      responses:
+        "200":
+          description: Currency updated
+
+    delete:
+      summary: Delete currency
+      tags: [Currencies]
+      security:
+        - bearerAuth: []
+      x-permission: action.currency.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Currency deleted
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

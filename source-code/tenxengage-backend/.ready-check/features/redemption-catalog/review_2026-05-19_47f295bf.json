@@ -1,0 +1,63 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "47f295bf62bd680c5b0fe0218e5ed9d15bb87e35",
+      "completedAt": "2026-05-19T08:27:11.039Z",
+      "source": "job-store",
+      "codexJobId": "review-mpcd99j0-94emrs",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T08:27:11.039Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Budget-utilization uniqueness migration can fail on existing duplicate rows",
+          "details": "V9 adds unique indexes over budget_utilizations without first detecting or consolidating historical duplicates. The branch itself adds ensureExists(... ON CONFLICT DO NOTHING) because concurrent first award calls could race before this change; any tenant that already hit that race will make Flyway fail when CREATE UNIQUE INDEX runs, blocking rollout before the app starts.",
+          "file": "src/main/resources/db/migration/V9__add_budget_utilization_unique_constraints.sql",
+          "lineStart": 2,
+          "lineEnd": 8,
+          "severity": "high",
+          "confidence": 0.86,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.86 (>=0.70), alreadyHandled=false",
+          "recommendation": "Add a pre-index migration step that identifies duplicate global/location budget_utilization keys, merges utilized amounts deterministically, deletes duplicates, and fails with a clear diagnostic if automatic merge is unsafe; then create the unique indexes.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Catalog update can violate CASH returnability invariant and surface as a database error",
+          "details": "Create validates CASH + isReturnable, but update applies category and isReturnable independently and then saves. Changing a returnable NON_CASH item to CASH, or setting isReturnable=true on an existing CASH item, reaches the chk_cash_not_returnable database constraint instead of being rejected as a business rule. That turns a predictable admin validation error into a late persistence failure and likely a 500 response.",
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java",
+          "lineStart": 105,
+          "lineEnd": 113,
+          "severity": "medium",
+          "confidence": 0.82,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "After applying the requested fields, validate the final item state before save: reject CASH items with isReturnable=true, and either clear return-window fields or validate them consistently for non-returnable items.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: the migration path can hard-fail on real production data, and the admin update path relies on the database to reject an invariant the service no longer enforces.\n\nFindings:\n- [high] Budget-utilization uniqueness migration can fail on existing duplicate rows (src/main/resources/db/migration/V9__add_budget_utilization_unique_constraints.sql:2-8)\n- [medium] Catalog update can violate CASH returnability invariant and surface as a database error (src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java:105-113)"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T08:27:11.039Z"
+}

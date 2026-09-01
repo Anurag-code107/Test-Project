@@ -1,0 +1,8 @@
+.env
+.env.*
+.git
+.gradle
+build
+*.log
+.tenxengage-pids
+docker-compose*.yml

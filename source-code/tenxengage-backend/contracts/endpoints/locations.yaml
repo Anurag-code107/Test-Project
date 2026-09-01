@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: Location Endpoints
+  description: Hierarchical location levels and values management
+  version: 1.0.0
+
+paths:
+  /api/v1/location-levels:
+    get:
+      summary: Get location hierarchy
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.view
+      responses:
+        "200":
+          description: Full location hierarchy (levels with nested values)
+
+    post:
+      summary: Create location level
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, depth]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                depth:
+                  type: integer
+                useInBuilder:
+                  type: boolean
+                  default: true
+                useInFilters:
+                  type: boolean
+                  default: true
+      responses:
+        "201":
+          description: Level created
+
+  /api/v1/location-levels/{id}:
+    put:
+      summary: Update location level
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+      responses:
+        "200":
+          description: Level updated
+
+    delete:
+      summary: Delete location level
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Level deleted
+
+  /api/v1/location-levels/{id}/settings:
+    patch:
+      summary: Update location level enablement settings
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                useInBuilder:
+                  type: boolean
+                useInFilters:
+                  type: boolean
+      responses:
+        "200":
+          description: Settings updated
+
+  /api/v1/location-levels/values:
+    post:
+      summary: Create location value
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [levelId, name]
+              properties:
+                levelId:
+                  type: string
+                  format: uuid
+                parentId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                  maxLength: 255
+                code:
+                  type: string
+                  maxLength: 50
+      responses:
+        "201":
+          description: Value created
+
+  /api/v1/location-levels/values/{id}:
+    put:
+      summary: Update location value
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                code:
+                  type: string
+      responses:
+        "200":
+          description: Value updated
+
+    delete:
+      summary: Delete location value
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Value deleted
+
+  /api/v1/location-levels/builder-options:
+    get:
+      summary: Get builder-enabled levels
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.view
+      responses:
+        "200":
+          description: Levels where useInBuilder = true
+
+  /api/v1/location-levels/filter-options:
+    get:
+      summary: Get filter-enabled levels with values
+      tags: [Locations]
+      security:
+        - bearerAuth: []
+      x-permission: action.location.view
+      responses:
+        "200":
+          description: Levels and values where useInFilters = true
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
