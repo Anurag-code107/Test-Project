@@ -1,0 +1,1272 @@
+openapi: 3.0.3
+info:
+  title: Redemption Payout Endpoints
+  description: >
+    Self-service XTRM payout profile for partner payees (XTRM payout & enrollment enhancement to F-03).
+    A payee saves their payout address (which enrolls them in XTRM), chooses a payout rail
+    (AnyPay wallet, Bank/ACH, or Card), and links one or more bank/card instruments (choosing a default).
+    They can also withdraw their XTRM wallet balance to a linked bank or card (a 2-step, OTP-confirmed
+    cash-out).
+    Every endpoint is self-only: the partner_redemption row is resolved from the JWT — there is no id in
+    the path or body (IDOR-guarded). Responses never expose the XTRM recipient id (PAT), the linked-bank
+    reference id, the card token, or any bank/card number — only a masked display label.
+    Access requires action.redemption.redeem — held by PARTNER_SELLER and, since V52, by PARTNER_ADMIN.
+    The payout profile is always personal; the company-payee key these endpoints also used to accept
+    (action.redemption.redeem_company) was deleted with company-wallet redemption in V55.
+  version: 1.0.0
+
+paths:
+  /api/v1/redemption/profile:
+    get:
+      summary: Get my redemption payout profile
+      description: >
+        Returns the current user's payout profile (enrollment status, chosen payout method, whether a
+        bank is linked + its masked label, and XTRM identity level). Read-only: a first-time user gets a
+        default NOT_ENROLLED / ANYPAY view without any row being created.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      responses:
+        "200":
+          description: The user's payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/address:
+    put:
+      summary: Save payout address and enroll for payouts
+      description: >
+        Persists the payee's payout address to their partner_redemption record and eager-enrolls them in
+        XTRM (CreateUser). addressLine1 + countryIso2 are the minimum XTRM requires; the rest are optional
+        but recommended (reused when linking a bank). Enrollment is non-blocking — if the XTRM call fails,
+        the address is still saved and enrollment is retried later (lazily before the first payout), so
+        this returns 200 with enrollmentStatus reflecting the outcome (ENROLLED or FAILED).
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveRedemptionAddressRequest"
+      responses:
+        "200":
+          description: Address saved; enrollment attempted (see enrollmentStatus)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "400":
+          description: Validation error (missing addressLine1, countryIso2 not a 2-letter code)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/payout-method:
+    put:
+      summary: Set my payout method
+      description: >
+        Sets the payout rail to ANYPAY (XTRM wallet, default), BANK (ACH), or CARD (Rapid Transfer to a
+        linked card). Selecting BANK without a linked bank (422 BANK_NOT_LINKED) or CARD without a linked
+        card (422 CARD_NOT_LINKED) is rejected — the user must link that instrument first.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: EDITED PARTNER_REDEMPTION
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetPayoutMethodRequest"
+      responses:
+        "200":
+          description: Payout method updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "400":
+          description: Validation error (missing or unknown payoutMethod)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Optimistic lock conflict (concurrent profile edit)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: BANK/CARD selected without that instrument linked (BANK_NOT_LINKED / CARD_NOT_LINKED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/bank-account:
+    post:
+      summary: Add a bank account for ACH/Bank payouts
+      description: >
+        Adds a bank beneficiary via XTRM (LinkBankBeneficiary) — additive: a user may link several banks,
+        and the first one becomes the default. Requires the user to be enrolled (lazily enrolled if needed,
+        else 422 XTRM_NOT_ENROLLED). The raw account/routing numbers are pass-through to XTRM and NEVER
+        persisted or logged — only the returned reference and a masked label are stored. XTRM domain
+        rejections surface as 422 with an errorCode (e.g. XTRM_BANK_DUPLICATE) and friendly copy; the raw
+        XTRM message is never echoed. Rate limited to 5 req/min per client IP.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: BANK_LINKED PARTNER_REDEMPTION
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkBankAccountRequest"
+      responses:
+        "201":
+          description: Bank linked; returns the updated payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "400":
+          description: Validation error (missing required bank field, countryIso2 not a 2-letter code)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            XTRM domain rejection — not enrolled (XTRM_NOT_ENROLLED), duplicate bank
+            (XTRM_BANK_DUPLICATE), or invalid bank details (XTRM_BANK_LINK_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (5 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: >
+            XTRM temporarily unavailable (transient/retryable outage; errorCode XTRM_UNAVAILABLE) —
+            retry later. Distinct from the 422 domain rejections above.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/banks:
+    get:
+      summary: List my linked bank accounts
+      description: >
+        Returns all of the current user's linked bank accounts (fast local read — no XTRM round-trip per
+        view). Each entry carries OUR bank id (never the XTRM reference), a masked label, the currency, and
+        whether it is the default (the bank the BANK rail pays). Empty array when none are linked.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      responses:
+        "200":
+          description: The user's linked bank accounts (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LinkedBank"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/banks/{bankId}:
+    delete:
+      summary: Remove a specific linked bank account
+      description: >
+        Removes one linked bank (identified by OUR bank id from GET /banks, NOT the XTRM reference).
+        Hard-deletes it at XTRM (DeleteBankBeneficiary) then soft-deletes it locally. If it was the default:
+        the oldest remaining bank is auto-promoted, or — if none remain — the default is cleared and a BANK
+        rail is reset to ANYPAY so the user is not stranded. Idempotent if the bank is already gone at XTRM;
+        a transient XTRM outage returns 503 and keeps the bank. Rate limited to 10 req/min per client IP.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: BANK_UNLINKED PARTNER_REDEMPTION
+      parameters:
+        - name: bankId
+          in: path
+          required: true
+          description: Our linked-bank id (from GET /banks) — NOT the XTRM reference
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Bank removed; returns the updated payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No linked bank with that id for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (10 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: >
+            XTRM temporarily unavailable (transient outage; errorCode XTRM_UNAVAILABLE) — the bank is kept,
+            retry later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/banks/default:
+    put:
+      summary: Set my default bank account
+      description: >
+        Sets which linked bank (identified by OUR bank id) is the default — the destination for the BANK
+        payout rail. No XTRM call: the default is a pointer on the profile that the payout path already reads.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: EDITED PARTNER_REDEMPTION
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetDefaultBankRequest"
+      responses:
+        "200":
+          description: Default bank updated; returns the updated payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "400":
+          description: Validation error (missing bankId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No linked bank with that id for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (10 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/wallets:
+    get:
+      summary: List my XTRM digital wallets
+      description: >
+        Returns the current user's XTRM digital wallets (every currency), each with a balance the FE formats
+        with the currency symbol + ISO code. VIEW-only in v1 — wallet creation and default-selection are
+        deferred (payouts are USD→USD, so a non-USD wallet has no payout effect yet). Requires enrollment
+        (a PAT), else 422 XTRM_NOT_ENROLLED. This is a live XTRM call per request — rate limited to 20/min.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      responses:
+        "200":
+          description: The user's digital wallets (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DigitalWallet"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Not enrolled (errorCode XTRM_NOT_ENROLLED) or wallets unavailable (XTRM_WALLETS_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (20 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: >
+            XTRM temporarily unavailable (transient outage; errorCode XTRM_UNAVAILABLE) — retry later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/cards:
+    get:
+      summary: List my linked cards
+      description: >
+        Returns all of the current user's linked cards (fast local read — no XTRM round-trip per view). A
+        card is dual-purpose: a payout rail (CARD) AND a withdrawal destination. Each entry carries OUR card
+        id (never the XTRM card token), a masked label ("Visa ••1111"), type/status, and whether it is the
+        default (the card the CARD rail pays). Empty array when none are linked.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      responses:
+        "200":
+          description: The user's linked cards (possibly empty)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LinkedCard"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/card:
+    post:
+      summary: Link a card for card payouts / withdrawals
+      description: >
+        Links a card via XTRM (LinkCard) — additive: a user may link several cards, the first becomes the
+        default. Requires enrollment (lazily enrolled if needed, else 422 XTRM_NOT_ENROLLED).
+        ⚠️ PCI: the raw card number/CVV/expiry are pass-through to XTRM and NEVER persisted or logged — only
+        the returned card token and a masked last-4 are stored. XTRM rejections surface as 422
+        (XTRM_CARD_LINK_FAILED / XTRM_CARD_DUPLICATE) with friendly copy. Rate limited to 5 req/min per IP.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: CARD_LINKED PARTNER_REDEMPTION
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCardRequest"
+      responses:
+        "201":
+          description: Card linked; returns the updated payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "400":
+          description: Validation error (bad card number/expiry/cvv, countryIso2 not a 2-letter code)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            XTRM domain rejection — not enrolled (XTRM_NOT_ENROLLED), duplicate card
+            (XTRM_CARD_DUPLICATE), or card declined/invalid (XTRM_CARD_LINK_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (5 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: XTRM temporarily unavailable (transient outage; errorCode XTRM_UNAVAILABLE) — retry later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/cards/{cardId}:
+    delete:
+      summary: Remove a specific linked card
+      description: >
+        Removes one linked card (identified by OUR card id from GET /cards, NOT the XTRM token). Hard-deletes
+        it at XTRM (DeleteCard) then soft-deletes it locally. If it was the default: the oldest remaining card
+        is auto-promoted, or — if none remain — the default is cleared and a CARD rail is reset to ANYPAY.
+        Idempotent if the card is already gone at XTRM; a transient outage returns 503 and keeps the card.
+        Rate limited to 10 req/min per client IP.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: CARD_UNLINKED PARTNER_REDEMPTION
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          description: Our linked-card id (from GET /cards) — NOT the XTRM token
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Card removed; returns the updated payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No linked card with that id for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (10 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: XTRM temporarily unavailable (transient outage; XTRM_UNAVAILABLE) — the card is kept.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/cards/default:
+    put:
+      summary: Set my default card
+      description: >
+        Sets which linked card (identified by OUR card id) is the default — the destination for the CARD
+        payout rail. No XTRM call: the default is a pointer on the profile that the payout path reads.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: EDITED PARTNER_REDEMPTION
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetDefaultCardRequest"
+      responses:
+        "200":
+          description: Default card updated; returns the updated payout profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionProfileResponse"
+        "400":
+          description: Validation error (missing cardId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No linked card with that id for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/withdrawals/initiate:
+    post:
+      summary: Start a wallet withdrawal (sends a one-time password)
+      description: >
+        Step 1 of a 2-step withdrawal. Withdraws `amount` from the user's XTRM wallet to a linked bank or
+        card (destinationType + destinationId — OUR row id, never the raw reference). XTRM validates and
+        sends a one-time password; the response carries no transaction id (otpRequired=true). Requires
+        enrollment (else 422 XTRM_NOT_ENROLLED). Rate limited to 5 req/min per client IP.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitiateWithdrawalRequest"
+      responses:
+        "200":
+          description: OTP sent — prompt the user for the code, then call /withdrawals/confirm
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WithdrawalResult"
+        "400":
+          description: Validation error (amount ≤ 0, destinationType not BANK/CARD, missing destinationId)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No linked bank/card with that destinationId for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Not enrolled (XTRM_NOT_ENROLLED) or withdrawal rejected (XTRM_WITHDRAW_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (5 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: XTRM temporarily unavailable (transient outage; XTRM_UNAVAILABLE) — retry later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/withdrawals/confirm:
+    post:
+      summary: Confirm a wallet withdrawal with the one-time password
+      description: >
+        Step 2 of a 2-step withdrawal. Resends the same amount + destination as /initiate plus the OTP. On
+        success the transfer executes: the response carries the executed amounts (amountGross debited from
+        the wallet, fee taken by XTRM, amountNet delivered) and a withdrawal history row is written. A
+        wrong/expired code is rejected with 422 XTRM_WITHDRAW_OTP_INVALID. Rate limited to 10 req/min per IP.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      x-audited: WITHDRAWAL PARTNER_WITHDRAWAL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmWithdrawalRequest"
+      responses:
+        "200":
+          description: Withdrawal executed; returns the executed amounts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WithdrawalResult"
+        "400":
+          description: Validation error (amount ≤ 0, destinationType not BANK/CARD, missing otp)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No linked bank/card with that destinationId for this user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            Invalid/expired OTP (XTRM_WITHDRAW_OTP_INVALID), not enrolled (XTRM_NOT_ENROLLED), or the
+            withdrawal was rejected (XTRM_WITHDRAW_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (10 req/min per client IP)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: XTRM temporarily unavailable (transient outage; XTRM_UNAVAILABLE) — retry later.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/profile/withdrawals:
+    get:
+      summary: List my wallet withdrawals (paginated, newest first)
+      description: >
+        Returns a page of the user's withdrawal history (newest first, default 5 per page), paging over the full
+        history. Each row shows the masked destination label + amounts (gross/fee/net) + status; the XTRM
+        transaction id and destination row id are omitted.
+      tags: [Redemption Payout]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: pageSize
+          in: query
+          description: Rows per page (clamped to 50 server-side).
+          schema:
+            type: integer
+            default: 5
+            minimum: 1
+            maximum: 50
+      responses:
+        "200":
+          description: A page of the user's withdrawal history (possibly empty)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedWithdrawalHistoryResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (not a payee role)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────────────────
+
+    SaveRedemptionAddressRequest:
+      type: object
+      required: [addressLine1, countryIso2]
+      description: >
+        Payout address stored on partner_redemption (bounded PII — no SSN/DOB). addressLine1 + countryIso2
+        are the minimum XTRM CreateUser requires; the rest are optional but reused for bank linking.
+      properties:
+        addressLine1:
+          type: string
+          maxLength: 255
+        addressLine2:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        region:
+          type: string
+          maxLength: 120
+        postalCode:
+          type: string
+          maxLength: 20
+        countryIso2:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: 2-letter uppercase ISO country code
+
+    SetPayoutMethodRequest:
+      type: object
+      required: [payoutMethod]
+      properties:
+        payoutMethod:
+          $ref: "#/components/schemas/RedemptionPayoutMethod"
+
+    LinkBankAccountRequest:
+      type: object
+      required: [contactName, contactPhone, accountNumber, routingNumber, institutionName, addressLine1, city, region, postalCode, countryIso2, withdrawType]
+      description: >
+        Bank beneficiary details. Pass-through to XTRM LinkBankBeneficiary — NEVER persisted or logged.
+        Structural validation only; domain rejections (duplicate bank, invalid routing) come from XTRM as
+        a 422 with errorCode. XTRM mandates contactPhone + city/region/postalCode; for the US ACH rail it
+        also enforces a 5-digit zip (postalCode) and a valid 9-digit ABA routingNumber.
+      properties:
+        contactName:
+          type: string
+          maxLength: 140
+        contactPhone:
+          type: string
+          maxLength: 20
+          pattern: "^[0-9]{7,20}$"
+          description: Contact phone — digits only, 7–20 (e.g. 14085551234). Required by XTRM.
+        accountNumber:
+          type: string
+          maxLength: 34
+        routingNumber:
+          type: string
+          maxLength: 34
+        swiftBic:
+          type: string
+          maxLength: 11
+        institutionName:
+          type: string
+          maxLength: 140
+        addressLine1:
+          type: string
+          maxLength: 255
+        addressLine2:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        region:
+          type: string
+          maxLength: 120
+        postalCode:
+          type: string
+          maxLength: 20
+        countryIso2:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: 2-letter uppercase ISO country code
+        withdrawType:
+          type: string
+          maxLength: 20
+          description: XTRM withdraw type (e.g. "ACH")
+
+    SetDefaultBankRequest:
+      type: object
+      required: [bankId]
+      properties:
+        bankId:
+          type: string
+          format: uuid
+          description: Our linked-bank id (from GET /banks) to make the default — NOT the XTRM reference
+
+    AddCardRequest:
+      type: object
+      required: [cardNumber, expMonth, expYear, cvv, cardType, nameOnCard, firstName, lastName, addressLine1, city, region, postalCode, countryIso2]
+      description: >
+        Card details for linking. ⚠️ PCI — pass-through to XTRM LinkCard, NEVER persisted or logged. Only the
+        returned card token + a masked last-4 are stored. Structural validation only; card declines come from
+        XTRM as a 422. The raw cardNumber/cvv/expiry are redacted from any server-side logging of this object.
+      properties:
+        cardNumber:
+          type: string
+          pattern: "^[0-9]{12,19}$"
+          description: Primary account number (PAN) — 12–19 digits, no spaces. Never stored/logged.
+        expMonth:
+          type: string
+          pattern: "^(0[1-9]|1[0-2])$"
+          description: Expiry month, 01–12
+        expYear:
+          type: string
+          pattern: "^[0-9]{4}$"
+          description: Expiry year, 4 digits (e.g. 2029)
+        cvv:
+          type: string
+          pattern: "^[0-9]{3,4}$"
+          description: Card verification value — 3–4 digits. NEVER stored (not even encrypted).
+        cardType:
+          type: string
+          maxLength: 30
+          description: Card brand/type (e.g. "Visa", "Mastercard")
+        nameOnCard:
+          type: string
+          maxLength: 140
+        firstName:
+          type: string
+          maxLength: 140
+        lastName:
+          type: string
+          maxLength: 140
+        addressLine1:
+          type: string
+          maxLength: 255
+        addressLine2:
+          type: string
+          maxLength: 255
+        city:
+          type: string
+          maxLength: 120
+        region:
+          type: string
+          maxLength: 120
+        postalCode:
+          type: string
+          maxLength: 20
+        countryIso2:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: 2-letter uppercase ISO country code
+
+    SetDefaultCardRequest:
+      type: object
+      required: [cardId]
+      properties:
+        cardId:
+          type: string
+          format: uuid
+          description: Our linked-card id (from GET /cards) to make the default — NOT the XTRM token
+
+    InitiateWithdrawalRequest:
+      type: object
+      required: [amount, destinationType, destinationId]
+      description: Step 1 of a wallet withdrawal — amount + destination, no OTP yet.
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          description: Amount to withdraw from the XTRM wallet (gross debited; the seller bears the fee)
+        destinationType:
+          type: string
+          enum: [BANK, CARD]
+          description: Which linked instrument to withdraw to
+        destinationId:
+          type: string
+          format: uuid
+          description: OUR linked bank/card id (from GET /banks or /cards) — never the raw XTRM reference
+
+    ConfirmWithdrawalRequest:
+      type: object
+      required: [amount, destinationType, destinationId, otp]
+      description: Step 2 — resends the initiate values plus the one-time password.
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        destinationType:
+          type: string
+          enum: [BANK, CARD]
+        destinationId:
+          type: string
+          format: uuid
+        otp:
+          type: string
+          maxLength: 20
+          description: The one-time password XTRM sent on /initiate
+
+    # ─── Response Schemas ────────────────────────────────────────────────────────
+
+    RedemptionProfileResponse:
+      type: object
+      description: >
+        Safe view of a user's payout profile. Deliberately omits recipientUserId (PAT), partnerLinkedBankId,
+        clientId, version, and enrollmentError. The FE maps enrollmentStatus to display labels
+        (ENROLLED → "Ready", NOT_ENROLLED → "Pending", FAILED → "Action needed").
+      properties:
+        enrollmentStatus:
+          $ref: "#/components/schemas/XtrmEnrollmentStatus"
+        payoutMethod:
+          $ref: "#/components/schemas/RedemptionPayoutMethod"
+        bankLinked:
+          type: boolean
+          description: True when a bank beneficiary is linked
+        linkedBankLabel:
+          type: string
+          nullable: true
+          description: Masked display-only label (e.g. "Wells Fargo ••1898"); null when no bank linked
+        cardLinked:
+          type: boolean
+          description: True when a card is linked
+        linkedCardLabel:
+          type: string
+          nullable: true
+          description: Masked display-only label (e.g. "Visa ••1111"); null when no card linked
+        identityLevel:
+          type: string
+          nullable: true
+          description: XTRM AccountIdentityLevel (informational for limit UX); null until enrolled
+        addressLine1:
+          type: string
+          nullable: true
+          description: Saved payout address line 1 (the user's own PII; self-only endpoint) — for pre-fill
+        addressLine2:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+        postalCode:
+          type: string
+          nullable: true
+        countryIso2:
+          type: string
+          nullable: true
+          description: 2-letter ISO country code; null until an address is saved
+
+    LinkedBank:
+      type: object
+      description: >
+        One linked bank in the user's payout profile. id is OUR bank id (used for DELETE /banks/{bankId}
+        and PUT /banks/default) — the XTRM reference is never exposed. label is a masked display string.
+      required: [id, label, currency, isDefault]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Our linked-bank id (NOT the XTRM reference)
+        label:
+          type: string
+          description: Masked display-only label (e.g. "Wells Fargo ••1898")
+        currency:
+          type: string
+          description: Payout currency (v1 USD)
+        isDefault:
+          type: boolean
+          description: True for the bank the BANK rail pays
+
+    DigitalWallet:
+      type: object
+      description: >
+        A user's XTRM digital wallet (view-only). balance is a decimal the FE formats with the currency
+        symbol + ISO code (e.g. "$25.00 USD"). Internal XTRM fields (EntityID/IsBankLinked/Type) are omitted.
+      required: [id, name, currency, balance]
+      properties:
+        id:
+          type: string
+          description: XTRM wallet id (opaque)
+        name:
+          type: string
+          description: Wallet display name (e.g. "Wallet - USD")
+        currency:
+          type: string
+          description: ISO fiat currency code (USD, INR, EUR, …)
+        balance:
+          type: number
+          format: double
+          description: Current wallet balance
+
+    LinkedCard:
+      type: object
+      description: >
+        One linked card in the user's payout profile (dual-purpose: a payout rail AND a withdrawal
+        destination). id is OUR card id (used for DELETE /cards/{cardId} and PUT /cards/default) — the XTRM
+        token is never exposed. label is a masked display string.
+      required: [id, label, cardType, status, isDefault]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Our linked-card id (NOT the XTRM token)
+        label:
+          type: string
+          description: Masked display-only label (e.g. "Visa ••1111")
+        cardType:
+          type: string
+          description: Card brand/type (e.g. "Visa")
+        status:
+          type: string
+          description: XTRM card status (e.g. "Active")
+        isDefault:
+          type: boolean
+          description: True for the card the CARD rail pays
+
+    WithdrawalResult:
+      type: object
+      description: >
+        Result of a withdrawal step. On /initiate, otpRequired=true and the amounts are null (OTP sent). On
+        /confirm, otpRequired=false with the executed amounts (amountGross debited, fee taken, amountNet
+        delivered).
+      required: [otpRequired]
+      properties:
+        otpRequired:
+          type: boolean
+          description: True after /initiate (prompt for the OTP); false after a completed /confirm
+        transactionId:
+          type: string
+          nullable: true
+          description: XTRM payment transaction id; null until completed
+        status:
+          type: string
+          nullable: true
+          description: e.g. "COMPLETED"; null on the initiate step
+        amountGross:
+          type: number
+          format: double
+          nullable: true
+          description: Gross debited from the wallet; null on the initiate step
+        fee:
+          type: number
+          format: double
+          nullable: true
+          description: XTRM withdrawal fee; null on the initiate step
+        amountNet:
+          type: number
+          format: double
+          nullable: true
+          description: Net delivered to the destination (gross − fee); null on the initiate step
+        currency:
+          type: string
+          nullable: true
+        destinationLabel:
+          type: string
+          nullable: true
+          description: Masked label of the bank/card paid (e.g. "Visa ••1111")
+
+    WithdrawalHistoryItem:
+      type: object
+      description: One row in the user's withdrawal history (newest first).
+      required: [id, amountGross, fee, amountNet, currency, destinationType, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        amountGross:
+          type: number
+          format: double
+        fee:
+          type: number
+          format: double
+        amountNet:
+          type: number
+          format: double
+        currency:
+          type: string
+        destinationType:
+          type: string
+          enum: [BANK, CARD]
+        destinationLabel:
+          type: string
+          nullable: true
+          description: Masked label (e.g. "Visa ••1111")
+        status:
+          type: string
+          description: e.g. "COMPLETED"
+        createdAt:
+          type: string
+          format: date-time
+
+    PaginatedWithdrawalHistoryResponse:
+      type: object
+      description: A page of the user's withdrawal history (newest first).
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WithdrawalHistoryItem"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    # ─── Enums ───────────────────────────────────────────────────────────────────
+
+    XtrmEnrollmentStatus:
+      type: string
+      description: Lifecycle of a user's XTRM enrollment. See enums.md §XtrmEnrollmentStatus.
+      enum: [NOT_ENROLLED, ENROLLED, FAILED]
+
+    RedemptionPayoutMethod:
+      type: string
+      description: >
+        XTRM payout rail. ANYPAY (XTRM wallet), BANK (ACH), or CARD (Rapid Transfer to a linked card).
+        See enums.md §RedemptionPayoutMethod.
+      enum: [ANYPAY, BANK, CARD]
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Client Endpoints
+  description: Client (tenant) management
+  version: 2.0.0
+
+paths:
+  /api/v1/clients:
+    get:
+      summary: List clients
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.clients.view
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: createdAt }
+        - name: sortDirection
+          in: query
+          schema: { type: string, enum: [ASC, DESC], default: DESC }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search by name or subdomain
+      responses:
+        "200":
+          description: Paginated client list
+
+    post:
+      summary: Create client
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.clients.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClientRequest"
+      responses:
+        "201":
+          description: Client created
+        "409":
+          description: Subdomain already exists
+
+  /api/v1/clients/{id}:
+    get:
+      summary: Get client by ID
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.clients.view
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Client details
+        "404":
+          description: Client not found
+
+    put:
+      summary: Update client
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.clients.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClientRequest"
+      responses:
+        "200":
+          description: Client updated
+        "404":
+          description: Client not found
+
+    delete:
+      summary: Delete client
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.clients.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Client deleted
+
+  /api/v1/clients/stats:
+    get:
+      summary: Get client statistics
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.clients.view
+      responses:
+        "200":
+          description: Aggregate client statistics
+
+  /api/v1/clients/{clientId}/feature-overrides:
+    get:
+      summary: Get feature overrides for a client
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.features.view
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of feature overrides
+
+    put:
+      summary: Set feature overrides for a client
+      tags: [Clients]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.features.manage
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  featureFlagId:
+                    type: string
+                    format: uuid
+                  enabled:
+                    type: boolean
+      responses:
+        "200":
+          description: Overrides updated
+
+components:
+  schemas:
+    CreateClientRequest:
+      type: object
+      required: [name, subdomain, subscriptionTier]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        subdomain:
+          type: string
+          maxLength: 63
+          pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+        logoUrl:
+          type: string
+          format: uri
+          maxLength: 500
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED, TRIAL]
+          default: ACTIVE
+        subscriptionTier:
+          type: string
+          enum: [STARTER, PROFESSIONAL, ENTERPRISE]
+
+    UpdateClientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        logoUrl:
+          type: string
+          format: uri
+          maxLength: 500
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED, TRIAL]
+        subscriptionTier:
+          type: string
+          enum: [STARTER, PROFESSIONAL, ENTERPRISE]
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

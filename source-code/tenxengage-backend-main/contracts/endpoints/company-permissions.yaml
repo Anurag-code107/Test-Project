@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: Company Permission Endpoints
+  description: Per-company and per-user permission overrides
+  version: 1.0.0
+
+paths:
+  /api/v1/company-permissions/{companyId}:
+    get:
+      summary: Get company permission overrides
+      tags: [Company Permissions]
+      security:
+        - bearerAuth: []
+      x-permission: action.permissions.view
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Map of permissionKey to granted boolean
+
+    put:
+      summary: Update company permission overrides
+      tags: [Company Permissions]
+      security:
+        - bearerAuth: []
+      x-permission: action.permissions.manage
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: object
+                  additionalProperties:
+                    type: boolean
+      responses:
+        "200":
+          description: Company overrides updated
+
+  /api/v1/company-permissions/{companyId}/users/{userId}:
+    get:
+      summary: Get user-level permission overrides within a company
+      tags: [Company Permissions]
+      security:
+        - bearerAuth: []
+      x-permission: action.permissions.view
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Map of permissionKey to granted boolean
+
+    put:
+      summary: Update user-level permission overrides
+      tags: [Company Permissions]
+      security:
+        - bearerAuth: []
+      x-permission: action.permissions.assign
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: object
+                  additionalProperties:
+                    type: boolean
+      responses:
+        "200":
+          description: User overrides updated
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

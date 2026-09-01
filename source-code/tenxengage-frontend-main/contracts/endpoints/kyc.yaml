@@ -1,0 +1,372 @@
+openapi: 3.0.3
+info:
+  title: KYC Compliance Endpoints
+  description: Know Your Customer verification, risk alerts, and risk configuration
+  version: 1.0.0
+
+paths:
+  /api/v1/compliance/kyc/partner/{id}:
+    post:
+      summary: Submit KYC for partner
+      description: Submits a KYC verification request for a partner company. Restricted to CLIENT_ADMIN or PARTNER_ADMIN.
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Partner company ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKycRequest'
+      responses:
+        '201':
+          description: KYC submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerKycResponse'
+        '400':
+          description: Validation error
+        '403':
+          description: Insufficient permissions
+        '404':
+          description: Partner company not found
+        '409':
+          description: KYC already in progress for this partner
+
+    get:
+      summary: Get KYC status for partner
+      description: Returns the current KYC verification status for a partner company
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Partner company ID
+      responses:
+        '200':
+          description: KYC status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerKycResponse'
+        '404':
+          description: Partner company not found or no KYC record
+
+  /api/v1/compliance/kyc/partner/{id}/approve:
+    post:
+      summary: Approve partner KYC
+      description: Approves the KYC verification for a partner company. Restricted to CLIENT_ADMIN.
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Partner company ID
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notes:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: KYC approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerKycResponse'
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+        '404':
+          description: Partner company or KYC record not found
+        '422':
+          description: KYC is not in a reviewable state
+
+  /api/v1/compliance/kyc/partner/{id}/reject:
+    post:
+      summary: Reject partner KYC
+      description: Rejects the KYC verification for a partner company. Restricted to CLIENT_ADMIN.
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Partner company ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: KYC rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerKycResponse'
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+        '404':
+          description: Partner company or KYC record not found
+        '422':
+          description: KYC is not in a reviewable state
+
+  /api/v1/compliance/kyc/alerts:
+    get:
+      summary: List compliance alerts
+      description: Returns all KYC and compliance alerts for the current client. Restricted to CLIENT_ADMIN.
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
+        - name: alertType
+          in: query
+          schema:
+            type: string
+            enum: [VALUE_CAP_APPROACHING, VALUE_CAP_EXCEEDED, GOVERNMENT_DEAL_FLAGGED, DISPROPORTIONATE_REWARD, CONCENTRATION_ALERT, KYC_EXPIRED]
+      responses:
+        '200':
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplianceAlertResponse'
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+  /api/v1/compliance/kyc/alerts/{id}/resolve:
+    post:
+      summary: Resolve compliance alert
+      description: Resolves or dismisses a compliance alert. Restricted to CLIENT_ADMIN.
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveAlertRequest'
+      responses:
+        '200':
+          description: Alert resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceAlertResponse'
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+        '404':
+          description: Alert not found
+
+  /api/v1/compliance/kyc/risk-config:
+    get:
+      summary: Get risk configuration
+      description: Returns the KYC risk scoring configuration and thresholds
+      tags: [KYC]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Risk configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kycExpirationDays:
+                    type: integer
+                    description: Number of days before KYC expires
+                  valueCapWarningThreshold:
+                    type: number
+                    format: double
+                    description: Percentage of cap that triggers a warning (e.g. 0.8 for 80%)
+                  concentrationAlertThreshold:
+                    type: number
+                    format: double
+                    description: Percentage of rewards to a single partner that triggers alert
+                  riskLevels:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        level:
+                          type: string
+                          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+                        minScore:
+                          type: integer
+                        maxScore:
+                          type: integer
+                        description:
+                          type: string
+
+components:
+  schemas:
+    PartnerKycResponse:
+      type: object
+      description: See models/partner-kyc.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        partnerCompanyId:
+          type: string
+          format: uuid
+        partnerCompanyName:
+          type: string
+        status:
+          type: string
+          enum: [NOT_STARTED, IN_PROGRESS, APPROVED, REJECTED, EXPIRED]
+        riskLevel:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+          nullable: true
+        submittedByUserId:
+          type: string
+          format: uuid
+          nullable: true
+        reviewedByUserId:
+          type: string
+          format: uuid
+          nullable: true
+        reviewNotes:
+          type: string
+          nullable: true
+        businessRegistrationNumber:
+          type: string
+        countryOfIncorporation:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateKycRequest:
+      type: object
+      required: [businessRegistrationNumber, countryOfIncorporation]
+      properties:
+        businessRegistrationNumber:
+          type: string
+          maxLength: 100
+        countryOfIncorporation:
+          type: string
+          maxLength: 100
+        additionalInfo:
+          type: string
+          maxLength: 2000
+
+    ComplianceAlertResponse:
+      type: object
+      description: See models/compliance-alert.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        alertType:
+          type: string
+          enum: [VALUE_CAP_APPROACHING, VALUE_CAP_EXCEEDED, GOVERNMENT_DEAL_FLAGGED, DISPROPORTIONATE_REWARD, CONCENTRATION_ALERT, KYC_EXPIRED]
+        status:
+          type: string
+          enum: [NEW, INVESTIGATING, RESOLVED, DISMISSED]
+        riskLevel:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        message:
+          type: string
+        entityId:
+          type: string
+          format: uuid
+          description: ID of the related entity (partner, incentive, user, etc.)
+        entityType:
+          type: string
+          description: Type of the related entity
+        resolvedByUserId:
+          type: string
+          format: uuid
+          nullable: true
+        resolutionNotes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ResolveAlertRequest:
+      type: object
+      required: [status, notes]
+      properties:
+        status:
+          type: string
+          enum: [RESOLVED, DISMISSED]
+        notes:
+          type: string
+          maxLength: 2000
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

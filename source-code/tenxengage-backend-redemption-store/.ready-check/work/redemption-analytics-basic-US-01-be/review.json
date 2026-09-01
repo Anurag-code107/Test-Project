@@ -1,0 +1,60 @@
+{
+  "featureId": "redemption-analytics-basic",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-analytics-basic-US-01-be",
+  "headCommit": "711196ef",
+  "startedAt": "2026-06-17T16:20:00Z",
+  "updatedAt": "2026-06-17T18:05:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "note": "compileJava + compileTestJava succeeded. spec.md exists."
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 10,
+      "unfixed_high": [
+        "N+1 query loops (O(6N) round-trips) — architectural change; deferred",
+        "buildCacheKey SecurityContextHolder double-read — deferred"
+      ],
+      "note": "10 auto-fixable findings applied. 2 high-severity items not auto-fixable (N+1 queries, SpEL SecurityContext) — noted for future optimization."
+    },
+    "security-review": {
+      "status": "passed",
+      "findings_summary": "0 critical, 0 high, 2 medium, 3 low — all advisory",
+      "note": "No blocking security issues. Medium: buildCacheKey public visibility (advisory); log clientId in warn (advisory). Low: no future-date bound on dateTo; validation depth only in service."
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "fixes": [
+        "CurrencyTypeRateDto.ratePercentage: BigDecimal → String (toPlainString, HALF_UP 2dp) per contract schema",
+        "RateLimitFilter: /api/v1/redemption/analytics added at 10 req/min"
+      ],
+      "deferred": [
+        "GET /api/v1/redemption/analytics/export — explicitly out of scope for US-01 (see story: Out of Scope). Belongs to US-02."
+      ],
+      "advisory": [
+        "429 handler: RateLimitFilter writes 429 directly to response — no GlobalExceptionHandler entry required",
+        "Response envelope: ResponseBodyAdvice wraps responses at runtime; controller return type is unwrapped DTO (project convention)"
+      ]
+    },
+    "adversarial-review": {
+      "status": "soft-stage",
+      "note": "Dispatched as background subagent. Non-blocking per --soft-stages=adversarial-review flag."
+    },
+    "tests": {
+      "status": "passed",
+      "note": "11 RedemptionAnalyticsServiceTest + 7 RedemptionAnalyticsControllerTest = 18 analytics tests green. Pre-existing XtrmVendorServiceTest failures (3) confirmed on parent branch — unrelated to US-01."
+    },
+    "coverage": {
+      "status": "passed",
+      "note": "RedemptionAnalyticsController 7/7 lines (100%), RedemptionAnalyticsService 79/79 lines (100%)."
+    }
+  },
+  "overall": "pass",
+  "advisory_findings": [
+    "N+1 query loops in analytics service (6N repo calls per cache miss) — deferred optimization",
+    "buildCacheKey() public visibility — low risk; security audit advisory only",
+    "dateTo upper-bound not enforced (no future-date guard) — security advisory"
+  ]
+}

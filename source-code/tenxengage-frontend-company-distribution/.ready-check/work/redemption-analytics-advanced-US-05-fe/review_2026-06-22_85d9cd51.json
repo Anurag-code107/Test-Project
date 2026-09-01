@@ -1,0 +1,130 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-advanced-US-05-fe",
+  "headCommit": "85d9cd51e1762fa4b15c1932b083f283113c3d5b",
+  "startedAt": "2026-06-22T12:05:00Z",
+  "updatedAt": "2026-06-22T12:30:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "004a9f7b4b0b2765cb3a0d0248c6b8a23a10d575",
+      "completedAt": "2026-06-22T12:10:00Z",
+      "fixes": 3,
+      "notes": "Fixed TS6133 unused 'vi' import; fixed contract mismatches (removed partnerTier from SegmentRedemptionDto, renamed TierTimeToRedemptionDto→RegionTimeToRedemptionDto, renamed tiers→regions field). Build: tsc clean + vite production build passed. Lint: 0 errors in new files (24 pre-existing errors in redemption-returns and catalog files)."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "004a9f7b4b0b2765cb3a0d0248c6b8a23a10d575",
+      "completedAt": "2026-06-22T12:15:00Z",
+      "fixes": 0,
+      "filesReviewed": [
+        "src/types/redemption-analytics-advanced.types.ts",
+        "src/services/redemption-analytics-advanced.service.ts",
+        "src/hooks/redemption/useRefreshStatus.ts",
+        "src/hooks/redemption/useSegmentBreakdown.ts",
+        "src/components/analytics/advanced/AdvancedFilterBar.tsx",
+        "src/components/analytics/advanced/StalenessBanner.tsx",
+        "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx",
+        "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/components/analytics/advanced/StalenessBanner.tsx",
+          "line": 23,
+          "rule": "rerender-derived-state-no-effect",
+          "message": "useEffect sets dismissed state solely in response to isStale prop changing to false — state-from-props anti-pattern.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "severity=medium"
+        }
+      ],
+      "notes": "3 barrel-import findings for lucide-react skipped — 126 files project-wide use the same pattern, making these advisory-only. 1 medium state-from-props advisory finding in StalenessBanner."
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "004a9f7b4b0b2765cb3a0d0248c6b8a23a10d575",
+      "completedAt": "2026-06-22T12:20:00Z",
+      "fixes": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/components/analytics/advanced/AdvancedFilterBar.tsx",
+          "rule": "uncontrolled-select",
+          "message": "Region and Role Select components have no value/onValueChange — by design for US-05 tab shell (segment data is always empty; wired in segment breakdown story).",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true (spec-intentional for this shell story)"
+        },
+        {
+          "severity": "high",
+          "file": "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx",
+          "rule": "error-state",
+          "message": "useRefreshStatus and useSegmentBreakdown errors silently ignored — by design for AC-7 (refresh status error = silent; segment breakdown error = tab shell, wired in data stories).",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true (spec-intentional for shell story)"
+        },
+        {
+          "severity": "high",
+          "file": "src/components/analytics/advanced/StalenessBanner.tsx",
+          "rule": "contrast",
+          "message": "text-warning on bg-warning/10 may not meet WCAG AA 4.5:1 — design token decision required.",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=false but autoFixable=false (requires design token decision)"
+        },
+        {
+          "severity": "low",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "rule": "skeleton-count",
+          "message": "SKELETON_CARDS was 3 items but grid uses lg:grid-cols-4.",
+          "tier": "advisory",
+          "fix": "Changed length: 3 → length: 4",
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/analytics/advanced/AdvancedFilterBar.tsx",
+          "rule": "accessibility",
+          "message": "Apply button had no aria-label — only 'Apply' text.",
+          "tier": "advisory",
+          "fix": "Added aria-label=\"Apply custom date range\"",
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/analytics/advanced/StalenessBanner.tsx",
+          "rule": "accessibility",
+          "message": "role=\"alert\" + aria-live=\"polite\" redundant combination.",
+          "tier": "advisory",
+          "fix": "Removed aria-live=\"polite\" — role=\"alert\" is assertive by spec",
+          "autoFixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "004a9f7b4b0b2765cb3a0d0248c6b8a23a10d575",
+      "completedAt": "2026-06-22T12:22:00Z",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage, no any types, no dangerouslySetInnerHTML, no raw fetch, no window.location, all API calls via axios instance."
+    },
+    "adversarial-review": {
+      "status": "awaiting-user-review",
+      "notes": "Soft stage (--soft-stages=adversarial-review). No Codex adversarial-review job found for this workspace in job store. Does not block overall result."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "004a9f7b4b0b2765cb3a0d0248c6b8a23a10d575",
+      "completedAt": "2026-06-22T12:24:00Z",
+      "testsRun": [
+        "src/components/analytics/advanced/__tests__/StalenessBanner.test.tsx (5 tests)",
+        "src/components/analytics/advanced/__tests__/AdvancedFilterBar.test.tsx (6 tests)"
+      ],
+      "fixes": 1,
+      "notes": "11/11 Vitest unit tests pass. Fixed Apply button query name in test (aria-label change). Playwright E2E: Apply button query updated. Full E2E suite run deferred (BE is done per tracker, but Playwright runs against mocked BE for shell story per spec).",
+      "testPlanCoverage": { "planned": 11, "implemented": 11, "generated": 0, "passing": 11 }
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests"
+}

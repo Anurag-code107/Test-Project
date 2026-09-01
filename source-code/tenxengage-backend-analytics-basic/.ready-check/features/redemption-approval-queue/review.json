@@ -1,0 +1,151 @@
+{
+  "featureId": "redemption-approval-queue",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-approval-queue",
+  "headCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+  "startedAt": "2026-06-02T12:00:00Z",
+  "updatedAt": "2026-06-02T14:50:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T12:10:00Z",
+      "notes": "gradlew check BUILD SUCCESSFUL. spec.md exists. Compilation and jacocoTestCoverageVerification clean."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T13:00:00Z",
+      "fixes": 1,
+      "filesReviewed": [
+        "RedemptionApprovalService.java",
+        "BatchRedemptionProcessor.java",
+        "RedemptionSubmissionService.java",
+        "RedemptionWebhookService.java",
+        "RedemptionWebhookController.java",
+        "RedemptionRequestController.java",
+        "RedemptionRequestRepository.java",
+        "WalletService.java"
+      ],
+      "fixesApplied": [
+        "BatchRedemptionProcessor.self field declared volatile (concurrency correctness)"
+      ],
+      "manualItems": [
+        "HIGH: RedemptionRequestRepository — JPQL 'PENDING_APPROVAL' literal in findApprovalQueue (rename-fragile, carry-over)",
+        "HIGH: RedemptionRequestRepository — JPQL 'RESERVED'/'APPROVAL_REQUIRED' literals in findStrandedApprovalItems",
+        "HIGH: WalletService.releaseReservedBalance — no idempotency guard (double-release corrupts wallet, carry-over)",
+        "HIGH: RedemptionApprovalService.rejectRedemption — rejectionReason null not guarded at service layer (carry-over)",
+        "HIGH: BatchRedemptionProcessor.dispatchAfterCommit — dispatches stale entity (loads fresh for timestamp stamp, dispatches original)",
+        "HIGH: TOCTOU on dispatchAttemptedAt in BatchRedemptionProcessor.dispatchAfterCommit (no lock before stamp)",
+        "HIGH: TOCTOU on dispatchAttemptedAt in RedemptionApprovalService.onRedemptionApproved (no lock before stamp)",
+        "HIGH: BatchRedemptionProcessor.dispatchItem deprecated method calls markProcessing() directly (bypasses Spring proxy, nested REQUIRES_NEW broken)",
+        "HIGH: Triple findById in BatchRedemptionProcessor.dispatchAfterCommit (performance)"
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T13:10:00Z",
+      "fixes": 0,
+      "manualItems": [
+        "HIGH: RedemptionRequestController GET /{id} — CLIENT_ADMIN with view_all_history gets 404 (service always filters by userId, ignores admin scope)",
+        "HIGH: RedemptionWebhookController — signing secrets default to blank string with no startup guard (misconfigured production silently rejects all webhooks)",
+        "MEDIUM: Log injection via vendor path variable in webhook controller (pre-allowlist log call)",
+        "MEDIUM: failureReason from exception message persisted/logged unsanitised in RedemptionWebhookService",
+        "MEDIUM: eventType from payload logged without length/character constraint in webhook controller",
+        "MEDIUM: Negative page parameter not validated (produces 500 not 400) in both approval and request controllers"
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T14:00:00Z",
+      "fixes": 5,
+      "fixesApplied": [
+        "ApprovalQueueItemResponse: renamed requestingUserDisplayName → requesterDisplayName (contract drift fix)",
+        "RedemptionRequestDetailResponse: added walletType field (present in contract, missing from DTO)",
+        "contracts/endpoints/redemption-approval-queue.yaml: added catalogItemId and imageUrl to RedemptionRequestDetailResponse schema (present in implementation, missing from contract)",
+        "Updated 3 test files (RedemptionApprovalControllerTest x2, RedemptionRequestControllerTest, RedemptionApprovalServiceTest) for renamed field + new walletType arg",
+        "Updated RedemptionApprovalQueueContractConformanceTest: requesterDisplayName assertion now matches contract"
+      ],
+      "notes": "All 3 approval endpoints align with contract. RedemptionRequestDetailResponse now includes walletType. API Contract Review noted entity-in-controller architectural issue (HIGH manual) and missing @Validated/@Max on size params (MEDIUM manual)."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T15:05:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mpwquo6s-1z198q",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-approval-queue",
+      "codexCompletedAt": "2026-06-02T14:42:43.495Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Public redemption webhook is not exempted from the production endpoint security validator",
+          "details": "SecurityConfig explicitly permits `/api/v1/webhooks/redemption/**`, and RedemptionWebhookController has no `@RequiresPermission` on the class or `handleWebhook`. EndpointSecurityValidator only exempts the hard-coded patterns shown here and does not include the redemption webhook path; in a `prod` profile it throws `SecurityException` for any non-exempt handler lacking `@RequiresPermission`. That means the application can fail startup in production as soon as this controller is present, despite the path being intentionally public and HMAC-secured.",
+          "file": "src/main/java/com/tenxengage/app/security/EndpointSecurityValidator.java",
+          "lineStart": 29,
+          "lineEnd": 48,
+          "severity": "critical",
+          "confidence": 0.96,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — /api/v1/webhooks/redemption added to EXEMPT_PATTERNS, risk mitigated",
+          "recommendation": "Add a regression test that invokes EndpointSecurityValidator with the prod profile to prevent future regressions.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "Catalog image streaming endpoint bypasses catalog-manage authorization",
+          "details": "Every other admin catalog operation is annotated with `@RequiresPermission(\"action.redemption.catalog.manage\")`, including image upload, but the GET image endpoint has no `@RequiresPermission`. Since PermissionAspect only enforces annotated methods, an authenticated user who lacks catalog management permission can fetch `/api/v1/admin/redemption-catalog/{id}/image`. This also creates a production startup failure under EndpointSecurityValidator.",
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionCatalogAdminController.java",
+          "lineStart": 153,
+          "lineEnd": 155,
+          "severity": "high",
+          "confidence": 0.92,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — authorization intent is correct: images must be visible to partner sellers and partner admins (any JWT-authenticated user with redemption store access). Codex recommendation of catalog.manage is wrong. Prod startup failure is real but separate: fix via @RequiresPermission(\"module.redemption_store\") which partner users hold.",
+          "recommendation": "Annotate `streamCatalogItemImage` with `@RequiresPermission(\"module.redemption_store\")` — satisfies EndpointSecurityValidator, restricts to redemption store users (partner sellers + admins), and does not require catalog admin access. Do NOT use catalog.manage.",
+          "alreadyHandled": true
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: the branch adds endpoints that are intentionally or effectively unannotated, but the production security validator is not updated consistently. One path can block prod startup; another exposes admin catalog image data without the catalog-manage permission.\n\nFindings:\n- [critical] Public redemption webhook is not exempted from the production endpoint security validator (src/main/java/com/tenxengage/app/security/EndpointSecurityValidator.java:29-48)\n- [high] Catalog image streaming endpoint bypasses catalog-manage authorization (src/main/java/com/tenxengage/app/controller/RedemptionCatalogAdminController.java:153-155)\n\nNext steps:\n- Fix the security annotation/exemption gaps and add production-profile validator coverage for both endpoints."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T15:30:00Z",
+      "testsRun": [
+        "RedemptionApprovalServiceTest",
+        "RedemptionApprovalControllerTest",
+        "RedemptionRequestControllerTest",
+        "BatchRedemptionProcessorTest",
+        "RedemptionWebhookServiceTest",
+        "RedemptionSubmissionServiceTest",
+        "RedemptionApprovalQueueContractConformanceTest"
+      ],
+      "fixes": 0,
+      "notes": "All scoped unit + conformance tests passed (55s). Integration tests (RedemptionApprovalQueueIntegrationTest, RedemptionRequestIntegrationTest) require 'docker compose up -d' — infrastructure not available in this run. Pre-existing contextLoads failure (localhost:5432) excluded. TenantValidator.isTenxAdmin placeholder and IncentiveServiceTest ordering are also pre-existing.",
+      "testPlanCoverage": {
+        "planned": 27,
+        "implemented": 27,
+        "generated": 0,
+        "passing": "unit+conformance all green; integration excluded (no Docker)"
+      }
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "6c0f41c949d5174647c0ae344e277df5a314f6be",
+      "completedAt": "2026-06-02T15:30:00Z",
+      "gaps": [
+        "ADVISORY: No regression test for EndpointSecurityValidator with prod profile verifying webhook exemption (noted in Step 5 advisory)"
+      ]
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "updatedAt": "2026-06-02T15:30:00Z"
+}

@@ -1,0 +1,131 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-advanced-US-01-fe",
+  "headCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+  "startedAt": "2026-06-22T18:43:00.000Z",
+  "updatedAt": "2026-06-22T20:10:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+      "build": "passed — tsc -b && vite build exited 0 (4154 modules transformed, no TS errors)",
+      "lint": "passed — ESLint clean on all 5 new/modified files; 24 pre-existing issues in unrelated files (e2e/redemption-returns/, src/components/redemption-catalog/, src/components/redemption-history/)",
+      "contractCheck": "passed — types in src/types/redemption-analytics-advanced.types.ts match contracts/models/redemption-advanced-analytics.md (currencyId: string, ItemRedemptionDto, ItemBreakdownResponse)"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+      "filesReviewed": [
+        "src/hooks/redemption/useItemBreakdown.ts",
+        "src/components/analytics/advanced/ItemBreakdownTable.tsx",
+        "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx",
+        "src/components/analytics/advanced/__tests__/ItemBreakdownTable.test.tsx"
+      ],
+      "fixes": 2,
+      "fixesApplied": [
+        "Hoisted EMPTY_ITEMS stable constant — avoids new array reference on every render (medium)",
+        "Hoisted MONTH_NAMES to module scope — avoids re-allocation on every formatCaption call (low)"
+      ],
+      "findings": []
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+      "filesReviewed": [
+        "src/components/analytics/advanced/ItemBreakdownTable.tsx",
+        "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx"
+      ],
+      "fixes": 4,
+      "fixesApplied": [
+        "Currency column: getCurrency(currencyId.toLowerCase()).label for human-readable label (high)",
+        "Amount column: switched to display column using getCurrency(currencyId.toLowerCase()).rewardFormat() per-row formatting (high)",
+        "Table structure: replaced raw HTML <table>/<th>/<td> with shadcn Table/TableHeader/TableHead/TableBody/TableRow/TableCell components (medium)",
+        "Caption: wrapped in <time dateTime={lastRefreshedAt}> for semantic time element (low)"
+      ],
+      "nonFixableFindings": [
+        {
+          "severity": "medium",
+          "file": "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx",
+          "summary": "useRefreshStatus error state silently ignored",
+          "disposition": "pre-existing in US-05 shell; not introduced by US-01; to be addressed in a dedicated US or shell cleanup"
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx",
+          "summary": "useSegmentBreakdown error state silently ignored",
+          "disposition": "pre-existing in US-05 shell; not introduced by US-01"
+        },
+        {
+          "severity": "low",
+          "file": "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx",
+          "summary": "formatLocalDate duplicated from RedemptionAnalyticsPage.tsx",
+          "disposition": "pre-existing in US-05 shell; not introduced by US-01"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+      "checks": {
+        "noLocalStorage": "pass",
+        "noSessionStorage": "pass",
+        "noAnyTypes": "pass",
+        "noDangerouslySetInnerHTML": "pass",
+        "noSecretsInSource": "pass",
+        "xssPrevention": "pass — no user-generated content rendered",
+        "noSensitiveUrlParams": "pass — analytics query params are non-sensitive filter values",
+        "axiosInterceptor": "pass — service imports @/lib/axios, not raw fetch"
+      }
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+      "source": "job-store",
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "findings": [
+        {
+          "summary": "UTC caption mixes local date with UTC time",
+          "severity": "medium",
+          "file": "src/components/analytics/advanced/ItemBreakdownTable.tsx",
+          "lineStart": 50,
+          "lineEnd": 54,
+          "tier": "advisory",
+          "tierReason": "severity=medium → advisory",
+          "alreadyHandled": true,
+          "recommendation": "Format both date and time from the same UTC representation"
+        },
+        {
+          "summary": "Advanced filter type cannot represent contracted item-breakdown tier filter",
+          "severity": "medium",
+          "file": "src/types/redemption-analytics-advanced.types.ts",
+          "lineStart": 12,
+          "lineEnd": 16,
+          "tier": "advisory",
+          "tierReason": "severity=medium → advisory",
+          "alreadyHandled": false,
+          "recommendation": "Align AdvancedAnalyticsFilters with endpoint contract",
+          "disposition": "Dismissed for US-01: contract .md specifies region (not tier) for item-breakdown; role is pre-existing from US-05 shared filter type; BE ignores unknown params; tracked as technical debt for future alignment"
+        }
+      ],
+      "parseError": null
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "0b06e899d17fdfc47b21f807d3994da212b71e76",
+      "vitest": {
+        "status": "passed",
+        "testFile": "src/components/analytics/advanced/__tests__/ItemBreakdownTable.test.tsx",
+        "passed": 11,
+        "failed": 0,
+        "preExistingFailures": "TransactionHistoryTable.test.tsx — 2 failures (getCurrency(...).rewardFormat is not a function) — confirmed pre-existing via git stash test on base commit"
+      },
+      "e2eNote": "E2E (item-breakdown.spec.ts) written per spec scenarios 1-3; requires running BE for full execution — not run in ready-check (E2E requires real BE)"
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests"
+}

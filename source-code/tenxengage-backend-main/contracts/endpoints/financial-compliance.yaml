@@ -1,0 +1,444 @@
+openapi: 3.0.3
+info:
+  title: Financial Compliance Endpoints
+  description: Whistleblower reporting, tax summaries, and employer benefit-in-kind reports
+  version: 1.0.0
+
+paths:
+  /api/v1/compliance/financial/whistleblower/report:
+    post:
+      summary: Submit whistleblower report
+      description: Submits an anonymous whistleblower report. Public endpoint — no authentication required.
+      tags: [Whistleblower]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWhistleblowerReportRequest'
+      responses:
+        '201':
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trackingNumber:
+                    type: string
+                    description: Unique tracking number for anonymous status checks
+                  submittedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Validation error
+
+  /api/v1/compliance/financial/whistleblower/status/{trackingNumber}:
+    get:
+      summary: Check whistleblower report status
+      description: Returns the status of a previously submitted report using its tracking number. Public endpoint — no authentication required.
+      tags: [Whistleblower]
+      parameters:
+        - name: trackingNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Report status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhistleblowerStatusResponse'
+        '404':
+          description: Tracking number not found
+
+  /api/v1/compliance/financial/whistleblower/reports:
+    get:
+      summary: List whistleblower reports
+      description: Returns all whistleblower reports. Restricted to TENX_ADMIN.
+      tags: [Whistleblower]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [NEW, ACKNOWLEDGED, UNDER_INVESTIGATION, RESOLVED, DISMISSED]
+        - name: reportType
+          in: query
+          schema:
+            type: string
+            enum: [SUSPICIOUS_INCENTIVE, POTENTIAL_KICKBACK, POLICY_VIOLATION, DATA_PRIVACY_CONCERN, OTHER]
+      responses:
+        '200':
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WhistleblowerReportResponse'
+        '403':
+          description: Insufficient permissions (TENX_ADMIN required)
+
+  /api/v1/compliance/financial/whistleblower/reports/{id}/acknowledge:
+    post:
+      summary: Acknowledge whistleblower report
+      description: Marks a whistleblower report as acknowledged. Restricted to TENX_ADMIN.
+      tags: [Whistleblower]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Report acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhistleblowerReportResponse'
+        '403':
+          description: Insufficient permissions (TENX_ADMIN required)
+        '404':
+          description: Report not found
+        '422':
+          description: Report is not in a state that can be acknowledged
+
+  /api/v1/compliance/financial/whistleblower/reports/{id}/resolve:
+    post:
+      summary: Resolve whistleblower report
+      description: Resolves or dismisses a whistleblower report with a resolution summary. Restricted to TENX_ADMIN.
+      tags: [Whistleblower]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, resolutionSummary]
+              properties:
+                status:
+                  type: string
+                  enum: [RESOLVED, DISMISSED]
+                resolutionSummary:
+                  type: string
+                  maxLength: 5000
+      responses:
+        '200':
+          description: Report resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhistleblowerReportResponse'
+        '403':
+          description: Insufficient permissions (TENX_ADMIN required)
+        '404':
+          description: Report not found
+        '422':
+          description: Report is not in a state that can be resolved
+
+  /api/v1/compliance/financial/whistleblower/reports/{id}/update:
+    post:
+      summary: Update whistleblower report status
+      description: Transitions a whistleblower report to a new status (e.g. move to investigation). Restricted to TENX_ADMIN.
+      tags: [Whistleblower]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [ACKNOWLEDGED, UNDER_INVESTIGATION, RESOLVED, DISMISSED]
+                internalNotes:
+                  type: string
+                  maxLength: 5000
+      responses:
+        '200':
+          description: Report updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhistleblowerReportResponse'
+        '403':
+          description: Insufficient permissions (TENX_ADMIN required)
+        '404':
+          description: Report not found
+        '422':
+          description: Invalid status transition
+
+  /api/v1/compliance/financial/tax/annual-summary:
+    get:
+      summary: Get annual reward summary
+      description: Returns an aggregated annual reward summary for tax reporting. Restricted to CLIENT_ADMIN.
+      tags: [Tax]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Tax year (e.g. 2025)
+      responses:
+        '200':
+          description: Annual summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnnualRewardSummaryResponse'
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+  /api/v1/compliance/financial/tax/employer-report/{partnerCompanyId}:
+    get:
+      summary: Get employer benefit-in-kind report
+      description: Returns the employer benefit-in-kind (BIK) report for a specific partner company. Restricted to CLIENT_ADMIN or PARTNER_ADMIN.
+      tags: [Tax]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: partnerCompanyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Tax year (e.g. 2025)
+      responses:
+        '200':
+          description: Employer BIK report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployerBikReportResponse'
+        '403':
+          description: Insufficient permissions
+        '404':
+          description: Partner company not found
+
+  /api/v1/compliance/financial/tax/export:
+    get:
+      summary: Export tax data
+      description: Downloads a CSV export of all reward transactions for a given tax year. Restricted to CLIENT_ADMIN.
+      tags: [Tax]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Tax year (e.g. 2025)
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [CSV, XLSX]
+            default: CSV
+      responses:
+        '200':
+          description: Tax data export file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+components:
+  schemas:
+    WhistleblowerReportResponse:
+      type: object
+      description: See models/whistleblower-report.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackingNumber:
+          type: string
+        reportType:
+          type: string
+          enum: [SUSPICIOUS_INCENTIVE, POTENTIAL_KICKBACK, POLICY_VIOLATION, DATA_PRIVACY_CONCERN, OTHER]
+        status:
+          type: string
+          enum: [NEW, ACKNOWLEDGED, UNDER_INVESTIGATION, RESOLVED, DISMISSED]
+        subject:
+          type: string
+        description:
+          type: string
+        resolutionSummary:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    WhistleblowerStatusResponse:
+      type: object
+      description: Public-facing status response (limited fields for anonymity)
+      properties:
+        trackingNumber:
+          type: string
+        status:
+          type: string
+          enum: [NEW, ACKNOWLEDGED, UNDER_INVESTIGATION, RESOLVED, DISMISSED]
+        submittedAt:
+          type: string
+          format: date-time
+        lastUpdatedAt:
+          type: string
+          format: date-time
+
+    CreateWhistleblowerReportRequest:
+      type: object
+      required: [reportType, subject, description]
+      properties:
+        reportType:
+          type: string
+          enum: [SUSPICIOUS_INCENTIVE, POTENTIAL_KICKBACK, POLICY_VIOLATION, DATA_PRIVACY_CONCERN, OTHER]
+        subject:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 10000
+        relatedIncentiveId:
+          type: string
+          format: uuid
+          description: Optional reference to a specific incentive program
+        relatedPartnerCompanyId:
+          type: string
+          format: uuid
+          description: Optional reference to a specific partner company
+
+    AnnualRewardSummaryResponse:
+      type: object
+      description: See models/tax-report.md for full field definitions
+      properties:
+        year:
+          type: integer
+        clientId:
+          type: string
+          format: uuid
+        totalRewardValueUsd:
+          type: string
+          description: BigDecimal as string
+        totalRecipients:
+          type: integer
+        totalTransactions:
+          type: integer
+        breakdownByCurrency:
+          type: array
+          items:
+            type: object
+            properties:
+              rewardCurrency:
+                type: string
+              totalValue:
+                type: string
+                description: BigDecimal as string
+              transactionCount:
+                type: integer
+        breakdownByPartner:
+          type: array
+          items:
+            type: object
+            properties:
+              partnerCompanyId:
+                type: string
+                format: uuid
+              partnerCompanyName:
+                type: string
+              totalValueUsd:
+                type: string
+                description: BigDecimal as string
+              recipientCount:
+                type: integer
+
+    EmployerBikReportResponse:
+      type: object
+      description: See models/tax-report.md for full field definitions
+      properties:
+        year:
+          type: integer
+        partnerCompanyId:
+          type: string
+          format: uuid
+        partnerCompanyName:
+          type: string
+        country:
+          type: string
+        totalBikValueUsd:
+          type: string
+          description: BigDecimal as string
+        recipients:
+          type: array
+          items:
+            type: object
+            properties:
+              userId:
+                type: string
+                format: uuid
+              fullName:
+                type: string
+              totalValueUsd:
+                type: string
+                description: BigDecimal as string
+              transactionCount:
+                type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

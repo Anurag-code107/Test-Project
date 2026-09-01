@@ -1,0 +1,53 @@
+resource: Data Operations
+base_path: /api/v1/data-operations
+
+endpoints:
+  # --- Upload ---
+  - method: GET
+    path: /{dataObjectId}/uploads
+    summary: Get upload history for a data object
+    response: DataUploadResponse[]
+
+  - method: POST
+    path: /{dataObjectId}/upload
+    summary: Upload CSV/XLSX file for a data object
+    content_type: multipart/form-data
+    params:
+      - name: file
+        type: MultipartFile
+        required: true
+    response: DataUploadResponse
+
+  - method: GET
+    path: /{dataObjectId}/template
+    summary: Download CSV template for a data object
+    response: text/csv (attachment)
+
+  # --- Connector Pull ---
+  - method: POST
+    path: /{dataObjectId}/pull
+    summary: Trigger connector data pull for a data object
+    response: DataUploadResponse
+
+  # --- Tagging ---
+  - method: GET
+    path: /tagging/history
+    summary: Get tagging job history
+    response: TaggingJobResponse[]
+
+  - method: POST
+    path: /tagging/run
+    summary: Trigger eligibility tagging job
+    response: TaggingJobResponse
+
+  # --- Sync Schedule ---
+  - method: GET
+    path: /{dataObjectId}/sync-schedule
+    summary: Get sync schedule for a data object
+    response: SyncScheduleResponse
+
+  - method: PUT
+    path: /{dataObjectId}/sync-schedule
+    summary: Update sync schedule for a data object
+    request: UpdateSyncScheduleRequest
+    response: SyncScheduleResponse

@@ -1,0 +1,155 @@
+{
+  "branch": "features/redemption-history",
+  "featureId": "redemption-history",
+  "generatedAt": "2026-06-08T19:17:00Z",
+  "updatedAt": "2026-06-09T12:10:00Z",
+  "headCommit": "a1d9f1d72991e6c0dc10b2d523c04c3c127b29bc",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "73811fcfe1cff00be800926b88470cfcd74dea7e",
+      "build": "passed",
+      "lint": "passed",
+      "lintErrors": 0,
+      "notes": "0 ESLint errors. 1 pre-existing useEffect dep warning in ExportDialog.tsx (jobData?.status narrowing — intentional)."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "a1d9f1d72991e6c0dc10b2d523c04c3c127b29bc",
+      "fixes": 5,
+      "filesReviewed": [
+        "src/types/redemption-history/redemption-history.types.ts",
+        "src/services/redemption-history/redemption-history.service.ts",
+        "src/hooks/redemption-history/useTenantRedemptions.ts",
+        "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+        "src/pages/redemption-history/__tests__/TenantTransactionHistoryPage.test.tsx",
+        "src/components/redemption-history/ExportDialog.tsx",
+        "src/components/redemption-history/TransactionHistoryTable.tsx",
+        "src/components/redemption-history/TransactionDetailSheet.tsx",
+        "src/components/layout/sidebars/sidebarConfigs.ts",
+        "src/App.tsx",
+        "e2e/redemption-history.spec.ts"
+      ],
+      "fixesApplied": [
+        "TenantTransactionHistoryPage.tsx: hoist COLS array to module scope (was recreated on every TenantHistoryTable render)",
+        "TenantTransactionHistoryPage.tsx: wrap pagination object with useMemo([data])",
+        "TenantTransactionHistoryPage.tsx: wrap exportFilters object with useMemo([filters.*])",
+        "TenantTransactionHistoryPage.tsx: make onRowClick optional in TenantHistoryTableProps",
+        "TenantTransactionHistoryPage.tsx: add useMemo to React imports"
+      ],
+      "findings": [],
+      "advisory": [
+        {
+          "summary": "lucide-react barrel imports",
+          "details": "Project uses barrel imports throughout 50+ files; Vite/Rollup tree-shakes lucide-react correctly. False positive for this project.",
+          "tier": "advisory"
+        },
+        {
+          "summary": "STATUS_BADGE constant duplicated across 3 files",
+          "details": "TransactionDetailSheet, TransactionHistoryTable, TenantTransactionHistoryPage each define STATUS_BADGE. Could be extracted to a shared file. Left as advisory — extraction is a separate refactor.",
+          "tier": "advisory"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "a1d9f1d72991e6c0dc10b2d523c04c3c127b29bc",
+      "fixes": 7,
+      "fixesApplied": [
+        "TransactionDetailSheet.tsx: focus-visible ring on close button (commit 47f3a71)",
+        "TransactionHistoryTable.tsx: role=button + tabIndex={0} + onKeyDown on clickable rows (commit 47f3a71)",
+        "TenantTransactionHistoryPage.tsx: same clickable-row a11y in TenantHistoryTable (commit 47f3a71)",
+        "ExportDialog.tsx: Loader2 spinner on Download button during downloading state (commit 47f3a71)",
+        "TransactionDetailSheet.tsx: hide duplicate SheetPrimitive.Close with [&>button:last-child]:hidden (commit a1d9f1d)",
+        "TransactionHistoryTable.tsx: Space key e.preventDefault() to prevent page scroll (commit a1d9f1d)",
+        "ExportDialog.tsx: aria-label on Download button (commit a1d9f1d)"
+      ],
+      "advisory": [
+        {
+          "summary": "Amber pending badge uses raw HSL literal",
+          "details": "bg-[hsl(38_90%_50%/0.12)] text-amber-600 — project-wide pattern in 10+ files; --warning token is a different hue (22 90% 55%). Advisory only.",
+          "tier": "advisory"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "73811fcfe1cff00be800926b88470cfcd74dea7e",
+      "fixes": 0,
+      "checks": {
+        "no-localstorage": "passed",
+        "no-sessionstorage": "passed",
+        "no-any-types": "passed",
+        "no-dangerouslySetInnerHTML": "passed",
+        "no-raw-fetch": "passed",
+        "no-secrets": "passed"
+      }
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "8eb4ebb68e6ac5e3b754f79d5fcd6db185b644ff",
+      "fixApplied": "Rows made non-interactive + TransactionDetailSheet guarded by can('action.redemption.view_history'). 2 Vitest + 1 E2E test added. Committed @ 8eb4ebb.",
+      "source": "job-store",
+      "codexJobId": "review-mq5a4pfx-d1fkht",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-history",
+      "codexCompletedAt": "2026-06-08T14:03:46.328Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Tenant admins can open the history page but cannot load row details",
+          "details": "The tenant-wide page is routed behind action.redemption.view_all_history, and the test CLIENT_ADMIN fixture intentionally has that permission without action.redemption.view_history. However, row clicks mount the shared TransactionDetailSheet, which calls getRedemptionDetail() against /redemption/requests/{id}. The contract marks that detail endpoint as requiring action.redemption.view_history, not view_all_history, so a real CLIENT_ADMIN can list all tenant transactions but gets a failed detail sheet for any row.",
+          "file": "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+          "lineStart": 356,
+          "lineEnd": 360,
+          "severity": "high",
+          "confidence": 0.9,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (≥ 0.70), alreadyHandled=false at review time",
+          "recommendation": "Use can('action.redemption.view_history') from usePermissions() to conditionally render non-interactive rows and skip mounting TransactionDetailSheet when user lacks view_history.",
+          "alreadyHandled": true,
+          "resolvedAt": "8eb4ebb68e6ac5e3b754f79d5fcd6db185b644ff",
+          "resolution": "FE guard applied — canViewDetail = can('action.redemption.view_history'). Rows non-interactive and sheet not mounted when permission absent. 2 Vitest + 1 E2E test added."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "a1d9f1d72991e6c0dc10b2d523c04c3c127b29bc",
+      "vitest": {
+        "files": 74,
+        "tests": 500,
+        "passed": 500,
+        "failed": 0,
+        "result": "passed",
+        "notes": "Full suite: 500 tests pass. Pre-existing flaky timeouts in CreateRoleSheet.test.tsx and RejectDialog.test.tsx (unrelated to redemption-history changes) appear non-deterministically across runs but are not caused by this branch.",
+        "redemptionHistoryScope": {
+          "files": 6,
+          "tests": 34,
+          "result": "passed"
+        }
+      },
+      "playwright": {
+        "status": "not-run",
+        "notes": "E2E spec exists at e2e/redemption-history.spec.ts. Playwright against real BE requires a running backend — not run as part of ready-check."
+      }
+    }
+  },
+  "overall": "passed",
+  "summary": {
+    "stepsCompleted": ["prerequisites", "code-review", "ui-ux-review", "security-review", "adversarial-review", "tests"],
+    "stepsFailed": [],
+    "autoFixesApplied": 12,
+    "autoFixBreakdown": {
+      "a11y-fixes-47f3a71": 4,
+      "adversarial-fix-8eb4ebb": 1,
+      "code-and-uiux-fixes-a1d9f1d": 7
+    },
+    "headCommit": "a1d9f1d72991e6c0dc10b2d523c04c3c127b29bc",
+    "prReadiness": "ready — all steps passed"
+  }
+}

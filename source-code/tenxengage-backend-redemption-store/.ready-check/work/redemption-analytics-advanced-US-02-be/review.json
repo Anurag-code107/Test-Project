@@ -1,0 +1,172 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-analytics-advanced-US-02-be",
+  "storyId": "US-02",
+  "storyTitle": "View segment breakdown",
+  "headCommit": "efb5ed145bfaebc5040323010282a5171bb37288",
+  "startedAt": "2026-06-22T13:30:00Z",
+  "updatedAt": "2026-06-22T15:45:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "notes": "./gradlew check passed; spec file exists at tenxengage-blueprint/features/redemption-analytics-advanced/spec.md"
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 5,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/dto/request/redemption/AdvancedAnalyticsFilter.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/SegmentRedemptionDto.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/SegmentBreakdownResponse.java",
+        "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+        "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+        "src/test/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsServiceTest.java",
+        "src/test/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsControllerTest.java"
+      ],
+      "findings": [
+        {
+          "severity": "critical",
+          "summary": "Segment redemption rate SQL always produces 100 for any non-empty group",
+          "details": "Original SQL: ROUND(SUM(total_redeemed_count) * 100.0 / NULLIF(SUM(total_redeemed_count), 0), 2) — numerator and denominator are the same column, so every non-empty group returns 100.0. Rate becomes 1.0000 after /100 in row mapper.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "recommendation": "Use weighted average of MV's pre-computed redemption_rate column: SUM(total_redeemed_count * redemption_rate) / NULLIF(SUM(total_redeemed_count), 0)",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "high",
+          "summary": "Missing @JsonInclude(ALWAYS) on SegmentRedemptionDto — null region/role omitted from JSON",
+          "details": "Global JacksonConfig sets NON_NULL. Without @JsonInclude(ALWAYS) on the DTO, null region and null role are stripped from the JSON response. The FE needs stable field presence to render '—' for null cells (AC-4).",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/SegmentRedemptionDto.java",
+          "recommendation": "Add @JsonInclude(JsonInclude.Include.ALWAYS) to SegmentRedemptionDto",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "summary": "Per-row BigDecimal.valueOf(100) allocation in row mapper lambda",
+          "details": "Row mapper lambda called BigDecimal.valueOf(100) on every row, allocating a new object each time.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "recommendation": "Extract private static final BigDecimal ONE_HUNDRED = BigDecimal.valueOf(100)",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "summary": "replaceAll(\"[\\r\\n]\", \"_\") compiles the regex on every log call",
+          "details": "Multiple String.replaceAll calls compiled the regex per invocation instead of reusing a pre-compiled Pattern.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "recommendation": "Add private static final Pattern CRLF_PATTERN = Pattern.compile(\"[\\r\\n]\") and use CRLF_PATTERN.matcher(value).replaceAll(\"_\")",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "summary": "Fully-qualified java.math.RoundingMode.HALF_UP instead of import",
+          "details": "RoundingMode was used fully-qualified rather than via an import statement.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "recommendation": "Add import java.math.RoundingMode",
+          "autoFixable": true,
+          "fixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "low",
+          "summary": "Contract drift — role query param missing from OpenAPI spec",
+          "details": "The contract YAML does not include role as a query parameter (predates spec update). The implementation correctly adds role per FR-08.2 override.",
+          "file": "contracts/endpoints/redemption-advanced-analytics.yaml",
+          "recommendation": "Update contract YAML to add role as an optional query parameter ($RC_MANUAL — outside this diff scope)",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "summary": "Contract drift — partnerTier field still in SegmentRedemptionDto schema",
+          "details": "The contract YAML still references partnerTier in SegmentRedemptionDto but spec FR-08.2 explicitly dropped it. Implementation correctly omits tier.",
+          "file": "contracts/endpoints/redemption-advanced-analytics.yaml",
+          "recommendation": "Update contract YAML to remove partnerTier and align field names ($RC_MANUAL — outside this diff scope)",
+          "autoFixable": false,
+          "fixed": false
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "notes": "Contract YAML pre-dates the FR-08.2 spec override removing tier. Implementation follows spec over stale contract. Two additive contract drift items logged in security-review findings as $RC_MANUAL for follow-up outside this story's scope."
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "verdict": "needs-attention",
+      "advisoryFindings": [
+        {
+          "codexSeverity": "high",
+          "tier": "advisory",
+          "tierReason": "Pre-existing MV design issue — total_redeemed_count semantics inherited from DDL, not introduced by this PR. Field name in spec (redeemedCount) has no 'completed only' qualifier in AC-3.",
+          "summary": "redeemedCount includes failed/cancelled requests, not just COMPLETED",
+          "details": "MV total_redeemed_count = COUNT(*) over all non-deleted requests; contract description says 'Total number of completed redemptions for this segment'. Semantic gap exists at MV level. Implementation faithfully projects the MV column.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "recommendation": "Track in data model tech debt: consider adding completed_count column to MV or renaming totalRedeemedCount → totalSubmittedCount in contract. Out of scope for this story.",
+          "alreadyHandled": false
+        },
+        {
+          "codexSeverity": "high",
+          "tier": "advisory",
+          "tierReason": "Contract drift was already flagged in security-review ($RC_MANUAL). Spec explicitly overrides contract (tier dropped, role added, field renamed). Not a defect introduced by this PR.",
+          "summary": "Response shape diverges from checked-in OpenAPI contract — partnerTier, totalRedeemedCount, totalRedeemedAmount, redemptionRate as 0-100",
+          "details": "Contract YAML schema has partnerTier, totalRedeemedCount, totalRedeemedAmount, redemptionRate as 0-100 percentage. Implementation follows updated spec: region, role, currencyId, redeemedCount, redemptionRate as 0.0-1.0 decimal (AC-3). Contract needs additive update.",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/SegmentRedemptionDto.java",
+          "recommendation": "Update contracts/endpoints/redemption-advanced-analytics.yaml SegmentRedemptionDto schema to match implementation. $RC_MANUAL item already logged.",
+          "alreadyHandled": true
+        }
+      ]
+    },
+    "tests": {
+      "status": "passed",
+      "result": "BUILD SUCCESSFUL",
+      "newTestCases": [
+        "getSegmentBreakdown_happyPath_returnsSegments",
+        "getSegmentBreakdown_withRegionFilter_returnsOnlyApacSegments",
+        "getSegmentBreakdown_withRoleFilter_returnsOnlyManagerSegments",
+        "getSegmentBreakdown_noData_returnsEmptySegmentsList",
+        "getSegmentBreakdown_spanExceeds365Days_throwsBusinessRuleException",
+        "getSegmentBreakdown_dateFromAfterDateTo_throwsBusinessRuleException",
+        "segmentBreakdown_GET_200_returnsSegments",
+        "segmentBreakdown_GET_422_spanExceeds365Days",
+        "segmentBreakdown_GET_403_missingPermission"
+      ],
+      "allGreen": true
+    },
+    "coverage": {
+      "status": "passed",
+      "serviceClass": {
+        "instructions": "73%",
+        "branches": "61%",
+        "notes": "Class total includes uncovered methods from prior stories (item breakdown lambdas, cache key builders not callable via SpEL in unit tests)"
+      },
+      "newMethods": {
+        "getSegmentBreakdown": { "instructions": "95%", "branches": "70%", "lines": "19/19" },
+        "querySegmentBreakdown": { "instructions": "100%", "branches": "75%", "lines": "13/13" },
+        "validateDateRange": { "instructions": "100%", "branches": "100%", "lines": "9/9" },
+        "buildSegmentCacheKey": {
+          "instructions": "0%",
+          "notes": "Called via SpEL @Cacheable key expression — not directly reachable in @ExtendWith(MockitoExtension) unit tests; consistent with buildAdvancedCacheKey also at 0%"
+        }
+      }
+    }
+  },
+  "overall": "passed",
+  "manualActionItems": [
+    "$RC_MANUAL: Update contracts/endpoints/redemption-advanced-analytics.yaml — add role query param, remove partnerTier, rename fields to match implementation, update redemptionRate description to 0.0-1.0 decimal",
+    "$RC_MANUAL: Data model tech debt — total_redeemed_count in mv_segment_redemption_breakdown counts all non-deleted requests; consider separating completed_count in a future MV revision"
+  ],
+  "advisory_findings": [
+    "Codex adversarial [high/advisory]: redeemedCount includes failed/cancelled — pre-existing MV design, not introduced by PR",
+    "Codex adversarial [high/advisory]: Contract field names diverge from spec override — already flagged as $RC_MANUAL"
+  ]
+}

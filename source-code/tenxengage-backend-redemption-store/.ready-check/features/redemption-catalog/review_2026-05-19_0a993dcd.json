@@ -1,0 +1,50 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "0a993dcd588bbb1c74f80229d548d129e86c960b",
+      "completedAt": "2026-05-19T09:16:15.227Z",
+      "source": "job-store",
+      "codexJobId": "review-mpcf0es7-y9phqs",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T09:16:15.227Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Partner cap aggregate ignores completion-based reward transactions",
+          "details": "The per-currency partner cap total only counts RewardTransaction rows that join through ClaimAction -> PurchaseOrder. But TrainingCompletionService, ActivityCompletionService, and JourneyCompletionService pass partnerCompanyId with claimActionId = null, so those awarded rows are excluded from the aggregate. Any training/activity/journey reward with a partner cap can keep awarding beyond the configured cap because prior completion awards are invisible to the cap check.",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "lineStart": 91,
+          "lineEnd": 96,
+          "severity": "high",
+          "confidence": 0.9,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false",
+          "recommendation": "Persist partnerCompanyId directly on reward_transactions, then rewrite both partner-cap aggregate queries to use the column directly instead of joining through ClaimAction -> PurchaseOrder.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: partner caps can be bypassed for non-sales completion rewards.\n\nFindings:\n- [high] Partner cap aggregate ignores completion-based reward transactions (src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java:91-96)"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T08:27:11.039Z"
+}

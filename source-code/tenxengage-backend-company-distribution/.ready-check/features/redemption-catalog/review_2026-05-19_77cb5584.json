@@ -1,0 +1,63 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "77cb5584fafe1fd531aa5f087c63cff30f44ca12",
+      "completedAt": "2026-05-19T09:25:59.228Z",
+      "source": "job-store",
+      "codexJobId": "review-mpcfd8nw-xu0h56",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T09:25:59.228Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Local/test profile registers two XoxodayApiClient beans",
+          "details": "XoxodayApiClientImpl is always registered as a @Service while XoxodayApiClientStub is also registered for local/localtest/test. XoxodaySyncJobService constructor injects XoxodayApiClient with no @Primary or @Qualifier, so under localtest Spring has two candidates and fails context startup.",
+          "file": "src/main/java/com/tenxengage/app/client/XoxodayApiClientStub.java",
+          "lineStart": 8,
+          "lineEnd": 10,
+          "severity": "high",
+          "confidence": 0.93,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.93 (>=0.70), alreadyHandled=false",
+          "recommendation": "Add @Profile(\"!local & !localtest & !test\") to XoxodayApiClientImpl so it is excluded under those profiles, leaving the stub as the sole candidate.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Catalog updates can leave active items in invalid redemption states",
+          "details": "createCatalogItem rejects CASH+returnable and activateCatalogItem rejects active NON_CASH without providerItemId, but updateCatalogItem bypasses both invariants.",
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java",
+          "lineStart": 105,
+          "lineEnd": 110,
+          "severity": "medium",
+          "confidence": 0.87,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "After applying updates, validate invariants before saving: active NON_CASH requires providerItemId, CASH cannot be returnable.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: the branch can fail application context startup under the localtest profile.\n\nFindings:\n- [high] Local/test profile registers two XoxodayApiClient beans (src/main/java/com/tenxengage/app/client/XoxodayApiClientStub.java:8-10)\n- [medium] Catalog updates can leave active items in invalid redemption states (src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java:105-110)"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T08:27:11.039Z"
+}

@@ -1,0 +1,19 @@
+package com.tenxengage.admin.repository;
+
+import com.tenxengage.admin.entity.Currency;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface CurrencyRepository extends JpaRepository<Currency, UUID> {
+
+    List<Currency> findByClientIdOrderByTypeAscCodeAsc(UUID clientId);
+
+    Optional<Currency> findByClientIdAndCode(UUID clientId, String code);
+
+    boolean existsByClientIdAndCode(UUID clientId, String code);
+}

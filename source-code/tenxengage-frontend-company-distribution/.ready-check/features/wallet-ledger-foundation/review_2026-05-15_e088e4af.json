@@ -1,0 +1,148 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-frontend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "e088e4af55446e93507709b09f1d2079d8022cd4",
+  "startedAt": "2026-05-15T08:00:00Z",
+  "updatedAt": "2026-05-15T10:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "e088e4af55446e93507709b09f1d2079d8022cd4",
+      "completedAt": "2026-05-15T10:00:00Z",
+      "fixes": 3,
+      "notes": "Build passes (tsc -b + vite build). Lint: 0 errors, 1 pre-existing warning (react-hooks/exhaustive-deps in DealQualifierForm.tsx). No wallet contract yet in contracts/endpoints/ — acceptable. 3 fixes from prior run preserved."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "b47c73d5bb70049b9f7a831f2c191e57c2928dcc",
+      "completedAt": "2026-05-15T08:10:00Z",
+      "fixes": 1,
+      "filesReviewed": [
+        "src/components/layout/AppLayout.tsx",
+        "src/components/layout/BaseLayout.tsx",
+        "src/components/ui/skeleton.tsx",
+        "src/services/wallet.service.ts",
+        "src/types/wallet.types.ts"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "rule": "js-batch-dom-css",
+          "file": "src/components/layout/BaseLayout.tsx",
+          "lineStart": 28,
+          "lineEnd": 32,
+          "message": "Intentional forced reflow (offsetWidth read between classList.remove/add) to restart CSS animation. Pattern is deliberate — left as advisory.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "medium severity — advisory per classification rules"
+        },
+        {
+          "severity": "low",
+          "rule": "rerender-dependencies",
+          "file": "src/components/layout/BaseLayout.tsx",
+          "lineStart": 28,
+          "lineEnd": 28,
+          "message": "window.matchMedia called on every route change — hoisted to module-level helper function.",
+          "autoFixable": true,
+          "tier": "advisory",
+          "tierReason": "low severity — advisory; auto-fixed",
+          "fixed": true
+        },
+        {
+          "severity": "critical",
+          "rule": "bundle-barrel-imports",
+          "file": "src/components/layout/sidebars/sidebarConfigs.ts",
+          "lineStart": 1,
+          "lineEnd": 1,
+          "message": "16 lucide-react icons imported from barrel entry — pre-existing issue, not changed on this branch. Noted as advisory.",
+          "autoFixable": true,
+          "tier": "advisory",
+          "tierReason": "file not in branch diff — pre-existing issue excluded from blocking"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "b47c73d5bb70049b9f7a831f2c191e57c2928dcc",
+      "completedAt": "2026-05-15T08:12:00Z",
+      "fixes": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "rule": "responsive",
+          "file": "src/components/layout/BaseLayout.tsx",
+          "lineStart": 34,
+          "lineEnd": 34,
+          "message": "No mobile sidebar toggle — layout is desktop-first admin app. Pre-existing limitation, not introduced by this branch.",
+          "autoFixable": false,
+          "tier": "advisory",
+          "tierReason": "high but pre-existing and not introduced by this branch diff; desktop-first admin app by design"
+        },
+        {
+          "severity": "medium",
+          "rule": "accessibility",
+          "file": "src/components/layout/BaseLayout.tsx",
+          "lineStart": 35,
+          "lineEnd": 35,
+          "message": "Missing aria-label on <main> landmark — fixed.",
+          "autoFixable": true,
+          "tier": "advisory",
+          "tierReason": "medium severity; auto-fixed",
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "rule": "animation",
+          "file": "src/components/ui/skeleton.tsx",
+          "lineStart": 4,
+          "lineEnd": 4,
+          "message": "animate-pulse not suppressed for prefers-reduced-motion — fixed with motion-reduce:animate-none.",
+          "autoFixable": true,
+          "tier": "advisory",
+          "tierReason": "medium severity; auto-fixed",
+          "fixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "b47c73d5bb70049b9f7a831f2c191e57c2928dcc",
+      "completedAt": "2026-05-15T08:14:00Z",
+      "fixes": 0,
+      "notes": "No token storage, no any types, no dangerouslySetInnerHTML, all API calls via axios instance"
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "e088e4af55446e93507709b09f1d2079d8022cd4",
+      "completedAt": "2026-05-15T10:15:00Z",
+      "source": "user-paste",
+      "pasteWarning": "review ran via shared Codex session runtime (named pipe) in this session — result from companion script stdout, not file-based job store; branch/baseRef/timestamp auto-verification skipped",
+      "parseError": null,
+      "findings": [],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: approve\n\nNo ship-blocking issue is defensible from the branch diff. The only remaining wallet additions are unused service/type scaffolding, and the layout wrapper change does not provide enough grounded evidence of a material regression.\n\nNo material findings."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "e088e4af55446e93507709b09f1d2079d8022cd4",
+      "completedAt": "2026-05-15T10:20:00Z",
+      "testsRun": ["full Vitest suite (397 tests, 53 files)"],
+      "fixes": 0,
+      "trackerSignal": null,
+      "testPlanCoverage": {
+        "planned": 0,
+        "implemented": 0,
+        "generated": 0,
+        "passing": 397
+      },
+      "notes": "No tracker or stories yet (foundation branch). No mapped test files exist — full suite run. No E2E spec (wallet.spec.ts deleted). 397/397 passed."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests",
+  "updatedAt": "2026-05-15T10:20:00Z"
+}

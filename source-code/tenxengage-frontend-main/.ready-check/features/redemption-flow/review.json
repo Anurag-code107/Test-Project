@@ -1,0 +1,88 @@
+{
+  "featureId": "redemption-flow",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-flow",
+  "headCommit": "6a390ad7933c16a85b744fe6a15fe2ed228eb4fd",
+  "startedAt": "2026-05-26T12:00:00Z",
+  "updatedAt": "2026-05-26T10:25:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "a69c3f9586270067d2224803f5179c9a4636d27e",
+      "completedAt": "2026-05-26T10:05:00Z",
+      "notes": "build passes, lint 0 errors 2 warnings (pre-existing in GlobalCatalogItemForm and ItemConfigPanel, not in this feature's files)"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "a69c3f9586270067d2224803f5179c9a4636d27e",
+      "completedAt": "2026-05-26T10:10:00Z",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/components/redemption-catalog/TenantRedemptionSettingsForm.tsx",
+        "src/types/redemption-catalog.types.ts",
+        "src/components/redemption-catalog/CatalogItemDetailSheet.tsx",
+        "src/components/redemption-flow/RedemptionSubmitModal.tsx",
+        "src/components/redemption-flow/RedemptionConfirmationCard.tsx",
+        "src/pages/redemption-flow/RedemptionConfirmationPage.tsx"
+      ],
+      "findings": []
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "a69c3f9586270067d2224803f5179c9a4636d27e",
+      "completedAt": "2026-05-26T10:15:00Z",
+      "fixes": 5,
+      "manualActionItems": [
+        "RedemptionConfirmationCard: raw status enum shown to users — add Badge + label map",
+        "RedemptionConfirmationPage: error state has no retry (refetch)",
+        "RedemptionSubmitModal: no max attribute on amount Input (no client-side balance ceiling)",
+        "TenantRedemptionSettingsForm: isError from useTenantRedemptionSettings not handled"
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "a69c3f9586270067d2224803f5179c9a4636d27e",
+      "completedAt": "2026-05-26T10:17:00Z",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage in changed files, no dangerouslySetInnerHTML, all API calls via configured axios instance, no secrets"
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "a69c3f9586270067d2224803f5179c9a4636d27e",
+      "completedAt": "2026-05-26T10:21:37Z",
+      "source": "job-store",
+      "codexJobId": "review-mpmhh7o6-e78pcq",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-flow",
+      "codexCompletedAt": "2026-05-26T10:21:37.618Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Redemption success does not invalidate catalog affordability state",
+          "details": "On success this mutation invalidates request and wallet query families, but the store and item sheet gate redemption from item.canAfford on the separate ['redemption-catalog', ...] browse/detail caches. Those catalog queries have 2-5 minute stale windows, so after a successful reservation the user can return to the store or reopen the same item and still see stale canAfford/shortfall state.",
+          "file": "src/hooks/useRedemptionSubmit.ts",
+          "lineStart": 30,
+          "lineEnd": 34,
+          "severity": "medium",
+          "confidence": null,
+          "tier": "advisory",
+          "tierReason": "severity=medium → advisory regardless of confidence or alreadyHandled",
+          "recommendation": "Invalidate the catalog browse/detail query family on redemption success: queryClient.invalidateQueries({ queryKey: ['redemption-catalog'] }), and add a regression test covering post-submit return-to-store affordability refresh.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "a69c3f9586270067d2224803f5179c9a4636d27e",
+      "completedAt": "2026-05-26T10:23:00Z",
+      "notes": "427/427 tests pass (63 test files). Fixed 1 test regression: RedemptionConfirmationCard batch date assertion updated to match fmtDate locale output."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests"
+}

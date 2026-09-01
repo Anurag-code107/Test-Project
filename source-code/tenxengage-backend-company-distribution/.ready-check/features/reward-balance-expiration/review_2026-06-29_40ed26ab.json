@@ -1,0 +1,174 @@
+{
+  "featureId": "reward-balance-expiration",
+  "repo": "tenxengage-backend",
+  "branch": "features/reward-balance-expiration",
+  "baseBranch": "roadmaps/redemption-store",
+  "headCommit": "40ed26ab3fd520faaf7aed9e230e172f7958c3ce",
+  "startedAt": "2026-06-29T08:04:33Z",
+  "updatedAt": "2026-06-29T08:37:38Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "f417d862d165bcb40ade225c1daa066e8e4d0e00",
+      "completedAt": "2026-06-29T08:04:33Z",
+      "note": "./gradlew check BUILD SUCCESSFUL (compile + checkstyle + jacoco verification). spec.md present. Flyway V32/V33 compiled."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "f417d862d165bcb40ade225c1daa066e8e4d0e00",
+      "completedAt": "2026-06-29T08:12:00Z",
+      "fixes": 2,
+      "subagents": ["java-code-review", "concurrency-review", "performance-smell-detection"],
+      "filesReviewed": [
+        "controller/BalanceExpirationController.java",
+        "service/redemption/BalanceExpirationPolicyService.java",
+        "service/redemption/BalanceExpiryBatchService.java",
+        "service/redemption/BalanceExpiryNoticeService.java",
+        "service/redemption/BalanceBreakageReportService.java",
+        "repository/SchedulerBalanceExpirationRepository.java",
+        "repository/LedgerEntryRepository.java",
+        "entity/BalanceExpirationPolicy.java",
+        "entity/BalanceExpiryNotice.java",
+        "event/NotificationEventProducer.java",
+        "util/CsvUtil.java",
+        "dto/* (request+response)"
+      ],
+      "findings": [
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/repository/SchedulerBalanceExpirationRepository.java", "line": 30, "rule": "paging-correctness", "message": "findExpiryCandidateWallets paginates via Pageable but JPQL had no ORDER BY despite the comment claiming 'Order by id for stable paging'. Offset paging without a deterministic sort can skip or double-process candidate wallets across pages.", "autoFixable": true, "fixed": true, "fixApplied": "Added ORDER BY w.id to the @Query."},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java", "line": 132, "rule": "timezone-consistency", "message": "getExpiringSoon used LocalDate.now() (JVM default zone) while the rest of the feature uses LocalDate.now(ZoneOffset.UTC). On a non-UTC server the preview window boundary shifts by a day.", "autoFixable": true, "fixed": true, "fixApplied": "Changed to LocalDate.now(ZoneOffset.UTC).plusDays(days)."},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/entity/BalanceExpirationPolicy.java", "line": 31, "rule": "jpa-identity", "message": "@Data + @EqualsAndHashCode(callSuper=true) generates equals/hashCode over mutable persistent fields, breaking hash-collection semantics across the entity lifecycle. JPA entities should base identity on the immutable id only.", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/entity/BalanceExpiryNotice.java", "line": 31, "rule": "jpa-identity", "message": "Same @Data/@EqualsAndHashCode anti-pattern over mutable fields (status, notifiedAt, expiredAmount) as the entity moves through SCHEDULED->NOTIFIED->EXPIRED.", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java", "line": 112, "rule": "scheduler-concurrency", "message": "@Scheduled runExpirySweep has no distributed lock (no ShedLock). Multi-instance deployments run the sweep concurrently; the warn-phase check-then-act is protected only by the DB unique index, causing duplicate work + noisy ConstraintViolation logs. Expire phase is safe (lock-then-check).", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java", "line": 383, "rule": "unbounded-query", "message": "Expire phase loads ALL due NOTIFIED notices for a policy into one List with no pagination, unlike the deliberately-paged warn phase (CANDIDATE_BATCH_SIZE=500, AC-10). A large backlog could load a very large list into heap.", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java", "line": 334, "rule": "blocking-io", "message": "advanceToNotified calls publishAndConfirm which blocks up to 15s for a Kafka ack once per candidate wallet inside the per-page loop. Broker degradation could serialize 15s waits per wallet.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java", "line": 375, "rule": "stale-read", "message": "Expire phase re-checks policy.isEnabled() against the policy snapshot loaded at sweep start, not a fresh DB read. A mid-sweep disable committed elsewhere is not visible.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java", "line": 228, "rule": "collection-capacity", "message": "new HashMap<>() in bulkLastActivity sized for a page of known max size (CANDIDATE_BATCH_SIZE=500) — default capacity rehashes while filling.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceBreakageReportService.java", "line": 140, "rule": "collection-capacity", "message": "CSV StringBuilder seeded only with header; grows from default capacity per row. Row count is known up front.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/util/CsvUtil.java", "line": 35, "rule": "repeated-work", "message": "escapeCsv performs four separate full-string contains() scans per cell in the export hot path; a single-pass char scan would suffice. Measure first.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java", "line": 75, "rule": "collection-capacity", "message": "cancellationEvents ArrayList created at default capacity though pending.size() upper bound is known.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java", "line": 219, "rule": "misleading-comment", "message": "isMaterialChange returns false for a new entity but the inline comment says 'treat as material change when enabling'. Behavior is correct; the comment is misleading and invites a wrong future fix.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java", "line": 198, "rule": "scheduler-concurrency", "message": "Warn-phase find-or-create + save runs in auto-commit with no row lock; correctness relies entirely on the DB unique constraint to reject duplicate (wallet, currency, scheduledExpiryDate) inserts under overlapping sweeps.", "autoFixable": false, "fixed": false}
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "f417d862d165bcb40ade225c1daa066e8e4d0e00",
+      "completedAt": "2026-06-29T08:12:00Z",
+      "fixes": 1,
+      "subagents": ["security-audit", "api-contract-review"],
+      "findings": [
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceBreakageReportService.java", "line": 146, "rule": "csv-injection", "message": "totalExpiredAmount cell was appended via toPlainString() without CsvUtil.escapeCsv(). A negative BigDecimal renders with a leading '-', one of CsvUtil's formula-injection trigger chars (=+-@\\t\\r), defeating the CWE-1236 protection applied to every other cell.", "autoFixable": true, "fixed": true, "fixApplied": "Wrapped the numeric cell in CsvUtil.escapeCsv(...). No-op for valid positive amounts; neutralizes the anomalous negative case."},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/repository/AuditLogRepository.java", "line": 45, "rule": "tenant-isolation", "message": "findByActorIdAndResourceType is not tenant-scoped (filters only on actorId UUID + resourceType, no clientId). If any caller derives actorId from request input, this permits cross-tenant audit-log reads (OWASP A01).", "autoFixable": false, "fixed": false, "note": "Requires caller analysis; may be an intentional GDPR/admin path. Manual review."},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/repository/AuditLogRepository.java", "line": 49, "rule": "tenant-isolation", "message": "anonymizeByActorId is a bulk @Modifying UPDATE keyed only on actorId with no clientId scope. A tenant-unbounded destructive write risks anonymizing other tenants' rows if actorId is attacker-influenced.", "autoFixable": false, "fixed": false, "note": "May be an intentional GDPR cross-tenant erasure path; confirm against spec/callers."},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/exception/GlobalExceptionHandler.java", "line": 167, "rule": "info-disclosure", "message": "handleIllegalArgument returns raw ex.getMessage() to the client as the 400 body, potentially leaking internal detail (enum-parse failures, identifiers). Other handlers return generic messages and keep internals in the log.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/dto/request/UpsertBalanceExpirationPolicyRequest.java", "line": 17, "rule": "input-validation", "message": "inactivityDays has no @Min/@Max bound (leadTimeDays does); fixedExpiryDate has no temporal guard; mode-dependent required fields are not enforced declaratively, deferring all validation to the service.", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/controller/BalanceExpirationController.java", "line": 142, "rule": "response-typing", "message": "exportBreakageCsv declares ResponseEntity<Object> (byte[] on 200, ErrorResponse on 429). Untyped Object erases the response contract and blocks accurate OpenAPI schema generation.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/controller/BalanceExpirationController.java", "line": 86, "rule": "http-status", "message": "PUT /policies/{currencyId} is an upsert that always returns 200, including on first creation; 201 Created would be more correct on create.", "autoFixable": false, "fixed": false},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/controller/BalanceExpirationController.java", "line": 98, "rule": "api-doc", "message": "getExpiringSoon withinDays is required=false with no defaultValue and no documented fallback; the default lead window is implicit in the service and absent from the contract.", "autoFixable": false, "fixed": false}
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "f417d862d165bcb40ade225c1daa066e8e4d0e00",
+      "completedAt": "2026-06-29T08:12:00Z",
+      "note": "All 5 endpoints in contracts/endpoints/balance-expiration.yaml have matching controller methods (paths, GET/PUT verbs, path/query params, permissions configure/view_breakage, status codes incl. 429). Request DTO matches schema (@NotNull on the 3 required fields). Dedicated BalanceExpirationContractConformanceTest validates responses against the OpenAPI spec."
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "40ed26ab3fd520faaf7aed9e230e172f7958c3ce",
+      "source": "codex",
+      "parseError": null,
+      "fixes": 0,
+      "findings": [
+        {
+          "summary": "Company-wallet expiry notifications broadcast to all partner roles",
+          "details": "For COMPANY wallets resolveRecipients returns an empty targetUserIds list. NotificationDispatcher:60-91 treats an empty target list as a role-broadcast, querying ALL tenant users holding the type's default roles (V33 seeds PARTNER_SELLER + PARTNER_ADMIN). Audience filtering only applies when metadata carries incentiveId, which the balance-expiry events do not. The events carry only walletId in metadata and there is no partnerCompanyId field on NotificationEvent, so a single COMPANY wallet's expiry notifies every partner seller/admin in the tenant. Confidentiality / trust-boundary failure.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "lineStart": 607,
+          "lineEnd": 617,
+          "severity": "high",
+          "confidence": 0.85,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.85 (>=0.70), alreadyHandled=false (verified via NotificationDispatcher:60-91 broadcast path + NotificationEvent has no partnerCompanyId)",
+          "recommendation": "Resolve COMPANY wallet recipients to users scoped to wallet.partnerCompanyId, or extend NotificationEvent/NotificationDispatcher to carry and enforce a partnerCompanyId audience filter before broadcasting.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        },
+        {
+          "summary": "Inactivity notices are not revalidated before irreversible expiry",
+          "details": "processExpireForNotice (lines 426-491) locks the wallet, checks idempotency and zero-balance, then debits the full live availableBalance to zero. It never re-checks the latest ledger activity timestamp for INACTIVITY policies — that lookup only happens in the warn phase. A wallet that receives CREDIT/DEBIT/RESERVE/RETURN_CREDIT after the warning but before the scheduled date still gets expired from the stale notice, defeating inactivity semantics and destroying valid balance.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "lineStart": 383,
+          "lineEnd": 484,
+          "severity": "high",
+          "confidence": 0.85,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.85 (>=0.70), alreadyHandled=false (verified: expire path has no activity recheck — only policy-enabled, lock, idempotency, zero-balance guards)",
+          "recommendation": "Inside processExpireForNotice, after locking the wallet, re-fetch max ledger activity for INACTIVITY policies and recompute the expiry date; if the notice is stale, cancel or reschedule instead of debiting. Also consider cancelling/updating pending notices on wallet mutations.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        },
+        {
+          "summary": "Fixed-date policies can expire immediately after a late first warning",
+          "details": "Fixed-date validation (BalanceExpirationPolicyService:199-207) only requires fixedExpiryDate to be after today; it does not account for leadTimeDays or the enabled_at grace window. A tenant can enable a fixed-date policy for tomorrow with a 30-day lead time: the warn phase waits until enabled_at + leadTimeDays, creates the first NOTIFIED notice for a date already in the past, and the same sweep can expire the wallet immediately — defeating the advance-warning guarantee.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java",
+          "lineStart": 199,
+          "lineEnd": 207,
+          "severity": "medium",
+          "confidence": 0.7,
+          "tier": "advisory",
+          "tierReason": "severity=medium -> advisory",
+          "recommendation": "Reject fixed dates that cannot satisfy the configured advance-warning/grace window, or make expiry eligibility depend on notifiedAt + leadTimeDays rather than scheduledExpiryDate alone.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against roadmaps/redemption-store\nVerdict: needs-attention\n\nNo-ship: the change can expire valid balances and can broadcast wallet-expiry notifications beyond the wallet owner/company audience.\n\nFindings:\n- [high] Company-wallet expiry notifications broadcast to all partner roles (BalanceExpiryBatchService.java:607-617)\n- [high] Inactivity notices are not revalidated before irreversible expiry (BalanceExpiryBatchService.java:383-484)\n- [medium] Fixed-date policies can expire immediately after a late first warning (BalanceExpirationPolicyService.java:199-207)\n\nNext steps:\n- Block shipment until expiry execution revalidates activity and notification audience scoping is fixed.\n- Add regression tests for post-warning wallet activity, near-term fixed dates, and COMPANY wallet notification recipients."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "40ed26ab3fd520faaf7aed9e230e172f7958c3ce",
+      "completedAt": "2026-06-29T08:37:38Z",
+      "testsRun": [
+        "BalanceExpirationControllerTest (16)",
+        "NotificationEventProducerTest (5)",
+        "BalanceBreakageReportServiceTest (15)",
+        "BalanceExpirationPolicyServiceTest (19)",
+        "BalanceExpiryBatchServiceTest (25)",
+        "BalanceExpiryNoticeServiceTest (6)",
+        "BalanceExpirationWebSecurityIT (5)",
+        "BalanceExpirationContractConformanceTest (19)",
+        "AuditLogRepositoryFindFilteredIT (1)",
+        "SchedulerBalanceExpirationRepositoryLocalIT (2)",
+        "BalanceExpirationLifecycleIT (9)"
+      ],
+      "summary": "122 tests passed, 0 failures (86 unit/web via :test, 36 integration via :integrationTest). ORDER BY paging fix validated by SchedulerBalanceExpirationRepositoryLocalIT; CSV-escape fix validated by BalanceExpirationContractConformanceTest + BalanceBreakageReportServiceTest; UTC fix covered by policy/lifecycle tests.",
+      "fixes": 0,
+      "testPlanAlignment": {
+        "note": "Implemented test classes reorganize the test-plan's monolithic BalanceExpirationIntegrationTest into focused per-concern classes (BalanceExpirationLifecycleIT, BalanceExpirationWebSecurityIT, BalanceExpirationContractConformanceTest). Plan-named classes BalanceExpirationIntegrationTest / BalanceBreakageQueryIT / BalanceExpiryBatchQueryIT / BalanceExpirationEventIntegrationTest do not exist under those names but their scenarios are covered by the implemented split + unit suites. Did NOT auto-generate duplicates: the 2 blocking adversarial findings will reshape the expiry/notification tests, so generating now would produce throwaway tests.",
+        "autoGenerated": 0
+      },
+      "testQualitySubcheck": "skipped — advisory-only; deferred this cycle because the blocking design fixes will rewrite the affected expiry/notification tests"
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "40ed26ab3fd520faaf7aed9e230e172f7958c3ce",
+      "completedAt": "2026-06-29T08:37:38Z",
+      "note": "All new controller endpoints (5) and new service methods have corresponding tests (unit + @WebMvcTest + integration). Method/endpoint coverage is complete.",
+      "gaps": [
+        "Scenario gap (ties to adversarial Finding 2): no regression test asserting a wallet with post-warning activity is NOT expired (inactivity clock should move).",
+        "Scenario gap (ties to adversarial Finding 1): no test asserting COMPANY-wallet expiry notifications are scoped to the owning partner company rather than broadcast to all PARTNER_SELLER/PARTNER_ADMIN in the tenant.",
+        "Scenario gap (ties to adversarial Finding 3): no test for a near-term fixed-date policy where the first warning lands after the fixed date (lead window cannot be honored)."
+      ]
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "coverage"
+}

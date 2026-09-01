@@ -1,0 +1,137 @@
+openapi: 3.0.3
+info:
+  title: Reward Transaction Endpoints
+  description: Per-user reward transaction history (earned-only today; spent reserved for future redemption feature)
+  version: 1.0.0
+
+paths:
+  /api/v1/reward-transactions:
+    get:
+      summary: Get my reward transactions (paginated)
+      tags: [Reward Transactions]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        "200":
+          description: Paginated transactions for the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRewardTransactionResponse'
+
+  /api/v1/reward-transactions/{userId}:
+    get:
+      summary: Get reward transactions for a user (admin)
+      tags: [Reward Transactions]
+      security:
+        - bearerAuth: []
+      x-permission: action.reward_balances.admin
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        "200":
+          description: Paginated transactions for the specified user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedRewardTransactionResponse'
+
+components:
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    pageSize:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 50
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RewardTransactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [earned, spent]
+          description: Always "earned" today; "spent" reserved for future redemption feature
+        currencyId:
+          type: string
+        amount:
+          type: string
+          description: Awarded amount as plain string (no scientific notation)
+        incentiveId:
+          type: string
+          format: uuid
+        incentiveName:
+          type: string
+        claimActionId:
+          type: string
+          format: uuid
+          nullable: true
+        purchaseOrderNumber:
+          type: string
+          nullable: true
+
+    PaginatedRewardTransactionResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/RewardTransactionResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer

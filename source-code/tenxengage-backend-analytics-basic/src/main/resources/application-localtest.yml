@@ -1,0 +1,26 @@
+spring:
+  flyway:
+    # clean-on-validation-error is intentionally false in packaged resources —
+    # the actual clean configuration lives in src/test/resources/application-localtest.yml
+    # which is NOT included in the production artifact.
+    clean-on-validation-error: false
+    clean-disabled: true
+
+redemption:
+  webhook:
+    xtrm:
+      signing-secret: test-xtrm-secret
+    xoxoday:
+      signing-secret: test-xoxoday-secret
+  return-webhook:
+    xoxoday:
+      signing-secret: test-return-xoxoday-secret
+  xoxoday:
+    return-api-url: https://api.xoxoday.com/api/v1/plum/returns
+  xtrm:
+    base-url: https://xapisandbox.xtrm.com
+    auth-token: test-token
+    issuer-account-number: TEST-ACCOUNT
+    payment-method-id: TEST-METHOD
+    wallet-id: "000000"
+    program-id: "0000"

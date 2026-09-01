@@ -1,0 +1,497 @@
+openapi: 3.0.3
+info:
+  title: PartnerCompany Endpoints
+  description: Partner company management — CLIENT_ADMIN CRUD, scoped by tenant
+  version: 1.0.0
+
+paths:
+  /api/v1/partner-companies:
+    get:
+      summary: List partner companies
+      description: Returns paginated list of partner companies within the current tenant.
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: createdAt }
+        - name: sortDirection
+          in: query
+          schema: { type: string, enum: [ASC, DESC], default: DESC }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search by name
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, INACTIVE, SUSPENDED] }
+      responses:
+        '200':
+          description: Paginated partner company list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPartnerCompanyResponse'
+        '403':
+          description: Insufficient permissions
+
+    post:
+      summary: Create partner company
+      description: Creates a new partner company within the current tenant. CLIENT_ADMIN only.
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePartnerCompanyRequest'
+      responses:
+        '201':
+          description: Partner company created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '400':
+          description: Validation error
+        '409':
+          description: Partner company name already exists within this client
+
+  /api/v1/partner-companies/{id}:
+    get:
+      summary: Get partner company by ID
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Partner company details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '404':
+          description: Partner company not found
+
+    put:
+      summary: Update partner company
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePartnerCompanyRequest'
+      responses:
+        '200':
+          description: Partner company updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '404':
+          description: Partner company not found
+
+    delete:
+      summary: Delete partner company
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Partner company deleted
+        '404':
+          description: Partner company not found
+
+  /api/v1/partner-companies/{id}/xtrm/connect:
+    post:
+      summary: Connect a partner company to the payout provider
+      description: >
+        Provisions the company's payout account, retries a failed attempt, or supplies a wallet id by hand.
+        Which of the three happens is decided by the account's current state, not by the caller. Idempotent:
+        an already-connected company is returned unchanged, and the provider account is never created twice.
+        Requires action.partner_company.edit.
+      tags: [Partner Companies]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectXtrmAccountRequest'
+      responses:
+        '200':
+          description: Current connection state after the attempt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerCompanyResponse'
+        '403':
+          description: Insufficient permissions
+        '404':
+          description: Partner company not found
+        '422':
+          description: >
+            INVALID_ADMIN_DETAILS — the company has no stored admin details and none were supplied, so
+            there is nothing to send to the provider.
+
+  /api/v1/company-admin/profile:
+    # The company admin's OWN payout setup — the self-service counterpart to the client-admin endpoints
+    # above. No company id in the path: the company comes from the security context, so this cannot be
+    # aimed at another one.
+    #
+    # Gated twice, and the second gate is the one that matters. action.redemption.distribute narrows
+    # callers to company admins, but every company admin holds the same shared PARTNER_ADMIN role, so it
+    # cannot narrow further. The server then matches the caller against the company's adminEmail and
+    # answers 403 to every other admin — including on GET, because clients decide whether to offer the
+    # screen by whether the read succeeds.
+    get:
+      summary: My company's payout setup
+      description: >
+        What is stored, what is still missing, and the current payout-account status. Requires
+        action.redemption.distribute AND that the caller is the admin the account belongs to.
+      tags: [Company Admin Profile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: The caller's own payout setup
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyAdminProfileResponse'
+        '403':
+          description: >
+            Not this caller's payout setup — either the permission is absent, or the caller is a company
+            admin other than the one the account belongs to. Clients should treat the latter as "someone
+            else manages this", not as a failure.
+        '404':
+          description: Partner company not found
+        '422':
+          description: >
+            NOT_A_COMPANY_ADMIN — the caller belongs to no partner company.
+            ADMIN_IDENTITY_MISSING — the company has no admin identity on file, so nobody owns this setup.
+    put:
+      summary: Complete my company's payout setup
+      description: >
+        Saves the admin's address and provisions the company's payout account. Idempotent: resubmitting
+        retries provisioning rather than creating a second account. Identity fields are NOT accepted here —
+        they were set when the login was created, and adminEmail in particular is spent permanently at the
+        provider, which will not reuse it.
+      tags: [Company Admin Profile]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteCompanyAdminProfileRequest'
+      responses:
+        '200':
+          description: >
+            The setup as it stands after the attempt. Provisioning never fails this call — a provider
+            outage leaves xtrmAccount.status at PENDING with lastError set, and the caller retries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyAdminProfileResponse'
+        '400':
+          description: adminCity, adminRegion or adminPostalCode missing or blank
+        '403':
+          description: As for GET — the caller is not the admin this payout setup belongs to.
+        '422':
+          description: >
+            NOT_A_COMPANY_ADMIN — the caller belongs to no partner company.
+            ADMIN_IDENTITY_MISSING — the company has no admin identity on file, so there is nothing to send.
+
+components:
+  schemas:
+    CreatePartnerCompanyRequest:
+      type: object
+      required: [name]
+      # The five admin* properties are IDENTITY ONLY, and are supplied together or not at all. A partial
+      # group is rejected with 422 INVALID_ADMIN_DETAILS.
+      #
+      # Supplying the full group creates the company admin's LOGIN — it does not provision the payout
+      # account. The admin signs in, supplies their own address through PUT /company-admin/profile, and
+      # that is what creates the beneficiary at the payment provider. The address is not accepted here:
+      # the provider binds the account to adminEmail permanently and will not reuse the address, so the
+      # person who owns it is the one who types it.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+          default: ACTIVE
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        contactEmail:
+          type: string
+          format: email
+          maxLength: 255
+        contactPhone:
+          type: string
+          maxLength: 20
+        adminFirstName:
+          type: string
+          maxLength: 100
+        adminLastName:
+          type: string
+          maxLength: 100
+        adminEmail:
+          type: string
+          format: email
+          maxLength: 255
+        adminMobileNumber:
+          type: string
+          maxLength: 20
+          description: National number only — the dial code for adminCountryIso2 is prefixed server-side.
+        adminCountryIso2:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: >
+            2-letter ISO country code. Rejected with 422 INVALID_ADMIN_DETAILS if the payment provider
+            does not support payouts for that country.
+
+    UpdatePartnerCompanyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        website:
+          type: string
+          format: uri
+          maxLength: 500
+        contactEmail:
+          type: string
+          format: email
+          maxLength: 255
+        contactPhone:
+          type: string
+          maxLength: 20
+        adminFirstName:
+          type: string
+          maxLength: 100
+        adminLastName:
+          type: string
+          maxLength: 100
+        adminEmail:
+          type: string
+          format: email
+          maxLength: 255
+        adminMobileNumber:
+          type: string
+          maxLength: 20
+          description: National number only — the dial code for adminCountryIso2 is prefixed server-side.
+        adminCity:
+          type: string
+          maxLength: 100
+        adminRegion:
+          type: string
+          maxLength: 100
+        adminPostalCode:
+          type: string
+          maxLength: 20
+        adminCountryIso2:
+          type: string
+          minLength: 2
+          maxLength: 2
+          description: >
+            2-letter ISO country code. Rejected with 422 INVALID_ADMIN_DETAILS if the payment provider
+            does not support payouts for that country.
+
+    PartnerCompanyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        website:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        xtrmAccount:
+          allOf:
+            - $ref: '#/components/schemas/XtrmAccountSummary'
+          nullable: true
+          description: >
+            The company's payout-provider connection. Null when the company has never been connected, and
+            omitted on the list endpoint — populated on the detail and connect responses only.
+
+    XtrmAccountSummary:
+      type: object
+      description: >
+        A partner company's connection to the payout provider. Carries identifiers and a failure reason
+        only — it never contains credentials.
+      properties:
+        status:
+          type: string
+          enum: [PENDING, CONNECTED, DISABLED]
+          description: >
+            PENDING — not yet fully provisioned; holds whatever has been learned so far, including why the
+            last attempt failed. CONNECTED — the company may pay from its own wallet. DISABLED — switched
+            off deliberately.
+        accountNumber:
+          type: string
+          nullable: true
+          description: The company's account number at the provider. Null until provisioning has succeeded.
+        identityLevel:
+          type: string
+          nullable: true
+          description: The provider's KYC tier for this account, e.g. Basic.
+        lastError:
+          type: string
+          nullable: true
+          description: Why the last connection attempt failed. Present only while PENDING.
+
+    ConnectXtrmAccountRequest:
+      type: object
+      description: >
+        Every property is optional and the body may be omitted entirely. What the call does is decided by
+        the account's current state, not by which properties are supplied.
+      properties:
+        adminFirstName: { type: string, maxLength: 100 }
+        adminLastName: { type: string, maxLength: 100 }
+        adminEmail: { type: string, format: email, maxLength: 255 }
+        adminMobileNumber: { type: string, maxLength: 20 }
+        adminCity: { type: string, maxLength: 100 }
+        adminRegion: { type: string, maxLength: 100 }
+        adminPostalCode: { type: string, maxLength: 20 }
+        adminCountryIso2: { type: string, minLength: 2, maxLength: 2 }
+        xtrmWalletId:
+          type: string
+          maxLength: 50
+          description: >
+            Supplied by hand to finish a connection whose wallet could not be discovered automatically.
+            Accepted only once the account already holds credentials.
+
+    CompleteCompanyAdminProfileRequest:
+      type: object
+      description: >
+        Address only. Name, email, mobile and country came from the login the client admin created, and
+        cannot be changed here — the provider binds the account to adminEmail and will not reuse it.
+        No street line: the provider's company-admin block does not take one.
+      required: [adminCity, adminRegion, adminPostalCode]
+      properties:
+        adminCity: { type: string, maxLength: 100 }
+        adminRegion: { type: string, maxLength: 100 }
+        adminPostalCode: { type: string, maxLength: 20 }
+
+    CompanyAdminProfileResponse:
+      type: object
+      description: >
+        The caller's own payout setup. Carries no credentials and no other company's data.
+      properties:
+        companyName:
+          type: string
+        adminEmail:
+          type: string
+          format: email
+          description: >
+            Shown so the admin can confirm which address the account is bound to. Never editable — it is
+            spent once at the provider.
+        adminCity:
+          type: string
+          nullable: true
+        adminRegion:
+          type: string
+          nullable: true
+        adminPostalCode:
+          type: string
+          nullable: true
+        complete:
+          type: boolean
+          description: >
+            False while the address is still missing, so the company cannot yet be provisioned. This is
+            what the UI gates the form on.
+        xtrmAccount:
+          allOf:
+            - $ref: '#/components/schemas/XtrmAccountSummary'
+          nullable: true
+          description: Null until a provisioning attempt has been made.
+
+    PaginatedPartnerCompanyResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerCompanyResponse'
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

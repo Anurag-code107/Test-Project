@@ -1,0 +1,183 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T04:55:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:05:00Z",
+      "notes": "Compilation passes. No checkstyle plugin configured. Spec verified on features/redemption-catalog branch of blueprint. 1 pre-existing Windows-flaky failure (LocalStorageProviderTest) not introduced by this feature."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:15:00Z",
+      "fixes": 0,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionCatalogBrowseService.java",
+        "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+        "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java",
+        "src/main/java/com/tenxengage/app/service/WalletService.java",
+        "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+        "src/main/java/com/tenxengage/app/service/RewardBalanceService.java",
+        "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+        "src/main/java/com/tenxengage/app/service/CurrencyService.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionCatalogController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionCatalogAdminController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionConfigController.java",
+        "src/main/java/com/tenxengage/app/controller/RewardBalanceController.java",
+        "src/main/java/com/tenxengage/app/controller/RewardTransactionController.java",
+        "src/main/java/com/tenxengage/app/controller/WalletController.java",
+        "src/main/java/com/tenxengage/app/entity/RedemptionCatalogItem.java",
+        "src/main/java/com/tenxengage/app/entity/TenantRedemptionSettings.java",
+        "src/main/java/com/tenxengage/app/entity/ClientCatalogItemConfig.java",
+        "src/main/java/com/tenxengage/app/entity/ClientCatalogRegionConfig.java",
+        "src/main/java/com/tenxengage/app/entity/RewardWallet.java",
+        "src/main/java/com/tenxengage/app/entity/LedgerEntry.java",
+        "src/main/java/com/tenxengage/app/entity/RewardBalance.java",
+        "src/main/java/com/tenxengage/app/repository/RedemptionCatalogItemRepository.java",
+        "src/main/java/com/tenxengage/app/repository/TenantRedemptionSettingsRepository.java",
+        "src/main/java/com/tenxengage/app/repository/ClientCatalogItemConfigRepository.java",
+        "src/main/java/com/tenxengage/app/repository/ClientCatalogRegionConfigRepository.java",
+        "src/main/java/com/tenxengage/app/repository/RewardWalletRepository.java",
+        "src/main/java/com/tenxengage/app/repository/LedgerEntryRepository.java",
+        "src/main/java/com/tenxengage/app/repository/RewardBalanceRepository.java",
+        "src/main/java/com/tenxengage/app/repository/BudgetUtilizationRepository.java",
+        "src/main/java/com/tenxengage/app/client/XoxodayApiClient.java",
+        "src/main/java/com/tenxengage/app/client/XoxodayApiClientStub.java",
+        "src/main/java/com/tenxengage/app/security/SyncRateLimiter.java",
+        "src/main/java/com/tenxengage/app/exception/GlobalExceptionHandler.java",
+        "src/main/java/com/tenxengage/app/config/RetryConfig.java",
+        "src/main/java/com/tenxengage/app/dto/request/CreateRedemptionCatalogItemRequest.java",
+        "src/main/java/com/tenxengage/app/dto/request/UpdateRedemptionCatalogItemRequest.java",
+        "src/main/java/com/tenxengage/app/dto/request/UpdateTenantRedemptionSettingsRequest.java",
+        "src/main/java/com/tenxengage/app/dto/request/UpsertClientCatalogItemConfigRequest.java",
+        "src/main/java/com/tenxengage/app/dto/request/UpsertRegionConfigRequest.java"
+      ],
+      "findings": [
+        {"severity": "high", "autoFixed": false, "summary": "SyncRateLimiter unbounded in-memory map — memory leak + global lock DoS vector", "file": "src/main/java/com/tenxengage/app/security/SyncRateLimiter.java", "recommendation": "Use Caffeine cache with expireAfterAccess or Redis sliding-window counter"},
+        {"severity": "high", "autoFixed": false, "summary": "XoxodaySyncJobService volatile syncStatus+lastSyncAt non-atomic compound update", "file": "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java", "line": 33, "recommendation": "AtomicReference<SyncState> record"},
+        {"severity": "high", "autoFixed": false, "summary": "XoxodaySyncJobService concurrent sync race — no AtomicBoolean guard on submitSyncJob", "file": "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java", "line": 48, "recommendation": "AtomicBoolean syncInProgress CAS guard"},
+        {"severity": "high", "autoFixed": false, "summary": "getIntegrationHealth loads full active catalog — unbounded in-memory scan", "file": "src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java", "line": 178, "recommendation": "Add MAX(xoxodayLastSyncedAt) aggregate query to repository"},
+        {"severity": "high", "autoFixed": false, "summary": "browsePartnerCatalog Pageable.unpaged() — full table scan + in-memory sort/page", "file": "src/main/java/com/tenxengage/app/service/RedemptionCatalogBrowseService.java", "line": 81, "recommendation": "Push tenant-config filter and pagination to DB layer"},
+        {"severity": "high", "autoFixed": false, "summary": "RewardBalance and RewardWallet both mapped to reward_wallets table — JPA metamodel conflict", "file": "src/main/java/com/tenxengage/app/entity/RewardBalance.java", "line": 18, "recommendation": "Remove deprecated RewardBalance entity; delegate to RewardWallet queries"},
+        {"severity": "high", "autoFixed": false, "summary": "XoxodaySyncJobService findAllByIsActive loads all active items — in-memory NON_CASH filter", "file": "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java", "line": 72, "recommendation": "Add findAllByCategoryAndIsActive(NON_CASH, true) to repository"}
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:25:00Z",
+      "fixes": 5,
+      "filesModified": [
+        "src/main/java/com/tenxengage/app/controller/RedemptionCatalogAdminController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionConfigController.java",
+        "src/main/java/com/tenxengage/app/controller/RewardTransactionController.java"
+      ],
+      "findings": [
+        {"severity": "high", "autoFixed": true, "summary": "search param unconstrained — added @Size(max=100) + @Validated to RedemptionCatalogAdminController"},
+        {"severity": "high", "autoFixed": true, "summary": "category param was raw String — changed to RedemptionCategory enum for automatic 400 on invalid values"},
+        {"severity": "high", "autoFixed": true, "summary": "regionCode path variable unvalidated — added @Pattern(^[A-Z0-9]{2,10}$) on upsert and delete"},
+        {"severity": "high", "autoFixed": true, "summary": "getMyTransactions returned raw Page<T> — wrapped with PaginatedResponse.from()"},
+        {"severity": "high", "autoFixed": true, "summary": "getUserTransactions returned raw Page<T> — wrapped with PaginatedResponse.from()"},
+        {"severity": "high", "autoFixed": false, "summary": "SyncRateLimiter JVM-local — DoS + multi-instance bypass; heap unbounded", "recommendation": "Replace with Caffeine/Redis"},
+        {"severity": "medium", "autoFixed": false, "summary": "RewardTransactionController admin endpoint missing cross-tenant userId validation", "recommendation": "Assert target user clientId == getCurrentClientId()"}
+      ]
+    },
+    "contract-compliance": {
+      "status": "not_applicable",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:26:00Z",
+      "notes": "No contracts/endpoints/redemption* file found in tenxengage-contracts repo."
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:40:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mpc50wxh-gknxws",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T04:35:26.162Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Zero-award grants attempt to write an invalid ledger entry",
+          "details": "When budget/user/partner caps reduce awarded to zero, grantReward still saves the reward transaction and unconditionally calls walletService.creditInCurrentTx(..., awarded, ...). That path writes a ledger_entries.amount value with the same amount, but the new ledger schema requires amount > 0. A fully exhausted cap therefore turns an expected capped/no-award outcome into a database constraint failure and rolls back the whole grant path.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 169,
+          "lineEnd": 185,
+          "severity": "high",
+          "confidence": 0.93,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.93 (>=0.70), alreadyHandled=false",
+          "recommendation": "Skip wallet credit and ledger creation when awarded.compareTo(BigDecimal.ZERO) == 0; add integration test against real ledger constraint for exhausted-budget grants.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Partner caps can be overrun by concurrent grants to different users",
+          "details": "The advisory lock serializes only incentiveId:userId, but the partner-cap calculation sums all awards for partnerCompanyId. Two users from the same partner can run concurrently under different lock keys, both read the same partner total, and both award against the same remaining cap before either transaction commits.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 92,
+          "lineEnd": 139,
+          "severity": "high",
+          "confidence": 0.88,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.88 (>=0.70), alreadyHandled=false",
+          "recommendation": "Use lock key incentiveId:partnerCompanyId when checking partner caps, or lock a durable partner-cap utilization row before reading/updating the total.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Settlement can be skipped after reserve when the same redemption reference is reused",
+          "details": "doDebitInTx treats any ledger row with the same wallet/reference pair as a duplicate, without checking entry_type. A reserve+debit lifecycle using the same referenceType will cause the debit to see the RESERVE row and return without reducing reserved balance or writing a DEBIT row.",
+          "file": "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+          "lineStart": 164,
+          "lineEnd": 170,
+          "severity": "high",
+          "confidence": 0.86,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.86 (>=0.70), alreadyHandled=false",
+          "recommendation": "Scope idempotency checks by entry_type plus wallet/reference, or use operation-specific referenceType constants consistently; add lifecycle test that reserves and debits with the same redemption reference id.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: reward granting and wallet settlement have blocking correctness failures under capped and normal redemption flows.\n\nFindings:\n- [high] Zero-award grants attempt to write an invalid ledger entry (src/main/java/com/tenxengage/app/service/RewardGrantService.java:169-185)\n- [high] Partner caps can be overrun by concurrent grants to different users (src/main/java/com/tenxengage/app/service/RewardGrantService.java:92-139)\n- [high] Settlement can be skipped after reserve when the same redemption reference is reused (src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java:164-170)"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:50:00Z",
+      "testsRun": [
+        "RedemptionCatalogAdminServiceTest", "RedemptionCatalogBrowseServiceTest",
+        "TenantRedemptionCatalogServiceTest", "XoxodaySyncJobServiceTest",
+        "RewardGrantServiceTest", "WalletServiceTest",
+        "RedemptionCatalogAdminControllerTest", "RedemptionCatalogControllerTest",
+        "RedemptionConfigControllerTest", "RewardBalanceControllerTest",
+        "WalletControllerTest", "RewardTransactionControllerTest",
+        "RedemptionCatalogIntegrationTest", "WalletIntegrationTest",
+        "XoxodaySyncIntegrationTest", "CatalogTenantIsolationTest",
+        "RedemptionCatalogContractConformanceTest", "WalletContractConformanceTest"
+      ],
+      "fixes": 0,
+      "notes": "All scoped unit, controller, and integration tests pass. Pre-existing LocalStorageProviderTest flaky failure unchanged."
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d",
+      "completedAt": "2026-05-19T04:52:00Z",
+      "gaps": [],
+      "notes": "All 9 new service/controller classes have corresponding test files: RedemptionCatalogAdminControllerTest, RedemptionCatalogControllerTest, RedemptionConfigControllerTest, WalletControllerTest, RedemptionCatalogAdminServiceTest, RedemptionCatalogBrowseServiceTest, TenantRedemptionCatalogServiceTest, WalletServiceTest, XoxodaySyncJobServiceTest."
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "coverage"
+}

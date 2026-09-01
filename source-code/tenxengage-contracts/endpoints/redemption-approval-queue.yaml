@@ -1,0 +1,441 @@
+openapi: 3.0.3
+info:
+  title: Redemption Approval Queue Endpoints
+  description: >
+    Admin review queue for redemptions held in PENDING_APPROVAL state (catalog items configured
+    with APPROVAL_REQUIRED processing mode). Approving triggers F-03 vendor routing; rejecting
+    releases the reserved balance back to the partner wallet. Both operations notify the requesting
+    partner via Kafka (notification-events topic). Requires action.redemption.approve permission
+    — accessible to CLIENT_ADMIN and ACTIVITY_APPROVER only.
+  version: 1.0.0
+
+paths:
+  # ─── Approval Queue ──────────────────────────────────────────────────────────
+
+  /api/v1/redemption/requests/approval-queue:
+    get:
+      summary: List pending approval queue (paginated)
+      description: >
+        Returns all PENDING_APPROVAL redemption requests for the current tenant, sorted by
+        submittedAt DESC (fixed — not client-controllable). Filterable by date range, currency,
+        requestType, and catalogItemId. All filters are optional. Page size is capped at 50.
+        RETURN requestType always returns an empty list in F-04; fully implemented in F-06.
+      tags: [Redemption Approval Queue]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.approve
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+          description: Page size — max 50; returns 400 if exceeded
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt >= startDate (ISO-8601 date, e.g. "2026-05-01")
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt <= endDate (ISO-8601 date, e.g. "2026-05-31")
+        - name: currencyId
+          in: query
+          schema:
+            type: string
+          description: Filter by currency ID (e.g. "cash", "points")
+        - name: requestType
+          in: query
+          schema:
+            type: string
+            enum: [REDEMPTION, RETURN]
+          description: >
+            Filter by request type. RETURN always returns empty in F-04; stub only.
+            Full RETURN implementation in F-06.
+        - name: catalogItemId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by catalog item UUID
+      responses:
+        "200":
+          description: Paginated approval queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedApprovalQueueResponse"
+        "400":
+          description: >
+            Validation error — size > 50; invalid date format; unknown requestType value;
+            malformed catalogItemId UUID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.approve
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Approve / Reject Actions ─────────────────────────────────────────────────
+
+  /api/v1/redemption/requests/{id}/approve:
+    post:
+      summary: Approve a pending redemption
+      description: >
+        Transitions the redemption from PENDING_APPROVAL to RESERVED and triggers F-03 vendor
+        routing via RedemptionRoutingService. Records reviewedBy (caller UUID) and reviewedAt
+        (now) on the RedemptionRequest. Publishes redemption.approved to notification-events
+        Kafka topic after DB write commits (advisory — loss tolerable). Returns 409 if
+        redemption is not in PENDING_APPROVAL state (already actioned or concurrent conflict
+        via optimistic locking). Cross-tenant id returns 404, never 403. Emits audit record
+        with action=APPROVED, resourceType=REDEMPTION_REQUEST.
+      tags: [Redemption Approval Queue]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.approve
+      parameters:
+        - $ref: "#/components/parameters/redemptionRequestId"
+      responses:
+        "200":
+          description: Redemption approved — status transitions to RESERVED; vendor routing initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequestDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.approve
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Redemption not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            Redemption is not in PENDING_APPROVAL state — already approved, rejected,
+            or concurrent conflict (optimistic lock). FE must show "This redemption was
+            just actioned by another approver. Please refresh the queue."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/requests/{id}/reject:
+    post:
+      summary: Reject a pending redemption
+      description: >
+        Transitions the redemption from PENDING_APPROVAL to CANCELLED, releases the reserved
+        balance back to the partner wallet via WalletService, and records reviewedBy + reviewedAt
+        + rejectionReason on the RedemptionRequest. Publishes redemption.rejected to
+        notification-events Kafka topic after DB write commits (rejection reason NOT included
+        in event payload). rejectionReason is required — returns 400 if blank or missing.
+        Returns 409 if redemption is not in PENDING_APPROVAL state. Cross-tenant id returns
+        404, never 403. Emits audit record with action=REJECTED, resourceType=REDEMPTION_REQUEST.
+      tags: [Redemption Approval Queue]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.approve
+      parameters:
+        - $ref: "#/components/parameters/redemptionRequestId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectRedemptionRequest"
+      responses:
+        "200":
+          description: >
+            Redemption rejected — status transitions to CANCELLED; reserved balance released
+            to partner wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequestDetailResponse"
+        "400":
+          description: >
+            Validation error — rejectionReason is blank, null, or exceeds 1000 characters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.approve
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Redemption not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: >
+            Redemption is not in PENDING_APPROVAL state — already approved, rejected,
+            or concurrent conflict (optimistic lock)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Modified Existing Endpoints ─────────────────────────────────────────────
+
+  /api/v1/redemption/requests/{id}:
+    get:
+      x-modified: true
+      summary: Get redemption request detail
+      description: >
+        Full detail for a single redemption request. Extended by F-04 with three nullable review
+        fields: reviewedBy, reviewedAt, and rejectionReason. All three are null until the
+        redemption is approved or rejected. Cross-tenant id returns 404, not 403 (prevents
+        tenant boundary enumeration). vendorReferenceId only included when status=COMPLETED.
+        failureReason is a generic user-friendly message — raw vendor text is never returned.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_history
+      parameters:
+        - $ref: "#/components/parameters/redemptionRequestId"
+      responses:
+        "200":
+          description: Redemption request detail (includes F-04 review fields when decision made)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequestDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Redemption request not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────────────────
+
+    RejectRedemptionRequest:
+      type: object
+      required: [rejectionReason]
+      properties:
+        rejectionReason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Required reason for rejection. Must be non-blank; max 1000 characters.
+
+    # ─── Response Schemas ─────────────────────────────────────────────────────────
+
+    ApprovalQueueItemResponse:
+      type: object
+      description: >
+        Lightweight list item for the approval queue. requestingUserDisplayName and
+        catalogItemName are sourced from JOIN FETCH associations — no N+1 per-item lookups.
+      properties:
+        id:
+          type: string
+          format: uuid
+        requestingUserDisplayName:
+          type: string
+          description: Display name of the partner who submitted the redemption. Joined from users at query time.
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Catalog item display name. Joined from redemption_catalog_items at query time.
+        currencyId:
+          type: string
+          description: Currency ID (e.g. "cash", "points")
+        amount:
+          type: string
+          description: Redemption amount as decimal string (e.g. "150.00")
+        walletType:
+          type: string
+          enum: [INDIVIDUAL, COMPANY]
+        submittedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionRequestDetailResponse:
+      type: object
+      description: >
+        Full detail view for a single redemption request. Extended by F-04 with three nullable
+        review fields (reviewedBy, reviewedAt, rejectionReason). All three are null until a
+        PENDING_APPROVAL redemption is approved or rejected. Never includes clientId, deleted,
+        or version.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string (e.g. "150.00")
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the selected catalog item
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        walletType:
+          type: string
+          enum: [INDIVIDUAL, COMPANY]
+        vendorReferenceId:
+          type: string
+          description: Vendor transaction ID. Only included when status=COMPLETED.
+        submittedAt:
+          type: string
+          format: date-time
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH
+        completedAt:
+          type: string
+          format: date-time
+          description: Present when status=COMPLETED or FAILED
+        failureReason:
+          type: string
+          description: Generic user-friendly failure message. Raw vendor text never returned. Present when status=FAILED.
+        estimatedDelivery:
+          type: string
+          description: Human-readable payout timeline
+        reviewedBy:
+          type: string
+          format: uuid
+          description: UUID of the admin who approved or rejected this redemption. Null until a decision is made.
+        reviewedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the approval decision was made. Null until a decision is made.
+        rejectionReason:
+          type: string
+          description: Reason provided by the reviewer on rejection. Null when approved or still pending.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Paginated Response Wrappers ─────────────────────────────────────────────
+
+    PaginatedApprovalQueueResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalQueueItemResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  parameters:
+    redemptionRequestId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

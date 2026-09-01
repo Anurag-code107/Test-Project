@@ -1,0 +1,1169 @@
+openapi: 3.0.3
+info:
+  title: Redemption Catalog Endpoints
+  description: >
+    Global catalog management (TENX_ADMIN), tenant catalog configuration (CLIENT_ADMIN),
+    and partner catalog browse (PARTNER_SELLER, PARTNER_ADMIN).
+    RedemptionCatalogItem is a platform-level entity (no client_id).
+    Tenant-specific configuration lives in ClientCatalogItemConfig and ClientCatalogRegionConfig.
+  version: 1.0.0
+
+paths:
+  # ─── Platform Admin — Global Catalog Management ──────────────────────────────
+
+  /api/v1/admin/redemption-catalog:
+    get:
+      summary: List global catalog items (paginated)
+      description: TENX_ADMIN only. Returns all platform-level redemption catalog items with optional filters.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CASH, NON_CASH]
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+        - $ref: "#/components/parameters/search"
+      responses:
+        "200":
+          description: Paginated catalog item list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCatalogItemResponse"
+        "400":
+          description: Validation error (pageSize > 50, search > 200 chars)
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+
+    post:
+      summary: Create global catalog item
+      description: Creates a new platform-level redemption catalog item. NON_CASH items require providerItemId before activation.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRedemptionCatalogItemRequest"
+      responses:
+        "201":
+          description: Catalog item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionCatalogItemDetailResponse"
+        "400":
+          description: Validation error
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "409":
+          description: Duplicate providerItemId for category
+
+  /api/v1/admin/redemption-catalog/gift-card-catalog:
+    get:
+      summary: List XTRM digital gift-card SKUs for the catalog-creation picker
+      description: >
+        TENX_ADMIN only. Returns the available XTRM digital gift-card SKUs (Active, USD, gift-card
+        reward type only), de-duped by SKU and normalized to FIXED / VARIABLE value types. Backs the
+        SKU picker on the catalog-create form — the chosen SKU stamps the item's valueType and amount
+        bounds server-side. Server-cached (~6h); 503 when the XTRM catalog is temporarily unavailable.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      responses:
+        "200":
+          description: Available gift-card SKUs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GiftCardSkuResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "503":
+          description: XTRM gift-card catalog temporarily unavailable
+
+  /api/v1/admin/redemption-catalog/{id}:
+    get:
+      summary: Get catalog item detail
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      responses:
+        "200":
+          description: Catalog item detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionCatalogItemDetailResponse"
+        "404":
+          description: Catalog item not found
+
+    put:
+      summary: Update catalog item
+      description: Updates a platform-level catalog item. Rejects geographicScope narrowing if tenant regional configs exist for removed regions.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRedemptionCatalogItemRequest"
+      responses:
+        "200":
+          description: Catalog item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionCatalogItemDetailResponse"
+        "400":
+          description: Validation error
+        "404":
+          description: Catalog item not found
+        "422":
+          description: >
+            Business rule violation — e.g. geographicScope narrowing blocked by existing
+            tenant regional configs
+
+  /api/v1/admin/redemption-catalog/{id}/image:
+    post:
+      summary: Upload image for catalog item
+      description: >
+        Uploads an image for a platform-level catalog item.
+        Stores the image and sets imageUrl on the RedemptionCatalogItem.
+        Replaces any previously uploaded image.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file to upload (JPEG, PNG, GIF, WebP)
+      responses:
+        "200":
+          description: Image uploaded; updated catalog item returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionCatalogItemResponse"
+        "400":
+          description: Validation error (unsupported file type, file too large)
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: Catalog item not found
+
+  /api/v1/admin/redemption-catalog/{id}/activate:
+    patch:
+      summary: Activate catalog item
+      description: Sets isActive=true. NON_CASH items require providerItemId — 422 if absent.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      responses:
+        "200":
+          description: Catalog item activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionCatalogItemResponse"
+        "404":
+          description: Catalog item not found
+        "422":
+          description: NON_CASH item has no providerItemId
+
+  /api/v1/admin/redemption-catalog/{id}/deactivate:
+    patch:
+      summary: Deactivate catalog item
+      description: Sets isActive=false. Does NOT cascade to ClientCatalogItemConfig. Item immediately hidden from all partner browse responses.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      responses:
+        "200":
+          description: Catalog item deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionCatalogItemResponse"
+        "404":
+          description: Catalog item not found
+
+  /api/v1/admin/redemption-catalog/sync:
+    post:
+      summary: Trigger Xoxoday catalog sync
+      description: Submits an async sync job. Items absent from Xoxoday's API response are auto-set to isActive=false. Existing ClientCatalogItemConfig rows preserved.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      responses:
+        "202":
+          description: Sync job queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncJobResponse"
+        "429":
+          description: Rate limit exceeded (2 req/min per platform admin)
+
+  /api/v1/admin/redemption-catalog/integration-health:
+    get:
+      summary: Get Xoxoday integration health
+      description: Returns last sync timestamp, sync status, failed sync count, and last 10 webhook log entries.
+      tags: [Redemption Catalog Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.catalog.manage
+      responses:
+        "200":
+          description: Integration health data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntegrationHealthResponse"
+
+  # ─── Client Admin — Tenant Catalog Configuration ─────────────────────────────
+
+  /api/v1/redemption/settings:
+    get:
+      summary: Get tenant redemption settings
+      description: Returns current tenant's RedemptionSettings. Auto-creates with batchCadence=DAILY if no row exists.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      responses:
+        "200":
+          description: Tenant redemption settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantRedemptionSettingsResponse"
+
+    put:
+      summary: Update tenant redemption settings
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTenantRedemptionSettingsRequest"
+      responses:
+        "200":
+          description: Tenant redemption settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantRedemptionSettingsResponse"
+        "400":
+          description: Validation error (invalid batchCadence)
+
+  /api/v1/redemption/catalog/config:
+    get:
+      summary: List tenant catalog config (paginated)
+      description: Returns all globally active catalog items with tenant config overlay. Includes isGloballyActive field.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CASH, NON_CASH]
+        - $ref: "#/components/parameters/search"
+      responses:
+        "200":
+          description: Paginated tenant catalog config list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedTenantCatalogItemResponse"
+        "400":
+          description: Validation error
+
+  /api/v1/redemption/catalog/config/{catalogItemId}:
+    put:
+      summary: Upsert tenant catalog item config
+      description: >
+        Creates or updates the tenant's configuration for a specific globally active catalog item.
+        Amount overrides may only NARROW the item's range, never widen it:
+        minTransactionAmountOverride must be >= item's defaultMinRedemptionAmount,
+        maxTransactionAmountOverride must be <= item's defaultMaxRedemptionAmount (when the item has
+        one), and the resulting minimum must not exceed the resulting maximum.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertClientCatalogItemConfigRequest"
+      responses:
+        "200":
+          description: Item config upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientCatalogItemConfigResponse"
+        "404":
+          description: Catalog item not found or globally inactive
+        "409":
+          description: Concurrent update conflict — refresh and retry
+        "422":
+          description: >
+            Range violation — minTransactionAmountOverride below the global floor,
+            maxTransactionAmountOverride above the global ceiling, or resulting min > resulting max
+
+  /api/v1/redemption/catalog/config/{catalogItemId}/regions:
+    get:
+      summary: List regional configs for a catalog item
+      description: Returns all ClientCatalogRegionConfig rows for this tenant and item.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+      responses:
+        "200":
+          description: Regional config list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientCatalogRegionConfigResponse"
+
+  /api/v1/redemption/catalog/config/{catalogItemId}/regions/{regionCode}:
+    put:
+      summary: Upsert regional config for a catalog item
+      description: >
+        Creates or updates the regional availability override for a specific item and region.
+        regionCode must be a member of the item's geographicScope — 422 if not.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+        - $ref: "#/components/parameters/regionCode"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertRegionConfigRequest"
+      responses:
+        "200":
+          description: Regional config upserted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientCatalogRegionConfigResponse"
+        "404":
+          description: Catalog item not found
+        "422":
+          description: regionCode not in item's geographicScope
+
+    delete:
+      summary: Delete regional config for a catalog item
+      description: Removes the regional override. Idempotent — 204 even if row absent. Falls back to tenant-level ClientCatalogItemConfig.enabled.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+        - $ref: "#/components/parameters/regionCode"
+      responses:
+        "204":
+          description: Regional config deleted (or was already absent)
+
+  # ─── Partner — Currency-Aware Catalog Browse ──────────────────────────────────
+
+  /api/v1/redemption/catalog:
+    get:
+      summary: Browse partner catalog (currency-aware, region-aware)
+      description: >
+        Returns items where: ClientCatalogItemConfig.enabled=true AND isActive=true AND
+        regional filter resolves to enabled for caller's region AND currencyId matches
+        caller's RewardWallet currencies. Items with availableBalance < effectiveMinWalletBalance
+        are included with canAfford=false and shortfallAmount populated.
+        Groups by currency (NON_CASH sorted by regional score desc, CASH by min amount asc).
+      tags: [Redemption Catalog]
+      security:
+        - bearerAuth: []
+      x-permission: module.redemption_store
+      parameters:
+        - name: currencyId
+          in: query
+          schema:
+            type: string
+          description: Filter to a specific currency. If omitted, includes all currencies caller holds wallets for.
+        - name: region
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 region code. If omitted, inferred from caller's profile.
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        "200":
+          description: Paginated partner catalog browse response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCatalogBrowseItemResponse"
+        "400":
+          description: Validation error (pageSize > 50)
+        "401":
+          description: Not authenticated
+        "403":
+          description: Missing module.redemption_store permission
+        "429":
+          description: Rate limit exceeded (60 req/min per user)
+
+  /api/v1/redemption/catalog/{id}:
+    get:
+      summary: Get partner catalog item detail
+      description: >
+        Returns a single catalog item detail for partner use. 404 if item is globally
+        inactive, not enabled for tenant, or not available in caller's region.
+        Never includes providerItemId, syncMetadata, or minWalletBalance.
+      tags: [Redemption Catalog]
+      security:
+        - bearerAuth: []
+      x-permission: module.redemption_store
+      parameters:
+        - $ref: "#/components/parameters/catalogItemId"
+        - name: region
+          in: query
+          schema:
+            type: string
+          description: ISO 3166-1 alpha-2 region code override
+      responses:
+        "200":
+          description: Catalog item detail for partner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogBrowseItemResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Missing module.redemption_store permission
+        "404":
+          description: Item not found, globally inactive, not enabled for tenant, or region-excluded
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────────────────
+
+    CreateRedemptionCatalogItemRequest:
+      type: object
+      required: [name, category, currencyId, defaultMinRedemptionAmount]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        currencyId:
+          type: string
+          description: Currency ID this item redeems from (e.g. "cash", "points")
+        defaultMinRedemptionAmount:
+          type: string
+          description: Decimal string, must be > 0 (e.g. "10.00")
+        defaultProcessingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+          default: INSTANT
+        geographicScope:
+          type: array
+          items:
+            type: string
+          description: ISO 3166-1 alpha-2 country codes. Empty array = global availability.
+          default: []
+        providerItemId:
+          type: string
+          maxLength: 255
+          description: Required for NON_CASH activation. Xoxoday product ID or XTRM payout type.
+        isReturnable:
+          type: boolean
+          default: false
+          description: Always false for CASH items (enforced server-side).
+        defaultReturnWindowDays:
+          type: integer
+          minimum: 0
+          default: 0
+        imageUrl:
+          type: string
+          description: >
+            URL of the catalog item image. Set by the image upload endpoint
+            (POST /api/v1/admin/redemption-catalog/{id}/image).
+            Can also be supplied directly if the image is hosted externally.
+          nullable: true
+
+    UpdateRedemptionCatalogItemRequest:
+      type: object
+      description: All fields optional. geographicScope narrowing blocked if tenant regional configs exist for removed regions.
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        currencyId:
+          type: string
+        defaultMinRedemptionAmount:
+          type: string
+          description: Decimal string, must be > 0
+        defaultProcessingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        geographicScope:
+          type: array
+          items:
+            type: string
+          description: ISO 3166-1 alpha-2 country codes
+        providerItemId:
+          type: string
+          maxLength: 255
+        isReturnable:
+          type: boolean
+        defaultReturnWindowDays:
+          type: integer
+          minimum: 0
+        imageUrl:
+          type: string
+          description: >
+            URL of the catalog item image. Optional<String> on the Java side —
+            absent = no change, null = clear image, present = set new URL.
+          nullable: true
+
+    UpsertClientCatalogItemConfigRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+        processingModeOverride:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+          description: Null = inherit global default
+        minTransactionAmountOverride:
+          type: string
+          description: >
+            Decimal string, must be > 0 and >= item's defaultMinRedemptionAmount.
+            Null = inherit defaultMinRedemptionAmount.
+        maxTransactionAmountOverride:
+          type: string
+          description: >
+            Decimal string, must be > 0 and <= item's defaultMaxRedemptionAmount when the item
+            has one (an item with no ceiling accepts any positive override, since a finite ceiling
+            still narrows). Must also be >= the resulting minimum.
+            Null = inherit defaultMaxRedemptionAmount.
+        minWalletBalanceOverride:
+          type: string
+          description: Decimal string, must be >= 0. Null = platform default of 0.
+        returnWindowDaysOverride:
+          type: integer
+          minimum: 0
+          description: Null = inherit defaultReturnWindowDays. 0 = returns disabled.
+
+    UpdateTenantRedemptionSettingsRequest:
+      type: object
+      required: [batchCadence]
+      properties:
+        batchCadence:
+          type: string
+          enum: [DAILY, WEEKLY]
+
+    UpsertRegionConfigRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    # ─── Response Schemas ─────────────────────────────────────────────────────────
+
+    RedemptionCatalogItemResponse:
+      type: object
+      description: Summary response for admin list views. Omits syncMetadata.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        currencyId:
+          type: string
+        defaultMinRedemptionAmount:
+          type: string
+          description: Decimal string
+        defaultProcessingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        geographicScope:
+          type: array
+          items:
+            type: string
+        providerItemId:
+          type: string
+        isReturnable:
+          type: boolean
+        defaultReturnWindowDays:
+          type: integer
+        isActive:
+          type: boolean
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL of the catalog item image. Null if no image has been uploaded.
+        providerImageUrl:
+          type: string
+          nullable: true
+          description: >
+            Brand image URL from the vendor gift-card SKU (XTRM brandImageUrl), stamped at create time
+            and re-stamped when the SKU changes. Absolute vendor CDN URL — not proxied by this API.
+            Null for NON_CASH items, SKUs the XTRM catalog does not surface, and items created before
+            this field existed. Additive (2026-07, redemption-store-feedback).
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionCatalogItemDetailResponse:
+      type: object
+      description: Full detail response for admin create/update/get. Includes xoxodayLastSyncedAt; omits raw syncMetadata.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        currencyId:
+          type: string
+        defaultMinRedemptionAmount:
+          type: string
+          description: Decimal string
+        defaultProcessingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        geographicScope:
+          type: array
+          items:
+            type: string
+        providerItemId:
+          type: string
+        isReturnable:
+          type: boolean
+        defaultReturnWindowDays:
+          type: integer
+        isActive:
+          type: boolean
+        imageUrl:
+          type: string
+          nullable: true
+          description: URL of the catalog item image. Null if no image has been uploaded.
+        providerImageUrl:
+          type: string
+          nullable: true
+          description: >
+            Brand image URL from the vendor gift-card SKU — see RedemptionCatalogItemResponse.
+            Additive (2026-07, redemption-store-feedback).
+        xoxodayLastSyncedAt:
+          type: string
+          format: date-time
+          description: Set by sync job. Null for CASH items.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TenantCatalogItemResponse:
+      type: object
+      description: Client Admin view — global item fields + tenant config overlay. Includes isGloballyActive warning field.
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: RedemptionCatalogItem ID
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        currencyId:
+          type: string
+        defaultMinRedemptionAmount:
+          type: string
+          description: Decimal string
+        defaultMaxRedemptionAmount:
+          type: string
+          nullable: true
+          description: >
+            Decimal string — the platform ceiling a tenant's maxTransactionAmountOverride may not
+            exceed. Null = open-value/legacy item with no ceiling.
+        defaultProcessingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        geographicScope:
+          type: array
+          items:
+            type: string
+        isReturnable:
+          type: boolean
+        defaultReturnWindowDays:
+          type: integer
+        isGloballyActive:
+          type: boolean
+          description: Reflects RedemptionCatalogItem.isActive. False = platform deactivated; Client Admin sees warning.
+        tenantConfig:
+          $ref: "#/components/schemas/ClientCatalogItemConfigResponse"
+          description: Tenant override config. Null if no ClientCatalogItemConfig row exists yet.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ClientCatalogItemConfigResponse:
+      type: object
+      description: Tenant-level configuration override for a catalog item.
+      properties:
+        id:
+          type: string
+          format: uuid
+        redemptionCatalogItemId:
+          type: string
+          format: uuid
+        enabled:
+          type: boolean
+        processingModeOverride:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+          description: Null = inherit global default
+        minTransactionAmountOverride:
+          type: string
+          description: Decimal string. Null = inherit defaultMinRedemptionAmount.
+        maxTransactionAmountOverride:
+          type: string
+          description: Decimal string. Null = inherit defaultMaxRedemptionAmount.
+        minWalletBalanceOverride:
+          type: string
+          description: Decimal string. Null = platform default of 0.
+        returnWindowDaysOverride:
+          type: integer
+          description: Null = inherit defaultReturnWindowDays.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ClientCatalogRegionConfigResponse:
+      type: object
+      description: Regional availability override for a specific catalog item and region.
+      properties:
+        id:
+          type: string
+          format: uuid
+        redemptionCatalogItemId:
+          type: string
+          format: uuid
+        regionCode:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TenantRedemptionSettingsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchCadence:
+          type: string
+          enum: [DAILY, WEEKLY]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CatalogBrowseItemResponse:
+      type: object
+      description: >
+        Partner browse response. Never includes providerItemId, syncMetadata,
+        xoxodayLastSyncedAt, minWalletBalance, or client_id.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+          description: >
+            Proxy URL for the catalog item's uploaded image
+            (/api/v1/admin/redemption-catalog/{id}/image — the raw storage key is never returned).
+            Null when no custom image has been uploaded.
+        providerImageUrl:
+          type: string
+          nullable: true
+          description: >
+            Brand image URL from the vendor gift-card SKU (XTRM brandImageUrl), passed through verbatim
+            as an absolute vendor CDN URL. The card renders imageUrl first, falls back to
+            providerImageUrl (also when imageUrl fails to load), and finally to the category-themed
+            inline SVG illustration when both are absent or unloadable. Null for NON_CASH items,
+            unknown SKUs, and items created before this field existed.
+            Additive (2026-07, redemption-store-feedback).
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        currencyId:
+          type: string
+        effectiveMinTransactionAmount:
+          type: string
+          description: Decimal string — COALESCE(override, global default)
+        valueType:
+          type: string
+          nullable: true
+          enum: [FIXED, VARIABLE]
+          description: >
+            SKU-driven value type. FIXED = a single denomination (amount locked to the min == max);
+            VARIABLE = any amount within [min, max]. Null on legacy items created before SKU-driven
+            value types. Additive.
+        effectiveMaxTransactionAmount:
+          type: string
+          nullable: true
+          description: >
+            Decimal string upper bound — COALESCE(maxTransactionAmountOverride,
+            item.defaultMaxRedemptionAmount), symmetric with effectiveMinTransactionAmount.
+            Set for FIXED (== effectiveMinTransactionAmount) and VARIABLE;
+            null when unbounded (legacy / no override). Additive.
+        effectiveProcessingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        estimatedPayoutTimeline:
+          type: string
+          description: >
+            Human-readable payout timeline.
+            INSTANT: vendor SLA text.
+            BATCH: next batch run date based on tenant batchCadence.
+            APPROVAL_REQUIRED: "After admin approval + [vendor SLA]".
+        canAfford:
+          type: boolean
+          description: True if availableBalance >= effectiveMinWalletBalance.
+        shortfallAmount:
+          type: string
+          description: Decimal string. Amount by which balance falls short. "0.00" when canAfford=true.
+        geographicScope:
+          type: array
+          items:
+            type: string
+          description: ISO 3166-1 alpha-2 country codes where this item is available
+        isReturnable:
+          type: boolean
+        effectiveReturnWindowDays:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GiftCardSkuResponse:
+      type: object
+      description: >
+        One selectable XTRM digital gift-card SKU for the catalog-creation picker. A lean projection of
+        the XTRM catalog (the large HTML description/terms are dropped). For FIXED the redeemable amount
+        is faceValue; for VARIABLE it is any value within [minValue, maxValue].
+      properties:
+        sku:
+          type: string
+          description: XTRM SKU — stored as the catalog item's providerItemId.
+        rewardName:
+          type: string
+        brandName:
+          type: string
+        brandImageUrl:
+          type: string
+          nullable: true
+        currencyCode:
+          type: string
+          description: Always "USD" (only USD gift cards are dispatchable on the current rail).
+        valueType:
+          type: string
+          enum: [FIXED, VARIABLE]
+        faceValue:
+          type: number
+          nullable: true
+          description: The denomination for FIXED; 0/absent for VARIABLE.
+        minValue:
+          type: number
+          nullable: true
+          description: Lower bound for VARIABLE; 0/absent for FIXED.
+        maxValue:
+          type: number
+          nullable: true
+          description: Upper bound for VARIABLE; 0/absent for FIXED.
+
+    SyncJobResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [QUEUED, IN_PROGRESS, COMPLETED, FAILED]
+
+    IntegrationHealthResponse:
+      type: object
+      properties:
+        syncStatus:
+          type: string
+          enum: [SUCCESS, FAILED, IN_PROGRESS, NEVER_SYNCED]
+        lastSyncAt:
+          type: string
+          format: date-time
+          description: Null if never synced
+        failedSyncCount:
+          type: integer
+          description: Total number of failed sync attempts
+        recentWebhooks:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/WebhookLogEntry"
+
+    WebhookLogEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        vendor:
+          type: string
+          description: e.g. "XOXODAY"
+        eventType:
+          type: string
+        status:
+          type: string
+          enum: [DELIVERED, FAILED, PENDING]
+        receivedAt:
+          type: string
+          format: date-time
+
+    # ─── Paginated Response Wrappers ─────────────────────────────────────────────
+
+    PaginatedCatalogItemResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedemptionCatalogItemResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    PaginatedTenantCatalogItemResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/TenantCatalogItemResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    PaginatedCatalogBrowseItemResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogBrowseItemResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+  parameters:
+    catalogItemId:
+      name: catalogItemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    regionCode:
+      name: regionCode
+      in: path
+      required: true
+      schema:
+        type: string
+        description: ISO 3166-1 alpha-2 country code (e.g. "US", "GB")
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    search:
+      name: search
+      in: query
+      schema:
+        type: string
+        maxLength: 200
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

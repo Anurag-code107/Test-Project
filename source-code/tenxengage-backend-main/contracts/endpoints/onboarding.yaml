@@ -1,0 +1,316 @@
+openapi: 3.0.3
+info:
+  title: Onboarding Endpoints
+  description: User onboarding flow — policy acceptance, consent, password setup, and profile completion
+  version: 1.0.0
+
+paths:
+  /api/v1/onboarding/validate:
+    post:
+      summary: Validate onboarding token
+      description: Validates the onboarding invitation token and returns the current onboarding status
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: Onboarding invitation token from email link
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '400':
+          description: Token is invalid or expired
+
+  /api/v1/onboarding/set-password:
+    post:
+      summary: Set password during onboarding
+      description: Sets the user's password as part of the onboarding flow
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetPasswordRequest'
+      responses:
+        '200':
+          description: Password set successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '400':
+          description: Validation error (weak password, token invalid)
+
+  /api/v1/onboarding/complete-profile:
+    post:
+      summary: Complete profile during onboarding
+      description: Submits profile fields (name, phone) during the onboarding flow
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteProfileRequest'
+      responses:
+        '200':
+          description: Profile completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '400':
+          description: Validation error
+
+  /api/v1/onboarding/accept-policies:
+    post:
+      summary: Accept legal policies
+      description: Records the user's acceptance of required legal policies (privacy notice, terms of service, etc.)
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptPoliciesRequest'
+      responses:
+        '200':
+          description: Policies accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '400':
+          description: Validation error (missing required policies)
+
+  /api/v1/onboarding/set-consent:
+    post:
+      summary: Set consent preferences
+      description: Records the user's consent preferences for optional data processing activities
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetConsentRequest'
+      responses:
+        '200':
+          description: Consent preferences saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '400':
+          description: Validation error
+
+  /api/v1/onboarding/complete:
+    post:
+      summary: Complete onboarding
+      description: Marks the onboarding flow as complete. All prior steps must be finished.
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Onboarding completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '400':
+          description: Onboarding steps not yet finished
+        '409':
+          description: Onboarding already completed
+
+  /api/v1/onboarding/policies:
+    get:
+      summary: Get policies for onboarding
+      description: Returns the legal policies the user must accept during onboarding
+      tags: [Onboarding]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Onboarding invitation token
+      responses:
+        '200':
+          description: List of policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LegalPolicyResponse'
+        '400':
+          description: Token is invalid or expired
+
+  /api/v1/onboarding/consent:
+    get:
+      summary: Get consent options for onboarding
+      description: Returns the consent preferences available for the user during onboarding
+      tags: [Onboarding]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Onboarding invitation token
+      responses:
+        '200':
+          description: List of consent preferences
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConsentPreferenceResponse'
+        '400':
+          description: Token is invalid or expired
+
+components:
+  schemas:
+    OnboardingStatusResponse:
+      type: object
+      description: See models/onboarding.md for full field definitions
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        passwordSet:
+          type: boolean
+        profileCompleted:
+          type: boolean
+        policiesAccepted:
+          type: boolean
+        consentRecorded:
+          type: boolean
+        onboardingComplete:
+          type: boolean
+        currentStep:
+          type: string
+          description: Next step the user should complete
+
+    SetPasswordRequest:
+      type: object
+      required: [token, password, confirmPassword]
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        confirmPassword:
+          type: string
+          minLength: 8
+
+    CompleteProfileRequest:
+      type: object
+      required: [token, firstName, lastName]
+      properties:
+        token:
+          type: string
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+
+    AcceptPoliciesRequest:
+      type: object
+      required: [token, acceptedPolicyIds]
+      properties:
+        token:
+          type: string
+        acceptedPolicyIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of the policies the user is accepting
+
+    SetConsentRequest:
+      type: object
+      required: [token, consents]
+      properties:
+        token:
+          type: string
+        consents:
+          type: array
+          items:
+            type: object
+            required: [consentType, granted]
+            properties:
+              consentType:
+                type: string
+                enum: [AI_RECOMMENDATIONS, MARKETING_EMAIL, ANALYTICS]
+              granted:
+                type: boolean
+
+    LegalPolicyResponse:
+      type: object
+      description: See models/legal-policy.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        policyType:
+          type: string
+          enum: [PRIVACY_NOTICE, TERMS_OF_SERVICE, ANTI_BRIBERY_POLICY]
+        title:
+          type: string
+        version:
+          type: string
+        contentUrl:
+          type: string
+          format: uri
+        required:
+          type: boolean
+        effectiveDate:
+          type: string
+          format: date
+
+    ConsentPreferenceResponse:
+      type: object
+      description: See models/consent.md for full field definitions
+      properties:
+        consentType:
+          type: string
+          enum: [AI_RECOMMENDATIONS, MARKETING_EMAIL, ANALYTICS]
+        label:
+          type: string
+        description:
+          type: string
+        required:
+          type: boolean
+        defaultValue:
+          type: boolean

@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: Notification Type Endpoints
+  description: Notification type catalog (read-only)
+  version: 1.0.0
+
+paths:
+  /api/v1/notification-types:
+    get:
+      summary: List all notification types
+      tags: [Notification Types]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.view
+      responses:
+        "200":
+          description: All notification types
+
+  /api/v1/notification-types/by-category:
+    get:
+      summary: List notification types by category
+      tags: [Notification Types]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.view
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum:
+              [
+                INCENTIVE,
+                BUDGET,
+                CLAIMS,
+                REWARDS,
+                DATA,
+                INTEGRATION,
+                USER_MANAGEMENT,
+              ]
+      responses:
+        "200":
+          description: Notification types filtered by category
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

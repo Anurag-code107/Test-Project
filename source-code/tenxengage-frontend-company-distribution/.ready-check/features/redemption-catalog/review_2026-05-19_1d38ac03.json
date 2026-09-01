@@ -1,0 +1,211 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+  "startedAt": "2026-05-19T04:30:00.000Z",
+  "updatedAt": "2026-05-19T04:45:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+      "completedAt": "2026-05-19T04:31:00.000Z",
+      "fixes": 1,
+      "notes": "Fixed ItemConfigPanel.test.tsx type cast ([][]  → tuple) to resolve noUncheckedIndexedAccess TS error."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+      "completedAt": "2026-05-19T04:37:00.000Z",
+      "fixes": 4,
+      "filesReviewed": [
+        "src/components/deal-qualifier/DealQualifierForm.tsx",
+        "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+        "src/components/layout/AppLayout.tsx",
+        "src/components/layout/BaseLayout.tsx",
+        "src/components/layout/sidebars/sidebarConfigs.ts",
+        "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+        "src/components/redemption-catalog/CatalogItemDetailSheet.tsx",
+        "src/components/redemption-catalog/ItemConfigPanel.tsx",
+        "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+        "src/components/redemption-catalog/SyncStatusBanner.tsx",
+        "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+        "src/pages/RedemptionStorePage.tsx",
+        "src/pages/client-admin/CatalogConfigPage.tsx",
+        "src/pages/tenx-admin/GlobalCatalogAdminPage.tsx",
+        "src/services/wallet.service.ts",
+        "src/types/redemption-catalog.types.ts",
+        "src/types/wallet.types.ts"
+      ],
+      "findings": [
+        {
+          "severity": "critical",
+          "file": "src/components/layout/sidebars/sidebarConfigs.ts",
+          "line": 1,
+          "message": "20 icons imported from lucide-react barrel. Confirm tree-shaking is effective (lucide-react 0.462 with Rollup should handle this; vite config has no explicit optimizePackageImports).",
+          "autoFixable": false
+        },
+        {
+          "severity": "critical",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 52,
+          "message": "14 icons imported from lucide-react barrel. Same as above.",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 417,
+          "message": "totalBudget IIFE in render body not memoized. Wrapping in useMemo would avoid recomputing on every render.",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 674,
+          "message": "locationBreakdownMap rebuilt every render (not in useMemo).",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 869,
+          "message": "getCurrentData() called inline at render — not memoized.",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/deal-qualifier/DealQualifierForm.tsx",
+          "line": 35,
+          "message": "Form uses plain useState instead of react-hook-form + zod (project standard).",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+          "line": 67,
+          "message": "Inline arrow callback to CatalogItemCard defeats memoization if card uses React.memo.",
+          "autoFixable": false
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+      "completedAt": "2026-05-19T04:38:00.000Z",
+      "fixes": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+          "line": 22,
+          "message": "Hardcoded pageSize: 20 with no pagination UI — items beyond page 0 are inaccessible.",
+          "autoFixable": false
+        },
+        {
+          "severity": "high",
+          "file": "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+          "line": 83,
+          "message": "Switch always renders as off when no regional override exists, misrepresenting the effective enabled state (which should inherit tenantEnabled).",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/redemption-catalog/CatalogItemDetailSheet.tsx",
+          "line": 52,
+          "message": "Generic error state has no retry button — user cannot refetch without closing the sheet.",
+          "autoFixable": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 169,
+          "message": "insightColors uses hardcoded raw Tailwind color names that won't adapt to dark mode.",
+          "autoFixable": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+      "completedAt": "2026-05-19T04:39:00.000Z",
+      "fixes": 0
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+      "completedAt": "2026-05-19T04:39:36.686Z",
+      "source": "job-store",
+      "codexJobId": "review-mpc55lrr-h48lhg",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T04:39:36.686Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Override save can disable an enabled catalog item when item data is not resolved",
+          "details": "ItemConfigPanel renders an active Save button while item is still derived from an async paginated search result. If the admin submits before that query resolves, or if search: catalogItemId does not return the exact row, item is undefined and the mutation sends enabled: false.",
+          "file": "src/components/redemption-catalog/ItemConfigPanel.tsx",
+          "lineStart": 37,
+          "lineEnd": 82,
+          "severity": "high",
+          "confidence": 0.9,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false",
+          "recommendation": "Disable Save button while item is loading/undefined, or pass the enabled state explicitly from the parent row rather than re-reading it from an async query.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Tenant catalog configuration is capped at the first 20 items",
+          "details": "The table hard-codes { page: 0, pageSize: 20 } and never exposes pagination, search, or fetch-all. Any catalog item after the first page cannot be enabled, disabled, or configured.",
+          "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+          "lineStart": 22,
+          "lineEnd": 93,
+          "severity": "medium",
+          "confidence": 0.93,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Add pagination/search/infinite loading, or surface when totalElements exceeds the loaded count.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Regional rows show inherited regions as disabled regardless of tenant default",
+          "details": "config?.enabled ?? false always shows off for rows without an override, misrepresenting the effective enabled state which may be inherited as on.",
+          "file": "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+          "lineStart": 82,
+          "lineEnd": 107,
+          "severity": "medium",
+          "confidence": 0.78,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Pass the effective tenant/default regional availability into RegionalConfigMatrix and render inherited rows with the actual effective state.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "1d38ac030c477f329376f6e1f9bdf56daa876c6b",
+      "completedAt": "2026-05-19T04:44:00.000Z",
+      "fixes": 0,
+      "testsRun": [
+        "src/components/redemption-catalog/__tests__/CatalogItemCard.test.tsx",
+        "src/components/redemption-catalog/__tests__/GlobalCatalogAdminPage.test.tsx",
+        "src/components/redemption-catalog/__tests__/GlobalCatalogItemForm.test.tsx",
+        "src/components/redemption-catalog/__tests__/ItemConfigPanel.test.tsx",
+        "src/components/redemption-catalog/__tests__/RegionalConfigMatrix.test.tsx",
+        "src/components/redemption-catalog/__tests__/ShortfallBadge.test.tsx",
+        "src/components/redemption-catalog/__tests__/SyncStatusBanner.test.tsx",
+        "src/components/redemption-catalog/__tests__/TenantCatalogConfigTable.test.tsx"
+      ],
+      "testPlanCoverage": { "planned": 0, "implemented": 8, "generated": 0, "passing": 23 }
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T04:50:00.000Z"
+}

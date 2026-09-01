@@ -1,0 +1,62 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "13c8df5cb9a9b168c0e21b2b157fe30c7aba2e00",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:22:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "13c8df5cb9a9b168c0e21b2b157fe30c7aba2e00",
+      "completedAt": "2026-05-19T06:22:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mpc8q3vg-tygfsj",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T06:19:39.973Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Xoxoday sync never upserts fetched products",
+          "details": "`runSync()` fetches the provider catalog, derives the provider IDs, and only deactivates currently active NON_CASH items that are missing from the response. There is no create/update path for products returned by Xoxoday, so an initial sync with a valid non-empty response and an empty local catalog will end in `SUCCESS` while importing zero redemption items. That makes the integration health lie and leaves admins with no provider-backed catalog to configure.",
+          "file": "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java",
+          "lineStart": 54,
+          "lineEnd": 91,
+          "severity": "high",
+          "confidence": 0.93,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.93 (>=0.70), alreadyHandled=false",
+          "recommendation": "During sync, upsert each `XoxodayProductResponse` into `redemption_catalog_items` keyed by `(category, provider_item_id)`, update metadata/active state/last_synced_at, and only mark sync successful after persisted counts are validated and logged.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Budget utilization uniqueness adds a race to the claim path",
+          "details": "The migration adds unique indexes for `(incentive_id, currency_id[, location_value_id])`, but `ClaimService.applyBudgetCap()` still does the old `find...ForUpdate().orElseGet(save(...))` sequence. When two first claims for the same incentive/currency hit an empty utilization key concurrently, neither query can lock a missing row and both can try to insert; after V9 one transaction will hit a unique violation instead of awarding cleanly. The hardened `ensureExists()` path exists in `RewardGrantService`, but this claim path still bypasses it.",
+          "file": "src/main/java/com/tenxengage/app/service/ClaimService.java",
+          "lineStart": 1191,
+          "lineEnd": 1205,
+          "severity": "high",
+          "confidence": 0.86,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.86 (>=0.70), alreadyHandled=false",
+          "recommendation": "Route claim rewards through `RewardGrantService` or change this method to call `budgetUtilizationRepository.ensureExists(...)` before the `FOR UPDATE` read, then load the row and retry/translate unique conflicts explicitly.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: the sync path can report success without importing anything, and the new budget uniqueness constraint leaves an existing claim path with a first-writer race.\n\nFindings:\n- [high] Xoxoday sync never upserts fetched products (src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java:54-91)\n- [high] Budget utilization uniqueness adds a race to the claim path (src/main/java/com/tenxengage/app/service/ClaimService.java:1191-1205)"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review"
+}

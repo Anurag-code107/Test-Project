@@ -1,0 +1,181 @@
+openapi: 3.0.3
+info:
+  title: Connector Endpoints
+  description: External data source connector management — CLIENT_ADMIN CRUD, scoped by tenant
+  version: 1.0.0
+
+paths:
+  /api/v1/connectors:
+    get:
+      summary: List connectors
+      description: Returns all connectors for the current tenant.
+      tags: [Connectors]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Connector list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConnectorResponse'
+
+    post:
+      summary: Create connector
+      tags: [Connectors]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConnectorRequest'
+      responses:
+        '201':
+          description: Connector created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorResponse'
+
+  /api/v1/connectors/{id}:
+    get:
+      summary: Get connector by ID
+      tags: [Connectors]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Connector details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorResponse'
+
+    put:
+      summary: Update connector
+      tags: [Connectors]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConnectorRequest'
+      responses:
+        '200':
+          description: Connector updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorResponse'
+
+    delete:
+      summary: Delete connector
+      tags: [Connectors]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Connector deleted
+
+  /api/v1/connectors/{id}/test:
+    post:
+      summary: Test connector connection
+      description: Attempts to connect using stored credentials and returns success/failure.
+      tags: [Connectors]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestConnectionResponse'
+
+components:
+  schemas:
+    CreateConnectorRequest:
+      type: object
+      required: [connectorType, name, config]
+      properties:
+        connectorType:
+          type: string
+          enum: [SALESFORCE, MICROSOFT_DYNAMICS_365, SNOWFLAKE, HUBSPOT]
+        name:
+          type: string
+          maxLength: 255
+        config:
+          type: object
+          additionalProperties:
+            type: string
+          description: Credentials map (varies by connector type)
+        authType:
+          type: string
+          maxLength: 30
+          description: Sub-auth type for Snowflake (LOGIN, PASSKEY, OAUTH)
+
+    UpdateConnectorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        authType:
+          type: string
+          maxLength: 30
+
+    ConnectorResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        connectorType: { type: string }
+        name: { type: string }
+        status: { type: string }
+        authType: { type: string }
+        lastSyncAt: { type: string, format: date-time }
+        lastSyncStatus: { type: string }
+        configSummary: { type: object, additionalProperties: { type: string }, description: "Masked credential summary" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TestConnectionResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,384 @@
+{
+  "featureId": "redemption-flow",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-flow",
+  "headCommit": "5aa4cc713453ef3814a61022b28e5f89fdda5d62",
+  "startedAt": "2026-05-26T00:00:00Z",
+  "updatedAt": "2026-05-26T15:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "5a1ad72c1c6c86f7c20e4152873e0ebf347860e8",
+      "completedAt": "2026-05-26T14:00:00Z",
+      "note": "992 tests, 0 failures. JaCoCo 38% lines / 23% branches (thresholds 35%/20%). Spec at ../tenxengage-blueprint/features/redemption-flow/spec.md confirmed present."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "5a1ad72c1c6c86f7c20e4152873e0ebf347860e8",
+      "completedAt": "2026-05-26T14:30:00Z",
+      "autoFixesApplied": 4,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionConfigController.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionWebhookService.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+        "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+        "src/main/java/com/tenxengage/app/service/XtrmVendorService.java"
+      ],
+      "findings": [
+        {
+          "severity": "critical", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionWebhookService.java",
+          "line": 74,
+          "rule": "concurrency/TOCTOU",
+          "message": "Terminal-state guard reads status before acquiring SELECT FOR UPDATE on the RedemptionRequest — two concurrent webhooks can both pass the guard and double-apply.",
+          "manualAction": "Add a SELECT FOR UPDATE lock on the RedemptionRequest before the terminal-state guard check, or use a DB-level unique constraint on (redemption_request_id, status) transitions."
+        },
+        {
+          "severity": "critical", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+          "line": 85,
+          "rule": "null-safety",
+          "message": "Unchecked cast chain on XTRM API response — NPE if nested keys (data, balance, amount) are absent from response.",
+          "manualAction": "Add null-safe navigation for each nested key before casting. Throw a typed domain exception on absent fields."
+        },
+        {
+          "severity": "critical", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+          "line": 88,
+          "rule": "concurrency/TOCTOU",
+          "message": "maxInFlight check performed before acquiring wallet SELECT FOR UPDATE lock — concurrent submissions can both pass the in-flight guard.",
+          "manualAction": "Move the inFlight count check to after the wallet lock is acquired."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+          "line": 60,
+          "rule": "correctness",
+          "message": "Math.abs(UUID.hashCode()) used as IssuerTransactionId — hash collisions can produce duplicate IDs for different UUIDs.",
+          "manualAction": "Use a deterministic, collision-free ID derived from the UUID (e.g. truncated hex or a sequence)."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 53,
+          "rule": "secrets",
+          "message": "Signing secret defaults to empty string — no startup alerting if misconfigured. Blank secret silently disables HMAC validation.",
+          "manualAction": "Add an @EventListener(ApplicationReadyEvent.class) that logs ERROR and optionally throws if both signing secrets are blank."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 59,
+          "rule": "layering",
+          "message": "Repository injected directly into controller — entity construction and DB access belong in the service layer.",
+          "manualAction": "Move webhook event entity construction into RedemptionWebhookService."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+          "line": 96,
+          "rule": "exception-handling",
+          "message": "Throws raw RuntimeException on XTRM API error — callers cannot distinguish vendor errors from programming errors.",
+          "manualAction": "Define and throw a typed VendorIntegrationException."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+          "line": 119,
+          "rule": "null-safety",
+          "message": "RestClient exchange returns a potentially-null body that is immediately dereferenced.",
+          "manualAction": "Add null check on RestClient response body before accessing nested fields."
+        },
+        {
+          "severity": "high", "autoFixable": true, "fixed": true,
+          "file": "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+          "line": 87,
+          "rule": "performance",
+          "message": "Pageable.unpaged() loads ALL client catalog configs from DB — unbounded query on large tenants.",
+          "fix": "Scoped config query to page item IDs using findByClientIdAndRedemptionCatalogItemIdIn."
+        },
+        {
+          "severity": "high", "autoFixable": true, "fixed": true,
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+          "line": 304,
+          "rule": "performance",
+          "message": "computeNextBatchDate re-queried settingsRepository — duplicate DB call when settings already loaded.",
+          "fix": "Load settings once per submission; pass BatchCadence directly to computeNextBatchDate(BatchCadence)."
+        },
+        {
+          "severity": "medium", "autoFixable": true, "fixed": true,
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionWebhookService.java",
+          "line": 98,
+          "rule": "logging",
+          "message": "log.error redundantly included e.getMessage() as placeholder arg alongside Throwable — cleaned to single-arg pattern.",
+          "fix": "Changed to log.error(message, redemptionRequestId, e)."
+        },
+        {
+          "severity": "medium", "autoFixable": true, "fixed": true,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 187,
+          "rule": "logging",
+          "message": "log.error in validateHmac catch block logged only e.getMessage() — no stack trace captured.",
+          "fix": "Changed to log.error(\"[step=webhook-hmac-error]\", e) to capture full stack trace."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+          "line": 92,
+          "rule": "concurrency/TOCTOU",
+          "message": "In-flight count check before wallet lock in submitPersonalRedemption — same race as submitCompanyRedemption.",
+          "manualAction": "Move inFlight check after wallet SELECT FOR UPDATE in both submission paths."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+          "line": 193,
+          "rule": "concurrency",
+          "message": "findOrCreateSettings has a create-race — two concurrent first-access requests can both pass the findByClientId empty check and try to insert.",
+          "manualAction": "Add a DB unique constraint on (client_id) for tenant_redemption_settings, or use INSERT ... ON CONFLICT DO NOTHING."
+        }
+      ],
+      "manualActionItems": [
+        "TOCTOU: webhook terminal-state guard — needs SELECT FOR UPDATE before status check",
+        "TOCTOU: inFlight check before wallet lock in both submission paths",
+        "TOCTOU: findOrCreateSettings create-race — needs DB unique constraint on client_id",
+        "XtrmVendorService: unchecked cast chain — add null-safe navigation",
+        "XtrmVendorService: UUID.hashCode() for IssuerTransactionId — collision risk",
+        "XtrmVendorService: raw RuntimeException → typed VendorIntegrationException",
+        "XtrmVendorService: RestClient null body dereference",
+        "RedemptionWebhookController: startup alerting for blank signing secret",
+        "RedemptionWebhookController: move repo injection and entity construction to service"
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "5a1ad72c1c6c86f7c20e4152873e0ebf347860e8",
+      "completedAt": "2026-05-26T14:30:00Z",
+      "autoFixesApplied": 2,
+      "findings": [
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 53,
+          "rule": "secrets",
+          "message": "No startup alerting when XTRM/Xoxoday signing secrets are blank — silent HMAC bypass risk.",
+          "manualAction": "Add @EventListener(ApplicationReadyEvent) to warn/throw if both secrets are unset."
+        },
+        {
+          "severity": "high", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 86,
+          "rule": "rate-limiting",
+          "message": "Public webhook endpoint has no rate limiting — vulnerable to replay flood / resource exhaustion.",
+          "manualAction": "Add @RateLimiter (Resilience4j) or Spring Security rate-limiting filter on /api/v1/redemption/webhook/**."
+        },
+        {
+          "severity": "medium", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 108,
+          "rule": "idempotency",
+          "message": "Idempotency check (findByIdempotencyKey) has a TOCTOU — no DB-level unique constraint enforces idempotency.",
+          "manualAction": "Add a unique index on (idempotency_key) in the webhook_events table migration."
+        },
+        {
+          "severity": "medium", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 101,
+          "rule": "input-validation",
+          "message": "No length or charset guard on idempotencyKey — unbounded string stored directly.",
+          "manualAction": "Add @Size(max=128) @Pattern(regexp=\"[\\\\w\\\\-]+\") to the idempotencyKey path variable."
+        },
+        {
+          "severity": "medium", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 153,
+          "rule": "log-injection",
+          "message": "failureReason extracted from vendor payload logged without sanitization — log injection risk.",
+          "manualAction": "Strip or encode newlines/ANSI in failureReason before logging."
+        },
+        {
+          "severity": "low", "autoFixable": true, "fixed": true,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 174,
+          "rule": "visibility",
+          "message": "validateHmac was package-private — unnecessarily broad access.",
+          "fix": "Changed to private."
+        },
+        {
+          "severity": "low", "autoFixable": true, "fixed": true,
+          "file": "src/main/java/com/tenxengage/app/dto/request/UpdateTenantRedemptionSettingsRequest.java",
+          "line": 10,
+          "rule": "input-validation",
+          "message": "maxInFlightRedemptions lacked @NotNull — null was accepted silently, bypassing @Min/@Max.",
+          "fix": "Added @NotNull annotation."
+        },
+        {
+          "severity": "medium", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "line": 157,
+          "rule": "http-semantics",
+          "message": "Returns HTTP 200 OK on webhook receipt — async processing semantics warrant 202 Accepted.",
+          "manualAction": "Consider returning 202 Accepted once webhook processing is moved to a background queue."
+        },
+        {
+          "severity": "low", "autoFixable": false, "fixed": false,
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionConfigController.java",
+          "line": 54,
+          "rule": "http-semantics",
+          "message": "PUT /settings performs a partial update — HTTP semantics suggest PATCH.",
+          "manualAction": "Change @PutMapping to @PatchMapping when the partial-update semantics are confirmed with frontend."
+        }
+      ],
+      "manualActionItems": [
+        "Add startup alerting for blank signing secrets",
+        "Add rate limiting on /api/v1/redemption/webhook/**",
+        "Add unique index on idempotency_key in webhook_events migration",
+        "Add @Size @Pattern validation on idempotencyKey path variable",
+        "Sanitize failureReason before logging (log injection)"
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "adc5230ebd2b1a6098210a52e9df7073fc7babb2",
+      "completedAt": "2026-05-26T15:00:00Z",
+      "contractFile": "contracts/endpoints/redemption-catalog.yaml",
+      "driftsFound": 5,
+      "driftsFixed": 5,
+      "missingContracts": [
+        {
+          "controller": "RedemptionRequestController",
+          "endpoints": [
+            "POST /api/v1/redemption/requests",
+            "POST /api/v1/redemption/requests/company",
+            "GET /api/v1/redemption/requests",
+            "GET /api/v1/redemption/requests/{id}"
+          ],
+          "note": "No contract coverage — new US-03 endpoints. Contract should be added before PR merge."
+        },
+        {
+          "controller": "RedemptionWebhookController",
+          "endpoints": ["POST /api/v1/webhooks/redemption/{vendor}"],
+          "note": "No contract coverage — internal integration endpoint. Add contract entry for completeness."
+        }
+      ],
+      "fixesSummary": [
+        "RedemptionCatalogAdminController: @Size(max=100) → @Size(max=200) for search param",
+        "RedemptionCatalogController: path variable {catalogItemId} → {id} to match contract template",
+        "RedemptionConfigController: added search param (@Size(max=200)), wired through service",
+        "TenantRedemptionCatalogService.getTenantCatalog: added search param, uses searchByName when non-blank",
+        "contracts/redemption-catalog.yaml: added maxInFlightRedemptions to request+response schemas; fixed partner catalog path template to {catalogItemId}"
+      ],
+      "manualActionItems": [
+        "Add contract entries for RedemptionRequestController endpoints (POST /redemption/requests, GET /redemption/requests, GET /redemption/requests/{id})",
+        "Add contract entry for RedemptionWebhookController (POST /webhooks/redemption/{vendor})"
+      ]
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "5aa4cc713453ef3814a61022b28e5f89fdda5d62",
+      "completedAt": "2026-05-26T13:00:47.956Z",
+      "source": "job-store",
+      "codexJobId": "review-mpmn5kun-txy01o",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-flow",
+      "codexCompletedAt": "2026-05-26T13:00:47.956Z",
+      "blockingCount": 2,
+      "advisoryCount": 2,
+      "parseError": null,
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "findings": [
+        {
+          "summary": "Own-history permission can read any same-tenant redemption by UUID",
+          "details": "getRedemptionById scopes only by clientId, while the controller exposes it under action.redemption.view_history, which grants own-history access for partner users. A partner who obtains or guesses another redemption UUID in the same tenant can read its amount, wallet type, status, failure reason, and catalog item. The list path is user-scoped, but the detail path is not.",
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+          "lineStart": 308,
+          "lineEnd": 315,
+          "severity": "high",
+          "confidence": 0.94,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.94 (≥ 0.70), alreadyHandled=false — findByIdAndClientId does not scope by userId",
+          "recommendation": "For view_history, query by id, clientId, and current userId; require action.redemption.view_all_history for tenant-wide lookup, with explicit service methods and tests for cross-user denial."
+        },
+        {
+          "summary": "Webhook processing can complete requests that were never dispatched",
+          "details": "The webhook service terminal-state guard only blocks COMPLETED and FAILED. PENDING_APPROVAL and RESERVED requests pass through, so a signed or misrouted webhook can mark an approval-required or not-yet-dispatched redemption as COMPLETED and debit reserved funds without the request ever passing approval or dispatch.",
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionWebhookService.java",
+          "lineStart": 70,
+          "lineEnd": 90,
+          "severity": "high",
+          "confidence": 0.88,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.88 (≥ 0.70), alreadyHandled=false — guard only checks COMPLETED/FAILED; PENDING_APPROVAL and RESERVED pass through",
+          "recommendation": "Require the request to be in PROCESSING state before applying webhook outcomes. Dead-letter any other non-terminal status. Add tests for PENDING_APPROVAL and RESERVED callbacks."
+        },
+        {
+          "summary": "In-flight redemption cap is raceable",
+          "details": "The max-in-flight check is a plain count with no per-user lock or database constraint. Concurrent submissions for the same user can both read max-1, both pass, and both reserve funds/create requests, exceeding the configured limit.",
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+          "lineStart": 91,
+          "lineEnd": 95,
+          "severity": "medium",
+          "confidence": 0.86,
+          "alreadyHandled": false,
+          "tier": "advisory",
+          "tierReason": "severity=medium → advisory automatically",
+          "recommendation": "Serialize submissions per (clientId,userId) before counting, for example with a transaction-scoped advisory lock or locked per-user counter row. Apply the same fix to the company redemption path."
+        },
+        {
+          "summary": "XTRM idempotency key collapses UUIDs to a collision-prone 32-bit hash",
+          "details": "IssuerTransactionId is derived from Math.abs(request.getId().hashCode()), reducing a 128-bit UUID to a signed 32-bit integer. At production volume, collisions become realistic. Math.abs(Integer.MIN_VALUE) can also remain negative.",
+          "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+          "lineStart": 59,
+          "lineEnd": 61,
+          "severity": "medium",
+          "confidence": 0.84,
+          "alreadyHandled": false,
+          "tier": "advisory",
+          "tierReason": "severity=medium → advisory automatically",
+          "recommendation": "Use a stable globally unique value for IssuerTransactionId, such as the full redemption UUID string or a vendor-compatible prefixed UUID/ULID, and persist the exact outbound identifier for reconciliation."
+        }
+      ],
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: the change exposes cross-user redemption details and lets signed webhooks drive non-dispatched/non-approved requests to terminal states. There are also enforceability gaps around redemption limits and vendor transaction identifiers.\n\nFindings:\n- [high] Own-history permission can read any same-tenant redemption by UUID (src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java:308-315)\n- [high] Webhook processing can complete requests that were never dispatched (src/main/java/com/tenxengage/app/service/RedemptionWebhookService.java:70-90)\n- [medium] In-flight redemption cap is raceable (src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java:91-95)\n- [medium] XTRM idempotency key collapses UUIDs to a collision-prone 32-bit hash (src/main/java/com/tenxengage/app/service/XtrmVendorService.java:59-61)"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "5a1ad72c1c6c86f7c20e4152873e0ebf347860e8",
+      "completedAt": "2026-05-26T14:00:00Z",
+      "totalTests": 992,
+      "failures": 0,
+      "note": "./gradlew check BUILD SUCCESSFUL — 992 tests, 0 failures."
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "5a1ad72c1c6c86f7c20e4152873e0ebf347860e8",
+      "completedAt": "2026-05-26T14:00:00Z",
+      "linesCovered": 0.38,
+      "branchesCovered": 0.23,
+      "thresholds": { "lines": 0.35, "branches": 0.20 },
+      "note": "Thresholds met. Coverage gap on XtrmVendorService and XoxodayVendorService — vendor tests blocked pending US-05/06 integration credentials.",
+      "gaps": [
+        {
+          "service": "XtrmVendorService",
+          "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+          "missingTest": "XtrmVendorServiceTest.java",
+          "note": "Blocked by US-05 (XTRM API not working) — scaffold service, no tests"
+        },
+        {
+          "service": "XoxodayVendorService",
+          "file": "src/main/java/com/tenxengage/app/service/XoxodayVendorService.java",
+          "missingTest": "XoxodayVendorServiceTest.java",
+          "note": "Blocked by US-06 (Xoxoday credentials not available) — scaffold service, no tests"
+        }
+      ]
+    }
+  },
+  "overall": "in-progress",
+  "lastCompletedStep": "coverage",
+  "blockedOn": "adversarial-review — 2 blocking findings: (1) getRedemptionById not scoped to userId; (2) webhook service allows completion of PENDING_APPROVAL/RESERVED requests"
+}

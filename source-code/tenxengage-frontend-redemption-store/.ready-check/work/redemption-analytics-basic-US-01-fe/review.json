@@ -1,0 +1,184 @@
+{
+  "featureId": "redemption-analytics-basic",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-basic-US-01-fe",
+  "headCommit": "7c8915ac5b3c94e1cce00ce2ff04db30055d59cd",
+  "startedAt": "2026-06-17T23:18:30Z",
+  "updatedAt": "2026-06-17T23:55:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "7c8915ac5b3c94e1cce00ce2ff04db30055d59cd",
+      "completedAt": "2026-06-17T23:25:00Z",
+      "notes": "TypeScript + Vite build passed (exit 0, 4128 modules). ESLint: 0 errors, 3 pre-existing warnings (not in new files). Contract types match contracts/models/redemption-analytics-summary.md exactly."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "7c8915ac5b3c94e1cce00ce2ff04db30055d59cd",
+      "completedAt": "2026-06-17T23:35:00Z",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/types/redemption-analytics.types.ts",
+        "src/services/redemption-analytics.service.ts",
+        "src/hooks/useRedemptionAnalytics.ts",
+        "src/hooks/useAnalyticsExport.ts",
+        "src/components/redemption-analytics/RedemptionRateCard.tsx",
+        "src/components/redemption-analytics/UnredeemedBalanceCard.tsx",
+        "src/components/redemption-analytics/FailedCancelledRateCard.tsx",
+        "src/components/redemption-analytics/TotalCountCard.tsx",
+        "src/components/redemption-analytics/DateRangeFilter.tsx",
+        "src/components/redemption-analytics/ExportConfirmDialog.tsx",
+        "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/components/redemption-analytics/DateRangeFilter.tsx",
+          "line": 80,
+          "rule": "rerender-memo-with-default-value",
+          "message": "presets array recreated on every render — hoisted to module-level PRESETS constant",
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "line": 46,
+          "rule": "rerender-lazy-state-init",
+          "message": "useState eager init with date functions — converted to lazy initializer",
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "line": 64,
+          "rule": "rendering-hoist-jsx",
+          "message": "Array.from skeleton inline repeated 3x — hoisted to module-level SKELETON_CARDS constant",
+          "autoFixed": true
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "7c8915ac5b3c94e1cce00ce2ff04db30055d59cd",
+      "completedAt": "2026-06-17T23:40:00Z",
+      "fixes": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "rule": "loading-state",
+          "message": "Export dialog closes before mutation loading state can propagate",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — Export button is disabled in US-01; export wiring is US-02 scope",
+          "alreadyHandled": true,
+          "autoFixed": false
+        },
+        {
+          "severity": "high",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "rule": "error-state",
+          "message": "No export toast feedback visible to user",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — useAnalyticsExport hook already has toast.success + toast.error in onSuccess/onError",
+          "alreadyHandled": true,
+          "autoFixed": false
+        },
+        {
+          "severity": "high",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "rule": "accessibility",
+          "message": "Disabled Export button had onClick handler — logical contradiction fixed by removing onClick",
+          "tier": "advisory",
+          "tierReason": "autoFixed",
+          "alreadyHandled": false,
+          "autoFixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/redemption-analytics/DateRangeFilter.tsx",
+          "rule": "state-sync",
+          "message": "activePreset initialized to '30d' regardless of parent value prop — can desync if parent resets externally",
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "alreadyHandled": false,
+          "autoFixed": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/redemption-analytics/ExportConfirmDialog.tsx",
+          "rule": "animation",
+          "message": "animate-spin not suppressed under prefers-reduced-motion — fixed with motion-reduce:animate-none",
+          "tier": "advisory",
+          "tierReason": "autoFixed",
+          "alreadyHandled": false,
+          "autoFixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/components/redemption-analytics/ExportConfirmDialog.tsx",
+          "rule": "accessibility",
+          "message": "Loader2 aria-hidden without sr-only status — fixed with sr-only span + aria-busy",
+          "tier": "advisory",
+          "tierReason": "autoFixed",
+          "alreadyHandled": false,
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/redemption-analytics/DateRangeFilter.tsx",
+          "rule": "accessibility",
+          "message": "Date range span lacked accessible aria-label — fixed",
+          "tier": "advisory",
+          "tierReason": "autoFixed",
+          "alreadyHandled": false,
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "rule": "empty-state",
+          "message": "noActivity gated on single array (redemptionRates) — other arrays could independently be empty; advisory",
+          "tier": "advisory",
+          "tierReason": "severity=low",
+          "alreadyHandled": false,
+          "autoFixed": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "7c8915ac5b3c94e1cce00ce2ff04db30055d59cd",
+      "completedAt": "2026-06-17T23:40:00Z",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage, no any types, no dangerouslySetInnerHTML, no raw fetch(), no secrets/API keys. All API calls through configured axios instance (withCredentials: true)."
+    },
+    "adversarial-review": {
+      "status": "awaiting-user-review",
+      "notes": "No Codex job found for branch work/redemption-analytics-basic-US-01-fe. 6 existing jobs all belong to other branches (features/redemption-history, features/redemption-approval-queue, features/wallet-ledger-foundation)."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "7c8915ac5b3c94e1cce00ce2ff04db30055d59cd",
+      "completedAt": "2026-06-17T23:30:00Z",
+      "testsRun": [
+        "src/components/redemption-analytics/__tests__/RedemptionRateCard.test.tsx",
+        "src/components/redemption-analytics/__tests__/UnredeemedBalanceCard.test.tsx",
+        "src/components/redemption-analytics/__tests__/FailedCancelledRateCard.test.tsx",
+        "src/components/redemption-analytics/__tests__/TotalCountCard.test.tsx",
+        "src/components/redemption-analytics/__tests__/DateRangeFilter.test.tsx"
+      ],
+      "fixes": 0,
+      "testPlanCoverage": {
+        "planned": 5,
+        "implemented": 5,
+        "generated": 0,
+        "passing": 15
+      },
+      "e2eStatus": "4/4 passed (previous run — build-gated by Step 1 only; E2E was run with --workers=1 in pre-commit phase)",
+      "notes": "15/15 Vitest unit tests pass. 4/4 Playwright E2E scenarios passed in pre-commit run."
+    }
+  },
+  "overall": "in-progress",
+  "lastCompletedStep": "tests",
+  "blockingIssue": "Step 5 (adversarial-review) awaiting Codex review for branch work/redemption-analytics-basic-US-01-fe"
+}

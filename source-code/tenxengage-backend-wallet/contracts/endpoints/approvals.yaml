@@ -1,0 +1,81 @@
+openapi: 3.0.3
+info:
+  title: Approval Endpoints
+  description: Token-based approval flow for incentive programs (public, no auth required)
+  version: 1.0.0
+
+paths:
+  /api/v1/approvals/incentive:
+    get:
+      summary: Get incentive details for approval review
+      description: Public endpoint — approver views incentive details using their unique token
+      tags: [Approvals]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Incentive summary for the approver
+        "404":
+          description: Invalid or expired token
+
+  /api/v1/approvals/decide:
+    post:
+      summary: Process approval decision (JSON)
+      description: Public endpoint — approver submits their decision using their unique token
+      tags: [Approvals]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [APPROVED, REJECTED]
+        - name: comment
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Decision recorded
+        "404":
+          description: Invalid or expired token
+        "409":
+          description: Decision already submitted
+
+  /api/v1/approvals/decide/browser:
+    post:
+      summary: Process approval decision (HTML response)
+      description: Public endpoint for email link click — returns HTML confirmation page
+      tags: [Approvals]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [APPROVED, REJECTED]
+      responses:
+        "200":
+          description: HTML confirmation page
+          content:
+            text/html:
+              schema:
+                type: string

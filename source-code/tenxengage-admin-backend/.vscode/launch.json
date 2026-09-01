@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-TenxengageAdminApplication<tenxengage-admin-backend>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.tenxengage.admin.TenxengageAdminApplication",
+            "projectName": "tenxengage-admin-backend",
+            "args": "--spring.profiles.active=local",
+            "vmArgs": "-Duser.timezone=Asia/Kolkata",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

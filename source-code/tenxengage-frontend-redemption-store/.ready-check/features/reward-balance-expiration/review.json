@@ -1,0 +1,221 @@
+{
+  "featureId": "reward-balance-expiration",
+  "repo": "tenxengage-frontend",
+  "branch": "features/reward-balance-expiration",
+  "headCommit": "1fccdad9",
+  "diffBase": "5eb0e693",
+  "diffBaseNote": "Branch is stacked on roadmaps/redemption-store (5eb0e693). Diff scoped to this feature's 3 commits, not to main, to exclude ~200 already-merged files from other features (analytics, catalog, flow, history, returns).",
+  "startedAt": "2026-06-29T08:20:33Z",
+  "updatedAt": "2026-06-29T11:20:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:26:00Z",
+      "notes": "npm run build (tsc -b && vite build) exit 0 — whole-project TypeScript compile passes. npm run lint: 21 pre-existing errors + 3 warnings, ALL in other features' files inherited from the roadmap base (redemption-returns E2E specs, redemption-catalog, redemption-history) — ZERO in any balance-expiration file; feature is lint-clean. Contracts pointer bumped to ff1cdf2d8dc1; types in balanceExpiration.types.ts match contract models (header-documented)."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:33:00Z",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/App.tsx",
+        "src/components/balanceExpiration/BalanceExpirationPolicyForm.tsx",
+        "src/components/balanceExpiration/BreakageReportTable.tsx",
+        "src/components/balanceExpiration/ExpiringSoonPreviewCard.tsx",
+        "src/components/balanceExpiration/balanceExpirationPolicySchema.ts",
+        "src/components/layout/sidebars/sidebarConfigs.ts",
+        "src/hooks/useBalanceBreakage.ts",
+        "src/hooks/useBalanceExpirationPolicies.ts",
+        "src/hooks/useExpiringSoon.ts",
+        "src/hooks/useUpsertBalanceExpirationPolicy.ts",
+        "src/pages/balanceExpiration/BalanceBreakageReportPage.tsx",
+        "src/pages/balanceExpiration/BalanceExpirationSettingsPage.tsx",
+        "src/services/balanceExpiration.service.ts",
+        "src/types/balanceExpiration.types.ts"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/components/balanceExpiration/ExpiringSoonPreviewCard.tsx",
+          "line": 111,
+          "message": "Used currency.format() (budget formatter — points render as USD) instead of currency.rewardFormat() (reward-facing — 'X pts') for the at-risk reward balance. Sibling BreakageReportTable uses rewardFormat. No crash (format coerces via Number), purely semantic mislabel.",
+          "recommendation": "Use currency.rewardFormat(item.totalAmountAtRisk).",
+          "autoFixable": true,
+          "fixApplied": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/balanceExpiration/BalanceExpirationPolicyForm.tsx",
+          "line": 214,
+          "message": "min={new Date().toISOString().split('T')[0]} for the fixed-date input uses toISOString() to build a date-only string (PROJECT-CONTEXT anti-pattern: UTC shift gives wrong calendar day for users east of UTC). Inconsistent with BreakageReportTable's local toLocalDateString helper. Also flagged by UI/UX review.",
+          "recommendation": "Build the min string from local calendar fields.",
+          "autoFixable": true,
+          "fixApplied": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/balanceExpiration/balanceExpirationPolicySchema.ts",
+          "line": 75,
+          "message": "superRefine parsed fixedExpiryDate with new Date('YYYY-MM-DD') (UTC midnight) and compared against local today — off-by-one rejection/acceptance at the timezone boundary for UTC+ users.",
+          "recommendation": "Parse the YYYY-MM-DD string into local calendar fields before comparison.",
+          "autoFixable": true,
+          "fixApplied": true
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:31:00Z",
+      "fixes": 0,
+      "fixesNote": "Its sole auto-fixable finding (toISOString min in BalanceExpirationPolicyForm) overlapped with code-review and was fixed jointly — counted once under code-review to avoid double-counting.",
+      "findings": [
+        {
+          "severity": "low",
+          "file": "src/components/balanceExpiration/ExpiringSoonPreviewCard.tsx",
+          "lineStart": 49,
+          "lineEnd": 54,
+          "message": "Loading skeleton renders a fixed 2 rows for a variable-length at-risk list — minor potential layout shift. Acceptable for a compact preview card; advisory only.",
+          "autoFixable": false
+        },
+        {
+          "severity": "low",
+          "file": "src/pages/balanceExpiration/BalanceExpirationSettingsPage.tsx",
+          "lineStart": 79,
+          "lineEnd": 120,
+          "message": "Skeleton count (4) correctly matches the 4-currency card grid. However the loading branch uses a flat grid while the loaded branch uses xl:grid-cols-3 with xl:col-span-2 + a 3rd ExpiringSoon column, so there is a horizontal reflow at the xl breakpoint on load. Advisory only.",
+          "autoFixable": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:28:00Z",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage token use; no dangerouslySetInnerHTML; no `any`; no raw fetch (all via @/lib/axios); no window.location; no secrets/API keys; inputs validated via zod (balanceExpirationPolicySchema). CSV export uses a server-returned blob with a hardcoded filename — no client-synthesized URL. Routes gated by ProtectedRoute (permission + feature flag)."
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "41c00906d22bd07b6ea64bdec50f6d508038c374",
+      "source": "job-store",
+      "codexJobId": "review-mqz2vo3u-ifwozg",
+      "codexBaseRef": "main",
+      "codexBranch": "features/reward-balance-expiration",
+      "codexCompletedAt": "2026-06-29T10:33:54.919Z",
+      "freshnessNote": "completedAt 2026-06-29T10:33:54Z is AFTER HEAD committer 2026-06-29T15:59:30+05:30 (=10:29:30Z) by ~4m once both normalized to UTC. Naive lexicographic compare would falsely fail due to mixed Z vs +05:30 offsets.",
+      "parseError": null,
+      "verdict": "needs-attention",
+      "findings": [
+        {
+          "summary": "Tenant history detail opens for users lacking the detail endpoint permission",
+          "details": "`TenantTransactionHistoryPage` grants row drill-in when the user has either `action.redemption.view_history` or `action.redemption.view_all_history`, then mounts `TransactionDetailSheet`, which calls `GET /redemption/requests/{id}`. The local contract still marks that detail endpoint with `x-permission: action.redemption.view_history`, and the repo's permission pattern explicitly says page-level `view_all_history` must not imply detail access. A client admin with only `view_all_history` can therefore click tenant rows and hit an unauthorized detail request, producing a broken admin workflow and noisy forbidden calls.",
+          "file": "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+          "lineStart": 201,
+          "lineEnd": 210,
+          "severity": "high",
+          "confidence": 0.9,
+          "tier": "advisory",
+          "tierReason": "Re-derived: alreadyHandled=true (backend already authorizes both perms with correct owner-scoping); the only artifact wrong was stale contract documentation, now fixed.",
+          "recommendation": "Gate row click and sheet mounting on `can(\"action.redemption.view_history\")` only, or update the backend contract and implementation to explicitly allow `view_all_history` before enabling that UI path.",
+          "alreadyHandled": true,
+          "note": "This is the canAny(view_history, view_all_history) code committed per the user decision (detail accessible via EITHER permission). The FE is committed AHEAD of the required BE/contract change, so until GET /redemption/requests/{id} accepts view_all_history this is a live bug window for view_all_history-only admins. Decision pending: ship FE+BE together, or revert FE gate to view_history-only until BE lands.",
+          "resolution": "FE in place via canAny(view_history, view_all_history) per user decision. REQUIRES BE/contract: GET /redemption/requests/{id} must accept view_all_history. (Unchanged this round.)",
+          "verdictCorrection": "FALSE POSITIVE on the BE side. The backend ALREADY authorizes both permissions: RedemptionRequestController#getRedemption uses @RequiresPermission({view_history, view_all_history}) which defaults to Logic.ANY (PermissionAspect uses anyMatch), and RedemptionHistoryService.getRedemptionDetail scopes correctly (admins -> findByIdAndClientId any tenant txn; non-admins -> findByIdAndClientIdAndUserId own only; 404 otherwise). So there is NO 403 and NO live bug. Codex read the STALE contract YAML (x-permission: view_history) rather than the backend. Resolution: contract redemption-history.yaml updated to declare both perms (ANY) to match the implementation. FE canAny was correct. NO BE code change needed."
+        },
+        {
+          "summary": "Tenant-wide export is triggered without the ALL_TENANT scope",
+          "details": "The tenant admin history page renders `ExportDialog` with only `filters`, while `ExportDialog` forwards its `scope` prop into the export POST body. Personal and company history pass explicit `PERSONAL` and `COMPANY` scopes, but tenant history leaves it undefined. Since the export job model says scope determines which records are included at generation time, this can silently export the wrong dataset or fail depending on backend defaults. The E2E named `CLIENT_ADMIN exports tenant-wide data` only stubs any `/export` POST and never asserts the request body includes `ALL_TENANT`, so this regression is not caught.",
+          "file": "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+          "lineStart": 375,
+          "lineEnd": 379,
+          "severity": "high",
+          "confidence": 0.82,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.82 (>= 0.70), alreadyHandled=false",
+          "recommendation": "Pass `scope=\"ALL_TENANT\"` from `TenantTransactionHistoryPage` and add unit/E2E coverage that inspects the export POST payload, including tenant filters such as `userId` and `companyId`.",
+          "alreadyHandled": false,
+          "note": "VERIFIED: <ExportDialog .. filters={exportFilters}/> at line 378 passes no scope prop; ExportDialog.scope is optional and forwarded into the export POST body; personal/company tabs pass PERSONAL/COMPANY. Pre-existing in redemption-history (NOT introduced by reward-balance-expiration or by my permission fix).",
+          "resolution": "RESOLVED in working tree (uncommitted): ExportDialog now receives scope=\"ALL_TENANT\" in TenantTransactionHistoryPage; E2E asserts the export POST body carries scope=ALL_TENANT."
+        },
+        {
+          "summary": "Redemption-only users fall through the root redirect to an unauthorized profile route",
+          "details": "The branch adds a `/redemption-store` route protected by `module.redemption_store`, but `HomeRedirect` still only considers home, activity review, incentives, rewards, and profile permissions before falling back to `/settings/profile`. A user whose only module is the new redemption store can authenticate successfully but be redirected away from their only allowed module, likely into a protected profile route they do not have permission for.",
+          "file": "src/components/HomeRedirect.tsx",
+          "lineStart": 5,
+          "lineEnd": 11,
+          "severity": "medium",
+          "confidence": 0.77,
+          "tier": "advisory",
+          "tierReason": "severity=medium -> advisory regardless of confidence",
+          "recommendation": "Add `{ permission: \"module.redemption_store\", path: \"/redemption-store\" }` to `HOME_ROUTES` and cover a `module.redemption_store`-only user in the redirect tests.",
+          "alreadyHandled": false,
+          "note": "VERIFIED: HOME_ROUTES lacks module.redemption_store and the fallback is /settings/profile (a protected route). Matches the documented CLAUDE.md HomeRedirect maintenance rule. Pre-existing (module.redemption_store predates this branch).",
+          "resolution": "RESOLVED in working tree (uncommitted): added { module.redemption_store -> /redemption-store } to HOME_ROUTES; new HomeRedirect.test.tsx (4 cases incl. redemption_store-only user)."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "blockingCount": 1,
+      "advisoryCount": 2,
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: tenant history still has permission-contract and export-scope failures that can break admin workflows, plus the new redemption module is not reachable from the root redirect for redemption-only users.\n\nFindings:\n- [high] Tenant history detail opens for users lacking the detail endpoint permission (src/pages/redemption-history/TenantTransactionHistoryPage.tsx:201-210)\n  `TenantTransactionHistoryPage` grants row drill-in when the user has either `action.redemption.view_history` or `action.redemption.view_all_history`, then mounts `TransactionDetailSheet`, which calls `GET /redemption/requests/{id}`. The local contract still marks that detail endpoint with `x-permission: action.redemption.view_history`, and the repo's permission pattern explicitly says page-level `view_all_history` must not imply detail access. A client admin with only `view_all_history` can therefore click tenant rows and hit an unauthorized detail request, producing a broken admin workflow and noisy forbidden calls.\n  Recommendation: Gate row click and sheet mounting on `can(\"action.redemption.view_history\")` only, or update the backend contract and implementation to explicitly allow `view_all_history` before enabling that UI path.\n- [high] Tenant-wide export is triggered without the ALL_TENANT scope (src/pages/redemption-history/TenantTransactionHistoryPage.tsx:375-379)\n  The tenant admin history page renders `ExportDialog` with only `filters`, while `ExportDialog` forwards its `scope` prop into the export POST body. Personal and company history pass explicit `PERSONAL` and `COMPANY` scopes, but tenant history leaves it undefined. Since the export job model says scope determines which records are included at generation time, this can silently export the wrong dataset or fail depending on backend defaults. The E2E named `CLIENT_ADMIN exports tenant-wide data` only stubs any `/export` POST and never asserts the request body includes `ALL_TENANT`, so this regression is not caught.\n  Recommendation: Pass `scope=\"ALL_TENANT\"` from `TenantTransactionHistoryPage` and add unit/E2E coverage that inspects the export POST payload, including tenant filters such as `userId` and `companyId`.\n- [medium] Redemption-only users fall through the root redirect to an unauthorized profile route (src/components/HomeRedirect.tsx:5-11)\n  The branch adds a `/redemption-store` route protected by `module.redemption_store`, but `HomeRedirect` still only considers home, activity review, incentives, rewards, and profile permissions before falling back to `/settings/profile`. A user whose only module is the new redemption store can authenticate successfully but be redirected away from their only allowed module, likely into a protected profile route they do not have permission for.\n  Recommendation: Add `{ permission: \"module.redemption_store\", path: \"/redemption-store\" }` to `HOME_ROUTES` and cover a `module.redemption_store`-only user in the redirect tests.\n\nNext steps:\n- Fix the permission gate and tenant export scope before shipping.\n- Add request-body assertions for tenant export and root redirect coverage for redemption-only roles.\n",
+      "round3Resolution": {
+        "appliedAt": "2026-06-29T11:05:00Z",
+        "filesChanged": [
+          "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+          "src/components/HomeRedirect.tsx",
+          "src/components/__tests__/HomeRedirect.test.tsx",
+          "e2e/redemption-history.spec.ts"
+        ],
+        "verification": "Vitest 14/14 (HomeRedirect 4 + redemption-history 10); Playwright redemption-history 15/15 SERIAL (workers=1, CI mode); lint clean. Note: parallel runs intermittently timed out the first 4 specs on a cold-started dev server (page.goto load timeout) — infra/cold-compile, not a code defect; serial/CI run is green.",
+        "beFollowUp": "Finding #1 still needs the BE contract change (detail endpoint accept view_all_history).",
+        "stepStatusNote": "Step 5 status stays failed until these changes are COMMITTED and a fresh Codex review against the new HEAD is consumed via /ready-check 5."
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:30:00Z",
+      "testsRun": [
+        "src/components/balanceExpiration/__tests__/BalanceExpirationPolicyForm.test.tsx",
+        "src/components/balanceExpiration/__tests__/BreakageReportTable.test.tsx",
+        "src/components/balanceExpiration/__tests__/ExpiringSoonPreviewCard.test.tsx",
+        "e2e/balance-expiration.spec.ts",
+        "e2e/balance-expiration-breakage.spec.ts"
+      ],
+      "fixes": 0,
+      "results": "Vitest: 3 files / 25 tests passed (and 25 passed again after code-review fixes). Playwright (page.route-mocked, auto dev server): 7/7 passed in 47s.",
+      "trackerSignal": {
+        "stories": [
+          {
+            "id": "US-01",
+            "sha": "e7acbf02",
+            "feTests": "green @ e7acbf02cecc"
+          },
+          {
+            "id": "US-04",
+            "sha": "c01ab011",
+            "feTests": "green @ c01ab01191d7"
+          }
+        ],
+        "allMatch": false,
+        "note": "Tracker skip NOT taken: US-04 FE-tests sha == HEAD but US-01 FE-tests sha (e7acbf02) != HEAD (c01ab011) — HEAD advanced one commit past US-01's green marker, so tests were run live rather than skipped."
+      }
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "staleStepsNote": "Steps 2/3/6 were validated at c01ab011 over balance-expiration files only; HEAD is now 41c00906 with redemption-history changes (App.tsx, TenantTransactionHistoryPage + test, e2e). A full /ready-check re-run is advisable to cover the new files (they were manually verified: redemption-history Vitest 10/10 + Playwright 15/15 green).",
+  "decision": {
+    "date": "2026-06-29",
+    "choice": "Commit round-3 fixes and STOP (no further main-diff re-review).",
+    "rationale": "Balance-expiration feature green since first pass. All 6 surfaced issues remediated + committed (3 balance-expiration + 3 redemption-history). Adversarial Step 5 diffs against main (~200 files / 6+ features), so it grades the whole roadmap; remaining/future main-diff findings are pre-existing redemption-store debt to be FILED SEPARATELY and owned by those features, not absorbed into this MR.",
+    "outstandingBackend": "NONE. Earlier-stated BE ticket was based on a false premise. The backend detail endpoint already accepts view_history OR view_all_history with correct owner-scoping (verified in RedemptionRequestController + RedemptionHistoryService + PermissionAspect). The contract YAML was the only stale artifact and has been corrected.",
+    "note": "adversarial-review.status remains failed because the LAST consumed Codex review (review-mqz2vo3u, at prior HEAD) predates these committed fixes and was not re-run. This is an accepted stop, not a passing gate. If the single-MR gate must show green, run /codex:adversarial-review --wait --base main then /ready-check 5 once more.",
+    "contractFix": "contracts/endpoints/redemption-history.yaml GET /api/v1/redemption/requests/{id}: x-permission updated from single view_history to [view_history, view_all_history] + x-permission-logic: ANY, matching the backend. x-permission is documentation only (no codegen/test parses it)."
+  }
+}

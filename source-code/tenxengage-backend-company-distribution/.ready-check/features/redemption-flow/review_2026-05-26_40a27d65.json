@@ -1,0 +1,116 @@
+{
+  "featureId": "redemption-flow",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-flow",
+  "headCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+  "startedAt": "2026-05-26T00:00:00Z",
+  "updatedAt": "2026-05-26T07:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "failed",
+      "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+      "completedAt": "2026-05-26T07:00:00Z",
+      "error": "JaCoCo coverage thresholds failed: lines=34% (min 60%), branches=21% (min 50%). Compilation and tests UP-TO-DATE (passed). Coverage gap attributed to blocked stories (US-05/06/07) with untested vendor service stubs."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+      "completedAt": "2026-05-26T07:00:00Z",
+      "fixes": 5,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionCatalogAdminController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionCatalogController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionConfigController.java",
+        "src/main/java/com/tenxengage/app/controller/RedemptionRequestController.java",
+        "src/main/java/com/tenxengage/app/controller/RewardBalanceController.java",
+        "src/main/java/com/tenxengage/app/controller/WalletController.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionOrchestrationService.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionWebhookService.java",
+        "src/main/java/com/tenxengage/app/service/BatchRedemptionProcessor.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionCatalogAdminService.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionCatalogBrowseService.java",
+        "src/main/java/com/tenxengage/app/service/WalletService.java",
+        "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+        "src/main/java/com/tenxengage/app/service/RewardBalanceService.java",
+        "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+        "src/main/java/com/tenxengage/app/service/TenantRedemptionCatalogService.java",
+        "src/main/java/com/tenxengage/app/service/XtrmVendorService.java",
+        "src/main/java/com/tenxengage/app/service/XoxodayVendorService.java",
+        "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java",
+        "src/main/java/com/tenxengage/app/service/RedemptionEventProducer.java",
+        "src/main/java/com/tenxengage/app/entity/RedemptionRequest.java",
+        "src/main/java/com/tenxengage/app/entity/RedemptionCatalogItem.java",
+        "src/main/java/com/tenxengage/app/entity/RedemptionWebhookEvent.java",
+        "src/main/java/com/tenxengage/app/entity/RewardWallet.java",
+        "src/main/java/com/tenxengage/app/entity/LedgerEntry.java",
+        "src/main/java/com/tenxengage/app/entity/TenantRedemptionSettings.java",
+        "src/main/java/com/tenxengage/app/exception/GlobalExceptionHandler.java",
+        "src/main/java/com/tenxengage/app/config/SecurityConfig.java"
+      ],
+      "findings": [
+        {"severity": "critical", "file": "XtrmVendorService.java", "line": 83, "rule": "null-safety", "message": "Unchecked cast chain on XTRM API response — NPE if nested keys absent", "fixed": false},
+        {"severity": "critical", "file": "XtrmVendorService.java", "line": 60, "rule": "performance", "message": "UUID.hashCode() collision risk for XTRM issuer transaction ID", "fixed": false},
+        {"severity": "critical", "file": "RedemptionWebhookController.java", "line": 111, "rule": "exception-handling", "message": "null refId causing NPE before UUID.fromString; generic catch(Exception)", "fixed": true},
+        {"severity": "critical", "file": "BatchRedemptionProcessor.java", "line": 38, "rule": "performance", "message": "clientRepository.findAll() loads all clients into memory on every batch run", "fixed": false},
+        {"severity": "critical", "file": "BatchRedemptionProcessor.java", "line": 36, "rule": "concurrency", "message": "@Transactional @Scheduled wraps entire batch in one transaction — lock contention + rollback risk", "fixed": false},
+        {"severity": "critical", "file": "RedemptionSubmissionService.java", "line": 83, "rule": "api-design", "message": "~150 lines of duplicated logic between personal and company submission paths", "fixed": false},
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 42, "rule": "concurrency", "message": "Static ObjectMapper — injected Spring bean now", "fixed": true},
+        {"severity": "high", "file": "RedemptionWebhookService.java", "line": 87, "rule": "exception-handling", "message": "Broad catch swallowing stack trace — fixed to log.error(..., e)", "fixed": true},
+        {"severity": "high", "file": "RedemptionSubmissionService.java", "line": 297, "rule": "null-safety", "message": "orElse(null) for catalogItemName — fixed to orElse('(unknown)')", "fixed": true},
+        {"severity": "high", "file": "TenantRedemptionCatalogService.java", "line": 154, "rule": "performance", "message": "Arrays.asList().contains() — fixed to Set.of().contains()", "fixed": true},
+        {"severity": "high", "file": "SyncRateLimiter.java", "line": 19, "rule": "race-condition", "message": "Global synchronized lock — should use ConcurrentHashMap.compute() per userId", "fixed": false},
+        {"severity": "high", "file": "BatchRedemptionProcessor.java", "line": 36, "rule": "race-condition", "message": "Concurrent batch runs can double-dispatch same request — needs SELECT FOR UPDATE SKIP LOCKED or ShedLock", "fixed": false},
+        {"severity": "high", "file": "RedemptionWebhookService.java", "line": 74, "rule": "race-condition", "message": "TOCTOU on terminal-state guard — concurrent webhooks can both pass and double-apply", "fixed": false}
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+      "completedAt": "2026-05-26T07:00:00Z",
+      "fixes": 4,
+      "findings": [
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 176, "rule": "auth", "message": "Timing-attack vulnerability in HMAC comparison via equalsIgnoreCase — fixed to MessageDigest.isEqual", "fixed": true},
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 88, "rule": "auth", "message": "Unknown vendor path — fixed: SUPPORTED_VENDORS allowlist with 404 for unknown vendors", "fixed": true},
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 167, "rule": "logging", "message": "Expected HMAC logged at DEBUG level (leaked) — removed", "fixed": true},
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 49, "rule": "secrets", "message": "Empty signing secret default — no startup alerting on misconfiguration", "fixed": false},
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 77, "rule": "http-verb", "message": "401 UNAUTHORIZED for HMAC failure — fixed to 403 FORBIDDEN", "fixed": true},
+        {"severity": "medium", "file": "RedemptionRequestController.java", "line": 109, "rule": "auth", "message": "IDOR: getRedemptionById filters by clientId only, not userId — any tenant user can see others' redemptions", "fixed": false},
+        {"severity": "high", "file": "RedemptionWebhookController.java", "line": 5, "rule": "entity-leak", "message": "Repository access and entity construction in controller — belongs in service", "fixed": false}
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+      "completedAt": "2026-05-26T07:00:00Z",
+      "notes": "All 17 contract-defined endpoints verified: correct HTTP verbs, status codes, and DTO structure. Entity enums serialize to contract-compliant string names via Jackson. No drift found."
+    },
+    "adversarial-review": {
+      "status": "awaiting-user-review",
+      "source": null,
+      "parseError": null,
+      "findings": [],
+      "codexOutput": null
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+      "completedAt": "2026-05-26T07:00:00Z",
+      "testsRun": ["full suite — 744 tests"],
+      "fixes": 1,
+      "notes": "1 fix applied: RedemptionWebhookControllerTest POST_invalidHmac_returns401 → POST_invalidHmac_returns403 (consequence of 401→403 security fix)"
+    },
+    "coverage": {
+      "status": "failed",
+      "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9",
+      "completedAt": "2026-05-26T07:00:00Z",
+      "gaps": [
+        {"service": "XtrmVendorService", "file": "src/main/java/com/tenxengage/app/service/XtrmVendorService.java", "missingTest": "XtrmVendorServiceTest.java", "note": "Blocked by US-05 (XTRM API not working) — scaffold service, no tests"},
+        {"service": "XoxodayVendorService", "file": "src/main/java/com/tenxengage/app/service/XoxodayVendorService.java", "missingTest": "XoxodayVendorServiceTest.java", "note": "Blocked by US-06 (Xoxoday credentials not available) — scaffold service, no tests"}
+      ]
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "coverage"
+}

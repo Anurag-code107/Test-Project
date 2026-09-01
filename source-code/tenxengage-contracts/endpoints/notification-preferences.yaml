@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: Notification Preference Endpoints
+  description: Per-user global and per-type notification preferences
+  version: 1.0.0
+
+paths:
+  /api/v1/notification-preferences/global:
+    get:
+      summary: Get global notification setting
+      tags: [Notification Preferences]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.manage
+      responses:
+        "200":
+          description: Global notifications enabled/disabled
+
+    put:
+      summary: Update global notification setting
+      tags: [Notification Preferences]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notificationsEnabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Global setting updated
+
+  /api/v1/notification-preferences:
+    get:
+      summary: List per-type notification preferences
+      tags: [Notification Preferences]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.manage
+      responses:
+        "200":
+          description: Per-type opt-in/opt-out preferences
+
+    put:
+      summary: Update per-type notification preference
+      tags: [Notification Preferences]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notificationTypeId:
+                  type: string
+                  format: uuid
+                optedOut:
+                  type: boolean
+      responses:
+        "200":
+          description: Preference updated
+
+  /api/v1/notification-preferences/bulk:
+    put:
+      summary: Bulk update preferences
+      tags: [Notification Preferences]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                preferences:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      notificationTypeId:
+                        type: string
+                        format: uuid
+                      optedOut:
+                        type: boolean
+      responses:
+        "200":
+          description: Preferences updated in bulk
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

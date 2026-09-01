@@ -1,0 +1,168 @@
+openapi: 3.0.3
+info:
+  title: Auth Endpoints
+  description: Authentication and session management
+  version: 2.0.0
+
+paths:
+  /api/v1/auth/login:
+    post:
+      summary: Authenticate user
+      description: Validates credentials and returns JWT tokens
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT access token
+                  refreshToken:
+                    type: string
+                    description: JWT refresh token (also set as httpOnly cookie)
+                  expiresIn:
+                    type: integer
+                    description: Access token TTL in seconds
+                  user:
+                    $ref: "#/components/schemas/AuthUser"
+                  enabledFeatures:
+                    type: array
+                    items:
+                      type: string
+                    description: List of enabled feature keys for the user's client
+        "401":
+          description: Invalid credentials
+
+  /api/v1/auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Reads refresh token from httpOnly cookie and returns new token pair
+      tags: [Auth]
+      responses:
+        "200":
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  refreshToken:
+                    type: string
+                  expiresIn:
+                    type: integer
+        "401":
+          description: Invalid or expired refresh token
+
+  /api/v1/auth/logout:
+    post:
+      summary: Logout user
+      description: Invalidates the current session and clears the refresh token cookie
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+
+  /api/v1/auth/me:
+    get:
+      summary: Get current user
+      description: Returns the authenticated user's profile with effective permissions
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+
+components:
+  schemas:
+    AuthUser:
+      type: object
+      description: Authenticated user payload (see models/user.md)
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        clientRoleId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the user's role within the tenant
+        clientRoleName:
+          type: string
+          nullable: true
+          description: Name of the user's role
+        permissions:
+          type: array
+          items:
+            type: string
+          description: Effective permission keys for the user
+        organizationId:
+          type: string
+          format: uuid
+          nullable: true
+        clientId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Null for TENX_ADMIN users
+        clientName:
+          type: string
+          nullable: true
+        partnerCompanyId:
+          type: string
+          format: uuid
+          nullable: true
+        partnerCompanyName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            [
+              ACTIVE,
+              INACTIVE,
+              SUSPENDED,
+              PENDING_VERIFICATION,
+              ANONYMIZED,
+              RESTRICTED,
+            ]
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

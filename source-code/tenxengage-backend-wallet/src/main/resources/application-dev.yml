@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tenxengage}
+    username: ${DATABASE_USERNAME:tenxengage}
+    password: ${DATABASE_PASSWORD:localdev}
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+logging:
+  level:
+    com.tenxengage: DEBUG
+    org.springframework.security: INFO

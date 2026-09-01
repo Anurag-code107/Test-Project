@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: Tenant Permission Endpoints
+  description: TENX_ADMIN management of per-tenant permission grants
+  version: 1.0.0
+
+paths:
+  /api/v1/tenant-permissions/{clientId}:
+    get:
+      summary: Get all permission grants for a tenant
+      tags: [Tenant Permissions]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.permissions.manage
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Tenant permission grants (which permissions are enabled/disabled for this client)
+
+    put:
+      summary: Update permission grants for a tenant
+      tags: [Tenant Permissions]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.permissions.manage
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: object
+                  additionalProperties:
+                    type: boolean
+                  description: Map of permissionKey to granted (true/false)
+      responses:
+        "200":
+          description: Tenant permission grants updated
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

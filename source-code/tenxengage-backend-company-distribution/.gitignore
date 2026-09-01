@@ -1,0 +1,47 @@
+# Gradle
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
+out/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env.local
+
+# Test output
+test-output/
+
+# Local storage provider runtime data
+storage-data/
+
+.claude/settings.local.json
+.analysis/
+
+# Postman collections (local dev/test artifacts)
+postman/
+*.postman_collection.json

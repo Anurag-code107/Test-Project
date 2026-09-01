@@ -1,0 +1,176 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-analytics-advanced-US-01-be",
+  "headCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+  "startedAt": "2026-06-22T11:40:00Z",
+  "updatedAt": "2026-06-22T12:05:00Z",
+  "softStages": ["adversarial-review"],
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T11:51:00Z",
+      "note": "compileJava + compileTestJava BUILD SUCCESSFUL"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T11:58:00Z",
+      "fixes": 6,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/dto/request/redemption/AdvancedAnalyticsFilter.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/ItemRedemptionDto.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/ItemBreakdownResponse.java",
+        "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+        "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+        "src/test/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsServiceTest.java",
+        "src/test/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsControllerTest.java"
+      ],
+      "findings": [
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ItemRedemptionDto.java", "line": 22, "rule": "api-design", "message": "redemptionRate typed as double — contract specifies Double/percentage 0-100. Intentional per contract.", "fixed": false, "autoFixable": false, "note": "alreadyHandled=true — contract explicitly specifies number/double"},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 226, "rule": "api-design", "message": "currency_type SQL column alias mismatch with currencyId DTO field name", "fixed": true, "autoFixable": true},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 277, "rule": "null-safety", "message": "Missing @Nullable on queryMinLastRefreshedAt return type", "fixed": true, "autoFixable": true},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 293, "rule": "performance", "message": "List.contains() O(n) — wrapped in HashSet", "fixed": true, "autoFixable": true},
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 298, "rule": "security", "message": "AccessDeniedException message leaked internal feature flag key name", "fixed": true, "autoFixable": true},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 185, "rule": "logging", "message": "region filter logged verbatim — potential log injection", "fixed": true, "autoFixable": true},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 189, "rule": "logging", "message": "Missing log.warn when lastRefreshedAt is null in getItemBreakdown", "fixed": true, "autoFixable": true}
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T11:58:00Z",
+      "fixes": 1,
+      "findings": [
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java", "line": 169, "rule": "auth", "message": "Cache poisoning: @Cacheable on getItemBreakdown bypasses requireFeatureEnabled() on cache hit. Feature flag check must be outside the cached boundary.", "fixed": false, "autoFixable": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/dto/request/redemption/AdvancedAnalyticsFilter.java", "line": 17, "rule": "input-validation", "message": "region field has no length/pattern constraint at DTO level", "fixed": false, "autoFixable": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java", "line": 68, "rule": "logging", "message": "region logged verbatim — log injection risk", "fixed": true, "autoFixable": true},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java", "line": 58, "rule": "auth", "message": "Missing @ApiResponse annotations for 403/422 on item-breakdown endpoint", "fixed": false, "autoFixable": false}
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T11:58:00Z",
+      "note": "GET /item-breakdown endpoint matches contract schema. Tier filter (contract parameter) not yet implemented — by story design (US-01 scope is region only). Multi-value region is a contract extension deferred per spec."
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T12:03:00Z",
+      "source": "codex",
+      "parseError": null,
+      "fixes": 1,
+      "findings": [
+        {
+          "summary": "Cache TTL defaults to 30 minutes — advanced-analytics-item-breakdown not in RedisConfig",
+          "details": "RedisConfig only registers 'redemption-analytics' with 60s TTL; the new 'advanced-analytics-item-breakdown' cache falls back to the 30-minute default. AC-4 specifies 60-second TTL.",
+          "file": "src/main/java/com/tenxengage/app/config/RedisConfig.java",
+          "lineStart": 80,
+          "lineEnd": 81,
+          "severity": "high",
+          "confidence": 0.95,
+          "tier": "advisory",
+          "tierReason": "adversarial-review in $SOFT_STAGES → advisory regardless of severity",
+          "recommendation": "Add 'advanced-analytics-item-breakdown' cache entry with Duration.ofSeconds(60) to RedisConfig.",
+          "alreadyHandled": false,
+          "autoFixable": true,
+          "autoFixed": true
+        },
+        {
+          "summary": "Feature-flag gate bypassed by @Cacheable — cache hit skips requireFeatureEnabled()",
+          "details": "Spring @Cacheable resolves key and checks cache before entering the method body. A cache hit returns the cached ItemBreakdownResponse without calling requireFeatureEnabled(). A tenant with a revoked feature flag receives cached analytics for up to 60 seconds after revocation.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "lineStart": 169,
+          "lineEnd": 174,
+          "severity": "high",
+          "confidence": 0.90,
+          "tier": "advisory",
+          "tierReason": "adversarial-review in $SOFT_STAGES → advisory regardless of severity",
+          "recommendation": "Move feature-flag enforcement to an uncached public wrapper method; delegate to a package-private @Cacheable method for the actual query.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        },
+        {
+          "summary": "totalRedeemedCount maps to COUNT(*) (all statuses), not completed-only",
+          "details": "MV column total_redeemed_count = COUNT(*) over all redemption statuses (PENDING, PROCESSING, FAILED, CANCELLED, COMPLETED). The contract field 'totalRedeemedCount' is described as 'Total number of completed redemptions.' Items with many PENDING/FAILED requests are overstated in the ranking.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "lineStart": 226,
+          "lineEnd": 260,
+          "severity": "high",
+          "confidence": 0.80,
+          "tier": "advisory",
+          "tierReason": "adversarial-review in $SOFT_STAGES → advisory regardless of severity",
+          "recommendation": "Add completed_count column to MV (new Flyway migration), or compute SUM(total_redeemed_count - failed_count - cancelled_count) in the query as a proxy. Update contract/spec to clarify semantics if the intent is 'all attempts'.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        },
+        {
+          "summary": "tier filter silently ignored; region multi-value contract not implemented",
+          "details": "Controller binds only region as a single string. Contract advertises tier as a comma-separated multi-value filter. Spring silently drops unrecognised query params so callers believe their tier filter is applied.",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+          "lineStart": 67,
+          "lineEnd": 70,
+          "severity": "medium",
+          "confidence": 0.85,
+          "tier": "advisory",
+          "tierReason": "medium severity → advisory; also adversarial-review in $SOFT_STAGES",
+          "recommendation": "Add tier parameter or document in error/API that tier is not yet supported. Multi-value region and tier to be addressed in a later story.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled — but step is in $SOFT_STAGES so all findings are advisory",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled OR step in softStages"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against features/redemption-analytics-advanced\nVerdict: needs-attention\n\nNo-ship: the endpoint can serve stale/flag-revoked analytics from cache and its core count metric overstates completed redemptions.\n\nFindings:\n- [high] Feature flag gate is behind a 30-minute cache — cache hit bypasses requireFeatureEnabled()\n- [high] totalRedeemedCount reports all requests (COUNT(*)), not completed redemptions per contract\n- [medium] Segment filters (tier, multi-value region) missing or silently ignored"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T12:06:00Z",
+      "testsRun": [
+        "RedemptionAdvancedAnalyticsServiceTest",
+        "RedemptionAdvancedAnalyticsControllerTest"
+      ],
+      "fixes": 1,
+      "testQualityFindings": []
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "3167e5513623f159f4b1d1b837e0cccfd80c7ba4",
+      "completedAt": "2026-06-22T12:06:00Z",
+      "gaps": []
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "advisory_findings": [
+    {
+      "stage": "adversarial-review",
+      "summary": "Feature-flag gate bypassed by @Cacheable — requires uncached wrapper method",
+      "severity": "high",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+      "recommendation": "Move requireFeatureEnabled() outside cached method boundary"
+    },
+    {
+      "stage": "adversarial-review",
+      "summary": "totalRedeemedCount maps COUNT(*) (all statuses) — contract says completed-only",
+      "severity": "high",
+      "file": "src/main/resources/db/migration/V28__create_advanced_analytics_materialized_views.sql",
+      "recommendation": "Add completed_count column to MV or compute in service query; clarify contract semantics"
+    },
+    {
+      "stage": "adversarial-review",
+      "summary": "tier filter and multi-value region not implemented (contract gap)",
+      "severity": "medium",
+      "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+      "recommendation": "Document as deferred or implement in a follow-on story"
+    }
+  ]
+}

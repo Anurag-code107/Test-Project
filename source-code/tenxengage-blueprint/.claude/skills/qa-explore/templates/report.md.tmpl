@@ -1,0 +1,80 @@
+<!--
+qa-explore findings report template.
+
+Loaded by steps/step-09-report.md when writing the report to
+.qa-explore/<slug>/{{TIMESTAMP}}-report.md.
+
+NOTE: The {{PLACEHOLDER}} markers below are replaced at runtime. The
+## H2 headings inside the template (Executive Summary, Coverage Map,
+Findings, Knowledge Capture) are headings of the *generated report*,
+not of this template.
+
+Substitution variables:
+  {{SLUG}}                 — feature slug (from Step 1)
+  {{TIMESTAMP}}            — YYYY-MM-DD HH:MM (generated at write time in Step 9)
+  {{ROLE}}                 — scope description: "full feature" | "US-NN" | "/route" (from Step 1)
+  {{BE_URL}}               — backend URL (from Step 2)
+  {{FE_URL}}               — frontend URL (from Step 2)
+  {{ROUTE_MANIFEST_LINES}} — coverage rows, one per route (from Step 3, populated via Step 5/6)
+  {{FINDINGS_TABLE}}       — rendered CRITICAL/HIGH/MEDIUM/LOW finding blocks (from Step 7, with status from Step 8)
+  {{LEARNINGS_TIER_1}}     — Tier 1 learnings block (from Step 9c)
+  {{LEARNINGS_TIER_2}}     — Tier 2 learnings block (from Step 9c)
+  {{LEARNINGS_TIER_3}}     — Tier 3 learnings block (from Step 9c)
+  {{N_PAGES}}              — pages explored count
+  {{N_INTERACTIONS}}       — PRIMARY_TOTAL + SECONDARY_TOTAL
+  {{N_PASSED}}             — AC assertions passed
+  {{N_TOTAL}}              — AC assertions total
+  {{N_CRITICAL}}           — critical findings count
+  {{N_HIGH}}               — high findings count
+  {{N_MEDIUM}}             — medium findings count
+  {{N_LOW}}                — low findings count
+  {{N_FIXED}}              — auto-fixed count
+  {{FIX_BRANCH}}           — fix branch name or "none" (from Step 8)
+  {{N_NEEDS_HUMAN}}        — count of findings needing human review
+-->
+
+# QA Explore Report — {{SLUG}}
+**Run:** {{TIMESTAMP}} | **Scope:** {{ROLE}} | **Stack:** BE={{BE_URL}} FE={{FE_URL}}
+
+## Executive Summary
+- Pages explored: {{N_PAGES}}
+- Interactions exercised: {{N_INTERACTIONS}}
+- AC assertions: {{N_PASSED}} passed / {{N_TOTAL}} total
+- Issues found: {{N_CRITICAL}} critical / {{N_HIGH}} high / {{N_MEDIUM}} medium / {{N_LOW}} low
+- Auto-fixed: {{N_FIXED}} (committed to {{FIX_BRANCH}})
+- Needs human review: {{N_NEEDS_HUMAN}}
+
+## Coverage Map
+| Route | Primary pass | Secondary pass | AC coverage |
+|---|---|---|---|
+{{ROUTE_MANIFEST_LINES}}
+
+## Findings
+
+{{FINDINGS_TABLE}}
+
+For each severity tier (CRITICAL, HIGH, MEDIUM, LOW), render findings as:
+
+**<finding.id>**
+- **Severity:** <CRITICAL|HIGH|MEDIUM|LOW>
+- **Description:** <finding.description>
+- **Root cause:** <finding.rootCause> — <one-line explanation>
+- **Reproduction:** <finding.reproduction>
+- **Status:** <finding.status> (if auto-fixed: "in <FIX_BRANCH> @ <finding.fixCommit>")
+- **Screenshot:** <".qa-explore/<SLUG>/screenshots/<SCREENSHOT_DATE>/<filename>" | "none">
+- **BE evidence:** (only for BE findings) <method> <url> → <status> <responseBody>
+  Expected per spec: <expectedBehavior>
+
+## Knowledge Capture
+
+### Tier 1 — FE-specific patterns
+
+{{LEARNINGS_TIER_1}}
+
+### Tier 2 — Cross-cutting rules
+
+{{LEARNINGS_TIER_2}}
+
+### Tier 3 — Report-only (one-off)
+
+{{LEARNINGS_TIER_3}}

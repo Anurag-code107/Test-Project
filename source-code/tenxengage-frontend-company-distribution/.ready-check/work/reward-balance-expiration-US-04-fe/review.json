@@ -1,0 +1,115 @@
+{
+  "featureId": "reward-balance-expiration",
+  "repo": "tenxengage-frontend",
+  "branch": "work/reward-balance-expiration-US-04-fe",
+  "headCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+  "startedAt": "2026-06-25T09:10:00Z",
+  "updatedAt": "2026-06-25T09:52:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+      "notes": "Build passes. Lint errors (4) are pre-existing on branch baseline (redemption-history + ApprovalQueueFilters). Contracts verified: balanceExpiration.types.ts matches balance-breakage-report.md contract model."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/hooks/useBalanceBreakage.ts",
+        "src/components/balanceExpiration/BreakageReportTable.tsx",
+        "src/pages/balanceExpiration/BalanceBreakageReportPage.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "critical",
+          "rule": "bundle-barrel-imports",
+          "message": "Lucide-react barrel imports in BreakageReportTable.tsx and BalanceBreakageReportPage.tsx",
+          "resolution": "not-applicable — lucide-react@0.462.0 does not ship .d.ts for deep ESM paths; barrel import is the correct pattern for this version. Kept as-is."
+        },
+        {
+          "severity": "medium",
+          "rule": "rerender-functional-setstate",
+          "message": "isExporting state read in handleExport useCallback dep array",
+          "resolution": "fixed — replaced with isExportingRef.current guard, removed isExporting from deps"
+        },
+        {
+          "severity": "low",
+          "rule": "rerender-memo",
+          "message": "handleApply inline function missing useCallback",
+          "resolution": "fixed — wrapped in useCallback with [fromValue, toValue, currencyId, granularity] deps"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+      "fixes": 2,
+      "filesReviewed": [
+        "src/components/balanceExpiration/BreakageReportTable.tsx",
+        "src/pages/balanceExpiration/BalanceBreakageReportPage.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "rule": "accessibility",
+          "message": "Currency Label not associated with SelectTrigger via htmlFor/id",
+          "resolution": "fixed — added id=breakage-currency to SelectTrigger and htmlFor=breakage-currency to Label"
+        },
+        {
+          "severity": "medium",
+          "rule": "accessibility",
+          "message": "Granularity Label not associated with SelectTrigger via htmlFor/id",
+          "resolution": "fixed — added id=breakage-granularity to SelectTrigger and htmlFor=breakage-granularity to Label"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage usage. No any types. No dangerouslySetInnerHTML. No secrets or API keys. All API calls go through configured axios service layer. No raw fetch(). No sensitive data in URL params. No user-generated HTML rendered unsanitized."
+    },
+    "adversarial-review": {
+      "status": "soft-passed",
+      "softStage": true,
+      "validatedAtCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+      "fixes": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Personal history route gated by broad store module instead of history permission",
+          "file": "src/App.tsx",
+          "lines": "202-206",
+          "scope": "pre-existing — introduced in a prior story, not in US-04 scope",
+          "resolution": "deferred — not introduced by US-04; pre-existing issue on branch"
+        },
+        {
+          "severity": "medium",
+          "title": "Balance-expiration routes ignore the reward_balance_expiration feature flag gate",
+          "file": "src/App.tsx",
+          "lines": "228-244",
+          "scope": "in-scope — US-04 owns balance-expiration route and sidebar",
+          "resolution": "fixed — added feature=\"reward_balance_expiration\" to both ProtectedRoute wrappers (settings + breakage) and featureKey=\"reward_balance_expiration\" to both sidebar items"
+        }
+      ]
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "e7acbf02cecc95a26168597c9a6c456b3cfe5b8a",
+      "vitest": {
+        "status": "passed",
+        "files": 1,
+        "tests": 11,
+        "duration": "7.12s",
+        "command": "npm run test -- BreakageReportTable"
+      },
+      "playwright": {
+        "status": "not-run",
+        "notes": "E2E spec at e2e/balance-expiration-breakage.spec.ts requires live BE. Spec verified with mocked routes (4 scenarios) in prior session. Run against staging to formally validate."
+      }
+    }
+  },
+  "overall": "pass",
+  "completedAt": "2026-06-25T09:52:00Z"
+}

@@ -1,0 +1,37 @@
+spring:
+  flyway:
+    # clean-on-validation-error is intentionally false in packaged resources —
+    # the actual clean configuration lives in src/test/resources/application-localtest.yml
+    # which is NOT included in the production artifact.
+    clean-on-validation-error: false
+    clean-disabled: true
+
+redemption:
+  distribution:
+    # XTRM has no company-to-user transfer API: TransferFund always sources from the ISSUER's own wallet, so a
+    # partner company's wallet cannot fund a payout. Until XTRM ships that, the two XTRM-backed rails
+    # (GIFT_CARD, BANK_TRANSFER) are switched OFF. WALLET_CREDIT is unaffected — it calls no vendor.
+    #
+    # Deliberately not stubbed: a fake success would DEBIT the ledger and mark the item COMPLETED for money
+    # that never moved, notify recipients of a reward that never arrives, and leave no way to tell real
+    # payouts from fabricated ones once XTRM is live.
+    #
+    # Flip to true (XTRM_PAYOUT_RAILS_ENABLED=true) when XTRM supports it — no code change needed.
+    xtrm-payout-rails-enabled: ${XTRM_PAYOUT_RAILS_ENABLED:false}
+  webhook:
+    xtrm:
+      signing-secret: test-xtrm-secret
+    xoxoday:
+      signing-secret: test-xoxoday-secret
+  return-webhook:
+    xoxoday:
+      signing-secret: test-return-xoxoday-secret
+  xoxoday:
+    return-api-url: https://api.xoxoday.com/api/v1/plum/returns
+  xtrm:
+    base-url: https://xapisandbox.xtrm.com
+    auth-token: test-token
+    issuer-account-number: TEST-ACCOUNT
+    payment-method-id: TEST-METHOD
+    wallet-id: "000000"
+    program-id: "0000"

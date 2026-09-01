@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: Builder Config Endpoints
+  description: Configurable incentive builder sections and fields
+  version: 1.0.0
+
+paths:
+  /api/v1/builder-config/{incentiveType}:
+    get:
+      summary: Get builder configuration for an incentive type
+      tags: [Builder Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.view
+      parameters:
+        - name: incentiveType
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [SALES, TRAINING, ACTIVITY, JOURNEY]
+      responses:
+        "200":
+          description: Builder sections and fields for the incentive type
+
+  /api/v1/builder-config/sections/{sectionId}:
+    put:
+      summary: Update builder section
+      tags: [Builder Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      parameters:
+        - name: sectionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  maxLength: 255
+                subtitle:
+                  type: string
+                  maxLength: 500
+                isVisible:
+                  type: boolean
+                sortOrder:
+                  type: integer
+      responses:
+        "200":
+          description: Section updated
+
+  /api/v1/builder-config/sections/{sectionId}/fields:
+    post:
+      summary: Add field to builder section
+      tags: [Builder Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      parameters:
+        - name: sectionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fieldKey, displayName, fieldType]
+              properties:
+                fieldKey:
+                  type: string
+                  maxLength: 100
+                displayName:
+                  type: string
+                  maxLength: 255
+                fieldType:
+                  type: string
+                  enum:
+                    [
+                      TEXT_BOX,
+                      DROPDOWN,
+                      MULTI_SELECT,
+                      DATE_PICKER,
+                      NUMBER_INPUT,
+                      TOGGLE,
+                      TEXT_AREA,
+                    ]
+                helperText:
+                  type: string
+                  maxLength: 500
+                isMandatory:
+                  type: boolean
+                  default: false
+                isEligibility:
+                  type: boolean
+                  default: false
+                valueSource:
+                  type: string
+                  enum:
+                    [
+                      LOCATION_HIERARCHY,
+                      CLIENT_ROLES,
+                      DATA_OBJECT_FIELD,
+                      STATIC,
+                      ACTIVITY_CATEGORIES,
+                    ]
+                valueSourceConfig:
+                  type: object
+                supportsExcelUpload:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Field added
+
+  /api/v1/builder-config/fields/{fieldId}:
+    put:
+      summary: Update builder field
+      tags: [Builder Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      parameters:
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                fieldType:
+                  type: string
+                helperText:
+                  type: string
+                isMandatory:
+                  type: boolean
+                isEligibility:
+                  type: boolean
+                valueSource:
+                  type: string
+                valueSourceConfig:
+                  type: object
+                sortOrder:
+                  type: integer
+      responses:
+        "200":
+          description: Field updated
+
+    delete:
+      summary: Remove builder field
+      tags: [Builder Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      parameters:
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Field removed
+
+  /api/v1/builder-config/fields/{fieldId}/values:
+    get:
+      summary: Resolve dynamic field values
+      description: Returns the option values for a dynamic builder field based on its valueSource
+      tags: [Builder Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.view
+      parameters:
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: context
+          in: query
+          schema:
+            type: string
+          description: Optional context for value resolution
+      responses:
+        "200":
+          description: List of field value options
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

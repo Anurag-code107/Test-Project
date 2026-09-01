@@ -1,0 +1,184 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-analytics-advanced-US-03-be",
+  "headCommit": "70e19bfb35414c4de40ce03b2c2fb75592fe43f8",
+  "startedAt": "2026-06-22T16:00:00Z",
+  "updatedAt": "2026-06-22T21:30:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "skipped",
+      "note": "Skipped per ready-check scope instruction (./gradlew check ran in Step 7 of load-story)"
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 4,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/dto/response/redemption/RegionTimeToRedemptionDto.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/TimeToFirstRedemptionResponse.java",
+        "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+        "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+        "src/test/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsServiceTest.java",
+        "src/test/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsControllerTest.java"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "rule": "performance",
+          "message": "requireFeatureEnabled() wraps the list from featureFlagService.getEnabledFeatures() in a new HashSet on every call.",
+          "autoFixable": false,
+          "fixed": false,
+          "note": "Not fixed: would require changing featureFlagService contract; advisory only"
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "rule": "concurrency",
+          "message": "buildTtfrCacheKey() calls tenantValidator.getCurrentClientId() which reads from a ThreadLocal; resolved twice (once in SpEL key builder, once in method body).",
+          "autoFixable": false,
+          "fixed": false,
+          "note": "Not fixed: requires restructuring SpEL + method signature across all 3 cache key builders; tracked as tech-debt for US-03 follow-up"
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/TimeToFirstRedemptionResponse.java",
+          "rule": "api-design",
+          "message": "filters field typed Map<String, Object> unnecessarily wide; only String values are ever placed in it.",
+          "autoFixable": true,
+          "fixed": true,
+          "note": "Fixed: changed to Map<String, String>"
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "rule": "api-design",
+          "message": "activeFilters constructed as mutable HashMap embedded in immutable record; cached response could be mutated.",
+          "autoFixable": true,
+          "fixed": true,
+          "note": "Fixed: replaced with Map.of() (immutable) conditional expression"
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "rule": "null-safety",
+          "message": "buildTtfrCacheKey() (and peer builders) could produce 'null:ttfr:...' key if tenant context missing.",
+          "autoFixable": false,
+          "fixed": false,
+          "note": "Advisory — context is always present in authenticated request path; no change needed for this story"
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "rule": "null-safety",
+          "message": "@org.springframework.lang.Nullable fully-qualified on queryMinLastRefreshedAt; inconsistent with codebase style.",
+          "autoFixable": true,
+          "fixed": true,
+          "note": "Fixed: added import, replaced with short @Nullable"
+        },
+        {
+          "severity": "low",
+          "file": "src/test/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsControllerTest.java",
+          "rule": "api-design",
+          "message": "ttfr_GET_200 test missing assertion for $.data.filters field presence.",
+          "autoFixable": false,
+          "fixed": false,
+          "note": "Advisory — contract test coverage gap; acceptable for this story"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+          "rule": "input-validation",
+          "message": "region @RequestParam constrained only by @Size(max=200); no allowlist @Pattern.",
+          "autoFixable": false,
+          "fixed": false,
+          "note": "Advisory — region flows into parameterized SQL only (not string interpolation); no injection risk. Pattern allowlist deferred to hardening story."
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+          "rule": "auth",
+          "message": "@Operation description names internal feature-flag key and cache TTL.",
+          "autoFixable": false,
+          "fixed": false,
+          "note": "Advisory — Swagger docs are internal-facing (not public API); acceptable"
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/TimeToFirstRedemptionResponse.java",
+          "rule": "auth",
+          "message": "filters typed Map<String, Object> was open bag — fixed in code-review step (now Map<String, String>).",
+          "autoFixable": true,
+          "fixed": true,
+          "note": "Already fixed in code-review step"
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "fixes": 4,
+      "note": "Contract YAML and models MD in backend-local contracts/ submodule updated to reflect spec FR-08.3 regrouping: TierTimeToRedemptionDto→RegionTimeToRedemptionDto, tiers→regions, partnerTier→region, Map<String,Object>→additionalProperties:{type:string}, median always-null documented, Tier query param removed from TTFR endpoint. Sibling tenxengage-contracts repo already had correct RegionTimeToRedemptionDto and regions array; additionalProperties update deferred to that repo."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "verdict": "needs-attention",
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Date window filters first_redemption_date instead of partner join date",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "line_start": 424,
+          "line_end": 426,
+          "confidence": 0.65,
+          "alreadyHandled": true,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — the MV (V28) groups by first_redemption_date and has no partner join/created_at column; filtering on first_redemption_date is the only correct option for this MV. Contract description text saying 'join date' is imprecise copy from an earlier tier-based design.",
+          "recommendation": "No code change needed. Update the contract description text to say 'first redemption date' instead of 'join date' in a follow-up story."
+        },
+        {
+          "severity": "medium",
+          "title": "Zero-redemption regions silently omitted despite promised sampleCount=0 rows",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "line_start": 417,
+          "line_end": 424,
+          "confidence": 0.85,
+          "alreadyHandled": false,
+          "tier": "advisory",
+          "tierReason": "severity=medium → advisory (not blocking regardless of alreadyHandled). Genuine design gap: MV uses INNER JOIN to first_rr so regions with no completed redemptions produce no MV rows; the CASE WHEN SUM(sample_count)=0 is unreachable from live MV data. However, fixing requires a Flyway migration and new region-dimension table which is out of scope for US-03.",
+          "recommendation": "Raise a follow-up story to either (a) add region-dimension table and left-join in the query, or (b) document in the spec that 'sampleCount=0 rows' only appear when a region exists in the MV but all daily cohorts have been aggregated to zero (effectively never from current MV design)."
+        }
+      ],
+      "blockingCount": 0
+    },
+    "tests": {
+      "status": "skipped",
+      "note": "Skipped per ready-check scope instruction (full suite passed in Step 7 of load-story: BUILD SUCCESSFUL, 22 service tests + 14 controller tests = 36 tests, 0 failures)"
+    },
+    "coverage": {
+      "status": "passed",
+      "summary": "Controller: 100% instruction/line/method coverage. Service getTimeToFirstRedemption: covered (6 missed in optional-branch paths). queryTimeToFirstRedemption: 100% covered. buildTtfrCacheKey: uncovered by design (SpEL AOP proxy invocation, untestable in unit context, same pattern as all 3 cache key builders). DTOs: covered via controller @WebMvcTest."
+    }
+  },
+  "advisory_findings": [
+    "Code review: ThreadLocal double-resolution in @Cacheable SpEL key builders — all 3 builders share the same pattern; tech-debt tracked",
+    "Code review: requireFeatureEnabled allocates HashSet per call",
+    "Code review: @MockitoSettings(LENIENT) class-wide in service test",
+    "Code review: stubbed singletonList(null) simulates empty table via null element rather than empty list",
+    "Adversarial: MV first_redemption_date vs join-date contract text discrepancy",
+    "Adversarial: zero-redemption regions not producible from current MV (INNER JOIN design gap) — requires follow-up story"
+  ],
+  "overall": "passed",
+  "rc_fixes": 4,
+  "rc_manual": [],
+  "rc_blocked": false,
+  "rc_blocked_detail": null,
+  "test_result": "green",
+  "antipattern_pass": "clean",
+  "diff_stat": "7 files changed, 468 insertions(+), 2 deletions(-)"
+}

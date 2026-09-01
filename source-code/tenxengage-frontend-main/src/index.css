@@ -1,0 +1,1069 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 200 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 15% 15%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 199 89% 48%;
+
+    --secondary: 195 20% 96%;
+    --secondary-foreground: 200 15% 15%;
+
+    --muted: 195 15% 96%;
+    --muted-foreground: 200 10% 46%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 195 15% 90%;
+    --input: 195 15% 90%;
+    --ring: 217 91% 60%;
+
+    --success: 95 55% 45%;
+    --warning: 22 90% 55%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 200 15% 9%;
+    --foreground: 0 0% 98%;
+
+    --card: 200 15% 11%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 200 15% 11%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 199 89% 48%;
+
+    --secondary: 200 15% 16%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 200 15% 16%;
+    --muted-foreground: 200 10% 65%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 15% 20%;
+    --input: 200 15% 20%;
+    --ring: 217 91% 60%;
+
+    --success: 95 55% 45%;
+    --warning: 22 90% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body, "Inter"), "Inter", system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading, "Inter"), "Inter", system-ui, sans-serif;
+  }
+}
+
+/* ---- Auto-hiding scrollbars (visible only while scrolling) ---- */
+/* Base: thin track, fully transparent thumb.                       */
+/* JS (scrollbar-auto-hide.ts) sets inline scrollbar-color on       */
+/* scroll events, which works in Firefox and Chromium 121+.         */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.4s ease;
+}
+
+/* Landing page scroll reveals */
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---- Login page — logo float ---- */
+
+.login-logo-wrap {
+  will-change: transform;
+}
+.login-logo-wrap.is-floating {
+  animation: login-logo-float 3s ease-in-out infinite alternate;
+}
+.login-logo-wrap.is-settling {
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ---- AI thinking — orbiting particles ---- */
+@keyframes ai-orbit {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---- AI thinking dome — liquid rise from border ---- */
+/* Dramatic liquid surface-tension animation.  A narrow bubble forms at the
+   center, stretches upward with inertia, spreads wide, overshoots with
+   a visible bounce, then settles.  Much slower (900ms) and exaggerated
+   so users clearly see the border deform like a liquid surface. */
+@keyframes liquid-rise {
+  0%   { clip-path: ellipse(18% 0% at 50% 100%);   opacity: 0; }
+  /* Tension — tiny narrow bump, like a droplet pushing up */
+  6%   { clip-path: ellipse(10% 8% at 50% 100%);   opacity: 0.5; }
+  /* Narrow column stretches upward (surface tension holds it narrow) */
+  16%  { clip-path: ellipse(14% 30% at 50% 100%);  opacity: 0.7; }
+  /* Starts spreading outward as it rises */
+  28%  { clip-path: ellipse(26% 55% at 50% 100%);  opacity: 0.85; }
+  /* Rapid expansion — the bubble is breaking through */
+  42%  { clip-path: ellipse(42% 82% at 50% 100%);  opacity: 0.95; }
+  /* Overshoot — wider and taller than final (liquid momentum) */
+  58%  { clip-path: ellipse(57% 118% at 50% 100%); opacity: 1; }
+  /* First bounce back — contracts */
+  72%  { clip-path: ellipse(49% 93% at 50% 100%);  opacity: 1; }
+  /* Second overshoot (subtler) */
+  84%  { clip-path: ellipse(53.5% 104% at 50% 100%); opacity: 1; }
+  /* Settle to final shape */
+  94%  { clip-path: ellipse(51.5% 99% at 50% 100%); opacity: 1; }
+  100% { clip-path: ellipse(52% 100% at 50% 100%); opacity: 1; }
+}
+
+/* Reverse — liquid drains back into the border line.
+   Starts with a brief outward "pull" (surface tension resisting)
+   then narrows into a droplet before collapsing. */
+@keyframes liquid-drain {
+  0%   { clip-path: ellipse(52% 100% at 50% 100%); opacity: 1; }
+  /* Brief outward tug — tension before release */
+  10%  { clip-path: ellipse(55% 108% at 50% 100%); opacity: 1; }
+  /* Starts collapsing inward */
+  30%  { clip-path: ellipse(40% 65% at 50% 100%);  opacity: 0.85; }
+  /* Narrowing rapidly */
+  50%  { clip-path: ellipse(25% 35% at 50% 100%);  opacity: 0.6; }
+  /* Thin column draining down */
+  72%  { clip-path: ellipse(14% 14% at 50% 100%);  opacity: 0.3; }
+  /* Last droplet */
+  88%  { clip-path: ellipse(8% 4% at 50% 100%);    opacity: 0.12; }
+  100% { clip-path: ellipse(15% 0% at 50% 100%);   opacity: 0; }
+}
+
+/* Ongoing wobble — the dome breathes while active, feeling alive.
+   Slightly more pronounced than before. */
+@keyframes liquid-idle {
+  0%, 100% { clip-path: ellipse(52% 100% at 50% 100%); }
+  25%      { clip-path: ellipse(52.6% 101.5% at 50.2% 100%); }
+  50%      { clip-path: ellipse(51.4% 99% at 49.8% 100%); }
+  75%      { clip-path: ellipse(52.3% 100.8% at 50.1% 100%); }
+}
+
+/* Blur sides fade in/out */
+@keyframes liquid-blur-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes liquid-blur-out {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Dome content surfaces from the liquid */
+@keyframes liquid-content-in {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.88); }
+  50%  { opacity: 0.6; transform: translateY(-3px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes liquid-content-out {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(10px) scale(0.92); }
+}
+
+/* Border glow — energises before the dome rises */
+@keyframes liquid-border-glow {
+  0%   { opacity: 0; box-shadow: 0 0 0 0 hsla(217, 91%, 60%, 0); }
+  30%  { opacity: 1; box-shadow: 0 0 16px 4px hsla(217, 91%, 60%, 0.35); }
+  60%  { opacity: 0.9; box-shadow: 0 0 10px 3px hsla(217, 91%, 60%, 0.2); }
+  100% { opacity: 0.5; box-shadow: 0 0 6px 2px hsla(217, 91%, 60%, 0.12); }
+}
+
+/* ---- Dome border pulse — subtle breathing glow (SVG stroke) ---- */
+@keyframes liquid-border-pulse {
+  0%   { stroke: hsl(195 15% 84%); filter: drop-shadow(0 0 0 hsla(217, 91%, 60%, 0)); }
+  50%  { stroke: hsl(217 70% 78%); filter: drop-shadow(0 0 4px hsla(217, 91%, 60%, 0.18)); }
+  100% { stroke: hsl(195 15% 84%); filter: drop-shadow(0 0 0 hsla(217, 91%, 60%, 0)); }
+}
+
+/* ---- Suggestion chip animations ---- */
+
+/* Confirmation card — looping shine sweep */
+@keyframes confirm-shine {
+  0%   { transform: translateX(-100%); }
+  40%  { transform: translateX(200%); }
+  100% { transform: translateX(200%); }
+}
+
+/* Entrance: fade up from below */
+@keyframes chip-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Exit (selected chip): compress down & fade — feels like "sending" */
+@keyframes chip-send {
+  0%   { opacity: 1; transform: scale(1); }
+  30%  { opacity: 1; transform: scale(0.92); }
+  100% { opacity: 0; transform: scale(0.92) translateY(-4px); }
+}
+
+/* Exit (non-selected chips): simple fade out */
+@keyframes chip-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ---- AI sparkle text — animated gradient shimmer on text ---- */
+@keyframes ai-text-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.ai-sparkle-text {
+  background: linear-gradient(
+    90deg,
+    hsl(217 91% 40%) 0%,
+    hsl(217 91% 60%) 25%,
+    hsl(195 70% 55%) 40%,
+    hsl(280 60% 65%) 50%,
+    hsl(195 70% 55%) 60%,
+    hsl(217 91% 60%) 75%,
+    hsl(217 91% 40%) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ai-text-shimmer 4s linear infinite;
+}
+
+/* AI Guide Tour input — shimmer on hover with smooth crossfade.
+   The span shows plain muted text by default. On hover, ::after fades in
+   with the shimmer gradient over the top. On focus-within, the span hides. */
+.ai-guide-placeholder::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(
+    90deg,
+    hsl(217 91% 45%) 0%,
+    hsl(217 91% 60%) 20%,
+    hsl(180 60% 48%) 35%,
+    hsl(155 65% 45%) 50%,
+    hsl(180 60% 48%) 65%,
+    hsl(217 91% 60%) 80%,
+    hsl(217 91% 45%) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ai-text-shimmer 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.group\/ai-input:hover .ai-guide-placeholder::after {
+  opacity: 1;
+}
+/* Hide placeholder when the input is focused */
+.group\/ai-input:focus-within .ai-guide-placeholder {
+  opacity: 0;
+}
+
+/* ---- AI Guide Tour input — rotating conic-gradient border ---- */
+
+/* The trick: a conic-gradient background rotates behind the element,
+   visible only through the 2px border region. The inner area is masked
+   by a pseudo-element that matches the background color. */
+@keyframes ai-border-rotate {
+  0%   { --ai-border-angle: 0deg; }
+  100% { --ai-border-angle: 360deg; }
+}
+
+@property --ai-border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.ai-guide-border {
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  position: relative;
+  border-color: hsl(var(--border));
+}
+
+/* Rotating gradient border — visible on hover */
+.ai-guide-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px; /* 12px + 1px for the border overshoot */
+  background: conic-gradient(
+    from var(--ai-border-angle),
+    hsl(217 91% 60% / 0.5),
+    hsl(195 80% 55% / 0.4),
+    hsl(155 65% 50% / 0.5),
+    hsl(180 60% 50% / 0.3),
+    hsl(217 91% 60% / 0.5)
+  );
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: ai-border-rotate 4s linear infinite;
+}
+
+/* Inner mask — hides the gradient fill, leaving only the border visible */
+.ai-guide-border::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: 11px; /* 12px - 1px inset */
+  background: white;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.ai-guide-border:hover {
+  border-color: transparent;
+  box-shadow: 0 0 20px hsl(217 91% 60% / 0.1), 0 0 8px hsl(155 65% 50% / 0.08);
+}
+.ai-guide-border:hover::before,
+.ai-guide-border:hover::after {
+  opacity: 1;
+}
+
+/* On focus-within, keep the rotating border but with a focus ring too */
+.ai-guide-border:focus-within {
+  border-color: transparent;
+  box-shadow: 0 0 0 3px hsl(217 91% 60% / 0.08), 0 0 16px hsl(217 91% 60% / 0.06);
+}
+.ai-guide-border:focus-within::before,
+.ai-guide-border:focus-within::after {
+  opacity: 1;
+}
+
+/* Letter wave — each character hops slightly on hover, cycling with a pause.
+   The text is ~65 chars × 30ms delay = ~2s for the full wave to ripple.
+   Total cycle: 4s (hop in first ~10%, idle the rest) → ~1s pause between waves. */
+@keyframes ai-letter-hop {
+  0%, 6%, 100% { transform: translateY(0); }
+  3%           { transform: translateY(-2px); }
+}
+.ai-guide-letter {
+  display: inline-block;
+}
+.group\/ai-input:hover .ai-guide-letter {
+  animation: ai-letter-hop 4s ease-out infinite;
+}
+
+/* Sparkle icon glow on hover */
+.group\/ai-input:hover .ai-guide-sparkle-icon {
+  background: hsl(217 91% 60% / 0.14);
+  box-shadow: 0 0 10px hsl(217 91% 60% / 0.15), 0 0 20px hsl(195 70% 55% / 0.08);
+}
+
+/* ---- AI Insights label — shimmer + letter hop on hover (mirrors Guided Tour style) ---- */
+.ai-insights-label {
+  display: inline-flex;
+  position: relative;
+}
+/* Shimmer gradient — fades in on hover */
+.ai-insights-label::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  background: linear-gradient(
+    90deg,
+    hsl(217 91% 45%) 0%,
+    hsl(217 91% 60%) 20%,
+    hsl(180 60% 48%) 35%,
+    hsl(155 65% 45%) 50%,
+    hsl(180 60% 48%) 65%,
+    hsl(217 91% 60%) 80%,
+    hsl(217 91% 45%) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ai-text-shimmer 4s linear infinite;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.ai-insights-trigger:hover .ai-insights-label::after {
+  opacity: 1;
+}
+.ai-insights-letter {
+  display: inline-block;
+}
+.ai-insights-trigger:hover .ai-insights-letter {
+  animation: ai-letter-hop 4s ease-out infinite;
+}
+.ai-insights-sparkle {
+  transition: filter 0.4s ease, color 0.4s ease;
+}
+.ai-insights-trigger:hover .ai-insights-sparkle {
+  color: hsl(217 91% 60%);
+  filter: drop-shadow(0 0 4px hsl(217 91% 60% / 0.4));
+}
+/* Pulsating border on hover */
+.ai-insights-trigger {
+  transition: border-color 0.4s ease, box-shadow 0.4s ease, background-color 0.3s ease;
+}
+.ai-insights-trigger:hover {
+  border-color: hsl(217 91% 60% / 0.3);
+  background-color: hsl(217 91% 60% / 0.03);
+  animation: ai-insights-border-pulse 2s ease-in-out infinite;
+}
+/* Insight items — staggered drop-in / reverse drop-out */
+@keyframes insight-enter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes insight-exit {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-8px) scale(0.97); }
+}
+
+@keyframes ai-insights-border-pulse {
+  0%, 100% { border-color: hsl(217 91% 60% / 0.2);  box-shadow: 0 0 0 0 hsl(217 91% 60% / 0); }
+  50%      { border-color: hsl(217 91% 60% / 0.45); box-shadow: 0 0 8px 0 hsl(217 91% 60% / 0.1); }
+}
+
+@keyframes login-logo-float {
+  0%   { transform: translateY(0) rotate(0deg); }
+  25%  { transform: translateY(-8px) rotate(-1deg); }
+  50%  { transform: translateY(-12px) rotate(0.5deg); }
+  75%  { transform: translateY(-6px) rotate(1.5deg); }
+  100% { transform: translateY(-10px) rotate(-0.5deg); }
+}
+
+/* ---- Login page — card accent ---- */
+
+.login-card {
+  position: relative;
+  overflow: hidden;
+}
+.login-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(199 89% 48% / 0.35) 25%,
+    hsl(217 91% 60% / 0.5) 50%,
+    hsl(95 55% 50% / 0.35) 75%,
+    transparent
+  );
+}
+
+/* ---- Login page — input & button polish ---- */
+
+.login-input {
+  transition: border-color 200ms cubic-bezier(0.25, 1, 0.5, 1),
+              box-shadow 200ms cubic-bezier(0.25, 1, 0.5, 1),
+              background-color 200ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.login-input:focus-within,
+.login-input:focus {
+  background-color: hsl(217 91% 60% / 0.015);
+}
+
+.login-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px hsl(217 91% 50% / 0.25),
+              0 1px 3px hsl(217 91% 50% / 0.12);
+}
+.login-btn:not(:disabled):active {
+  transform: translateY(0.5px);
+  box-shadow: 0 1px 4px hsl(217 91% 50% / 0.15);
+}
+
+/* ---- Login page animated background ---- */
+
+/* Flowing lines — gentle horizontal drift */
+.login-line {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+.login-line-1 { animation: login-drift-x 22s ease-in-out infinite alternate; }
+.login-line-2 { animation: login-drift-x 28s ease-in-out infinite alternate-reverse; }
+.login-line-3 { animation: login-drift-x 25s ease-in-out infinite alternate; animation-delay: -6s; }
+.login-line-4 { animation: login-drift-x 30s ease-in-out infinite alternate-reverse; animation-delay: -10s; }
+
+@keyframes login-drift-x {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(50px) translateY(-14px); }
+  100% { transform: translateX(-35px) translateY(10px); }
+}
+
+/* Geometric shapes — slow float */
+.login-shape {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+.login-shape-1 { animation: login-float-1 18s ease-in-out infinite alternate; }
+.login-shape-2 { animation: login-float-2 22s ease-in-out infinite alternate; animation-delay: -4s; }
+.login-shape-3 { animation: login-float-1 20s ease-in-out infinite alternate-reverse; animation-delay: -8s; }
+.login-shape-4 { animation: login-float-2 24s ease-in-out infinite alternate; animation-delay: -12s; }
+
+@keyframes login-float-1 {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  50%  { transform: translate(20px, -18px) rotate(5deg); opacity: 0.75; }
+  100% { transform: translate(-14px, 14px) rotate(-3deg); opacity: 1; }
+}
+@keyframes login-float-2 {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  50%  { transform: translate(-18px, 20px) rotate(-5deg); opacity: 0.75; }
+  100% { transform: translate(14px, -12px) rotate(3deg); opacity: 1; }
+}
+
+/* Small dots — gentle pulse + drift */
+.login-dot { animation: login-pulse 6s ease-in-out infinite alternate; }
+.login-dot-1 { animation-delay: 0s; }
+.login-dot-2 { animation-delay: -1s; }
+.login-dot-3 { animation-delay: -2s; }
+.login-dot-4 { animation-delay: -3s; }
+.login-dot-5 { animation-delay: -4s; }
+.login-dot-6 { animation-delay: -5s; }
+
+@keyframes login-pulse {
+  0%   { opacity: 0.4; transform: scale(1); }
+  50%  { opacity: 1;   transform: scale(1.4); }
+  100% { opacity: 0.4; transform: scale(1); }
+}
+
+/* ---- Login transition splash ---- */
+
+.login-transition-logo {
+  animation: login-transition-breathe 2.4s ease-in-out infinite alternate;
+}
+@keyframes login-transition-breathe {
+  0%   { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.03) translateY(-3px); }
+}
+
+/* Plays when the brand logo URL changes (upload / replace / remove).
+   Triggered by remounting the <img> via key={logoSrc}. */
+.brand-logo-pop {
+  animation: brand-logo-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
+}
+@keyframes brand-logo-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo-pop {
+    animation: brand-logo-fade 0.18s ease-out both;
+  }
+}
+@keyframes brand-logo-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.login-transition-track {
+  width: 160px;
+  height: 3px;
+  border-radius: 3px;
+  background: hsl(210 20% 90%);
+  overflow: hidden;
+  position: relative;
+}
+.login-transition-bar {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    hsl(199 89% 48% / 0.6),
+    hsl(217 91% 60%),
+    hsl(95 55% 50% / 0.6)
+  );
+  animation: login-transition-progress 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes login-transition-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ---- Home banner line art ---- */
+
+/* Always animate — gentle, ambient motion */
+.home-banner-line-1 { animation: home-drift-1 22s ease-in-out infinite alternate; }
+.home-banner-line-2 { animation: home-drift-2 28s ease-in-out infinite alternate; }
+.home-banner-line-3 { animation: home-drift-1 25s ease-in-out infinite alternate-reverse; animation-delay: -6s; }
+
+.home-banner-shape-1 { animation: home-float-shape 18s ease-in-out infinite alternate; }
+.home-banner-shape-2 { animation: home-float-shape 22s ease-in-out infinite alternate-reverse; animation-delay: -4s; }
+.home-banner-shape-3 { animation: home-float-shape 20s ease-in-out infinite alternate; animation-delay: -8s; }
+
+.home-banner-dot { animation: home-dot-pulse 6s ease-in-out infinite alternate; }
+.home-banner-dot-2 { animation-delay: -2s; }
+.home-banner-dot-3 { animation-delay: -4s; }
+
+/*
+ * Hover: vibrancy boost via filter only — no animation-duration changes
+ * so the keyframes keep running seamlessly without resetting.
+ */
+.home-banner-line,
+.home-banner-shape,
+.home-banner-dot {
+  transition: filter 0.5s ease, opacity 0.5s ease;
+}
+.home-banner:hover .home-banner-line {
+  filter: saturate(4) brightness(0.72) contrast(1.15);
+  opacity: 1;
+}
+.home-banner:hover .home-banner-shape {
+  filter: saturate(4.5) brightness(0.68) contrast(1.2);
+  opacity: 1;
+}
+.home-banner:hover .home-banner-dot {
+  filter: saturate(4.5) brightness(0.68) contrast(1.2);
+  opacity: 1;
+}
+
+@keyframes home-drift-1 {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(18px) translateY(-6px); }
+  100% { transform: translateX(-12px) translateY(4px); }
+}
+@keyframes home-drift-2 {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(-14px) translateY(8px); }
+  100% { transform: translateX(10px) translateY(-4px); }
+}
+@keyframes home-float-shape {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  50%  { transform: translate(8px, -6px) rotate(4deg); }
+  100% { transform: translate(-5px, 4px) rotate(-2deg); }
+}
+@keyframes home-dot-pulse {
+  0%   { opacity: 0.5; transform: scale(1); }
+  50%  { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
+/* ---- Mode switch crossfade ---- */
+
+@keyframes mode-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-mode-fade-in {
+  animation: mode-fade-in 350ms ease-out both;
+}
+
+/* ---- AI banner sparkle effects ---- */
+
+/* Twinkle — individual stars fade in/out at staggered intervals */
+@keyframes ai-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50%      { opacity: 1; transform: scale(1) rotate(90deg); }
+}
+
+/* Breathe — the main sparkles icon gently pulses */
+@keyframes ai-sparkle-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(1.06); }
+}
+
+[class^="ai-twinkle"],
+.ai-sparkle-breathe {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ai-twinkle-1 { animation: ai-twinkle 3s ease-in-out infinite; }
+.ai-twinkle-2 { animation: ai-twinkle 4s ease-in-out infinite; animation-delay: -1.5s; }
+.ai-twinkle-3 { animation: ai-twinkle 3.5s ease-in-out infinite; animation-delay: -0.7s; }
+.ai-twinkle-4 { animation: ai-twinkle 2.8s ease-in-out infinite; animation-delay: -2.1s; }
+.ai-twinkle-5 { animation: ai-twinkle 4.2s ease-in-out infinite; animation-delay: -1s; }
+.ai-twinkle-6 { animation: ai-twinkle 3.2s ease-in-out infinite; animation-delay: -2.6s; }
+.ai-sparkle-breathe { animation: ai-sparkle-breathe 4s ease-in-out infinite; }
+
+/* ---- Builder flow background: ambient drift ---- */
+
+.builder-flow-line-1 { animation: builder-drift-a 24s ease-in-out infinite alternate; }
+.builder-flow-line-2 { animation: builder-drift-b 30s ease-in-out infinite alternate; }
+.builder-flow-line-3 { animation: builder-drift-a 27s ease-in-out infinite alternate-reverse; animation-delay: -6s; }
+.builder-flow-line-4 { animation: builder-drift-b 22s ease-in-out infinite alternate; animation-delay: -10s; }
+.builder-flow-line-5 { animation: builder-drift-a 32s ease-in-out infinite alternate-reverse; animation-delay: -3s; }
+.builder-flow-line-6 { animation: builder-drift-b 26s ease-in-out infinite alternate; animation-delay: -8s; }
+
+@keyframes builder-drift-a {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(20px) translateY(-8px); }
+  100% { transform: translateX(-14px) translateY(5px); }
+}
+@keyframes builder-drift-b {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(-16px) translateY(10px); }
+  100% { transform: translateX(12px) translateY(-5px); }
+}
+
+.builder-flow-shape-1 { animation: builder-float-shape 20s ease-in-out infinite alternate; }
+.builder-flow-shape-2 { animation: builder-float-shape 24s ease-in-out infinite alternate-reverse; animation-delay: -4s; }
+.builder-flow-shape-3 { animation: builder-float-shape 22s ease-in-out infinite alternate; animation-delay: -9s; }
+
+@keyframes builder-float-shape {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  50%  { transform: translate(8px, -6px) rotate(4deg); }
+  100% { transform: translate(-5px, 4px) rotate(-2deg); }
+}
+
+.builder-flow-dot { animation: builder-dot-pulse 6s ease-in-out infinite alternate; }
+.builder-flow-dot-1 { animation-delay: 0s; }
+.builder-flow-dot-2 { animation-delay: -2s; }
+.builder-flow-dot-3 { animation-delay: -4s; }
+
+@keyframes builder-dot-pulse {
+  0%   { opacity: 0.5; transform: scale(1); }
+  50%  { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
+/* ---- App loading screen ---- */
+
+.app-loading-logo {
+  animation: app-loading-breathe 2.4s ease-in-out infinite alternate;
+}
+@keyframes app-loading-breathe {
+  0%   { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.03) translateY(-3px); }
+}
+
+.app-loading-glow {
+  animation: app-loading-glow-pulse 3s ease-in-out infinite alternate;
+}
+@keyframes app-loading-glow-pulse {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.15); }
+}
+
+.app-loading-text {
+  animation: app-loading-fade-in 0.8s ease-out 0.3s both;
+}
+@keyframes app-loading-fade-in {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 0.8; transform: translateY(0); }
+}
+
+.app-loading-track {
+  width: 140px;
+  height: 3px;
+  border-radius: 3px;
+  background: hsl(210 20% 90%);
+  overflow: hidden;
+  position: relative;
+}
+.app-loading-bar {
+  position: absolute;
+  inset: 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    hsl(199 89% 48% / 0.6),
+    hsl(217 91% 60%),
+    hsl(95 55% 50% / 0.6)
+  );
+  animation: app-loading-progress 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes app-loading-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Background art — drifting lines */
+.app-loading-line-1 { animation: app-loading-drift-1 20s ease-in-out infinite alternate; }
+.app-loading-line-2 { animation: app-loading-drift-2 26s ease-in-out infinite alternate; }
+.app-loading-line-3 { animation: app-loading-drift-1 23s ease-in-out infinite alternate-reverse; animation-delay: -5s; }
+
+@keyframes app-loading-drift-1 {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(16px) translateY(-5px); }
+  100% { transform: translateX(-10px) translateY(3px); }
+}
+@keyframes app-loading-drift-2 {
+  0%   { transform: translateX(0) translateY(0); }
+  50%  { transform: translateX(-12px) translateY(6px); }
+  100% { transform: translateX(8px) translateY(-3px); }
+}
+
+/* Background art — floating shapes */
+.app-loading-shape-1 { animation: app-loading-float-shape 16s ease-in-out infinite alternate; }
+.app-loading-shape-2 { animation: app-loading-float-shape 20s ease-in-out infinite alternate-reverse; animation-delay: -3s; }
+.app-loading-shape-3 { animation: app-loading-float-shape 18s ease-in-out infinite alternate; animation-delay: -7s; }
+
+@keyframes app-loading-float-shape {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  50%  { transform: translate(6px, -5px) rotate(3deg); }
+  100% { transform: translate(-4px, 3px) rotate(-2deg); }
+}
+
+/* Background art — pulsing dots */
+.app-loading-dot { animation: app-loading-dot-pulse 5s ease-in-out infinite alternate; }
+.app-loading-dot-2 { animation-delay: -1.5s; }
+.app-loading-dot-3 { animation-delay: -3s; }
+
+@keyframes app-loading-dot-pulse {
+  0%   { opacity: 0.4; transform: scale(1); }
+  50%  { opacity: 1; transform: scale(1.4); }
+  100% { opacity: 0.4; transform: scale(1); }
+}
+
+/* Orbiting dots around logo */
+.app-loading-orbit-1 { animation: app-loading-orbit 3.5s linear infinite; }
+.app-loading-orbit-2 { animation: app-loading-orbit 4.5s linear infinite reverse; }
+.app-loading-orbit-3 { animation: app-loading-orbit 5.5s linear infinite; animation-delay: -2s; }
+
+@keyframes app-loading-orbit {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---- Dashboard skeleton shimmer ---- */
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: hsl(var(--muted));
+  border-radius: 6px;
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--background) / 0.6) 40%,
+    hsl(var(--background) / 0.6) 60%,
+    transparent 100%
+  );
+  animation: skeleton-sweep 1.5s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ─── Route transition: staggered fade-up for page children ───────────── */
+.animate-route-in > * {
+  animation: route-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* Opt out of route-in stagger for elements that run their own transitions */
+.animate-route-in > .no-route-animation {
+  animation: none;
+}
+.animate-route-in > *:nth-child(1) { animation-delay: 0ms; }
+.animate-route-in > *:nth-child(2) { animation-delay: 60ms; }
+.animate-route-in > *:nth-child(3) { animation-delay: 120ms; }
+.animate-route-in > *:nth-child(4) { animation-delay: 180ms; }
+.animate-route-in > *:nth-child(5) { animation-delay: 240ms; }
+.animate-route-in > *:nth-child(6) { animation-delay: 300ms; }
+.animate-route-in > *:nth-child(7) { animation-delay: 340ms; }
+.animate-route-in > *:nth-child(8) { animation-delay: 380ms; }
+.animate-route-in > *:nth-child(9) { animation-delay: 410ms; }
+.animate-route-in > *:nth-child(10) { animation-delay: 440ms; }
+.animate-route-in > *:nth-child(n+11) { animation-delay: 460ms; }
+
+@keyframes route-in {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Respect reduced motion */
+/* ── Sidebar collapsed tooltip ── */
+@keyframes sidebar-tooltip-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(-6px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+.sidebar-tooltip {
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: hsl(200 15% 15%);
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(195 15% 88%);
+  box-shadow: 0 3px 12px hsl(217 91% 60% / 0.08), 0 1px 3px hsl(200 10% 50% / 0.06);
+  transform: translateY(-50%);
+  animation: sidebar-tooltip-in 150ms ease-out both;
+  overflow: hidden;
+}
+
+.sidebar-tooltip::before {
+  content: "";
+  display: block;
+  width: 3.5px;
+  min-height: 100%;
+  align-self: stretch;
+  background: hsl(217 91% 60%);
+  flex-shrink: 0;
+}
+
+.sidebar-tooltip-label {
+  padding: 6px 12px 6px 10px;
+}
+
+/* ── Tab content transition ── */
+@keyframes tab-content-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+[role="tabpanel"][data-state="active"] {
+  animation: tab-content-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+/* ── Sidebar collapsed flyout menu ── */
+@keyframes sidebar-flyout-in {
+  from { opacity: 0; transform: translateX(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.sidebar-flyout {
+  z-index: 9998;
+  min-width: 192px;
+  display: flex;
+  overflow: hidden;
+  border-radius: 12px;
+  background: hsl(0 0% 100%);
+  border: 1px solid hsl(195 15% 88%);
+  box-shadow:
+    0 8px 24px hsl(217 91% 60% / 0.07),
+    0 2px 8px hsl(200 10% 50% / 0.06),
+    0 0.5px 2px hsl(200 10% 50% / 0.04);
+  animation: sidebar-flyout-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.sidebar-flyout::before {
+  content: "";
+  display: block;
+  width: 3.5px;
+  align-self: stretch;
+  background: hsl(217 91% 60%);
+  flex-shrink: 0;
+}
+
+.sidebar-flyout-content {
+  flex: 1;
+  padding: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-line,
+  .login-shape,
+  .login-dot,
+  .login-transition-logo,
+  .login-transition-bar,
+  .skeleton-shimmer::after,
+  .home-banner-line,
+  .home-banner-shape,
+  .home-banner-dot,
+  .animate-route-in > *,
+  .builder-flow-line,
+  .builder-flow-shape,
+  .builder-flow-dot,
+  .app-loading-logo,
+  .app-loading-glow,
+  .app-loading-bar,
+  .app-loading-line-1,
+  .app-loading-line-2,
+  .app-loading-line-3,
+  .app-loading-shape-1,
+  .app-loading-shape-2,
+  .app-loading-shape-3,
+  .app-loading-dot,
+  .app-loading-orbit-1,
+  .app-loading-orbit-2,
+  .app-loading-orbit-3,
+  .animate-mode-fade-in,
+  .ai-twinkle-1,
+  .ai-twinkle-2,
+  .ai-twinkle-3,
+  .ai-twinkle-4,
+  .ai-twinkle-5,
+  .ai-twinkle-6,
+  .ai-sparkle-breathe,
+  .ai-sparkle-text,
+  .ai-guide-placeholder,
+  .ai-guide-border::before,
+  .ai-guide-letter,
+  .sidebar-tooltip,
+  .sidebar-flyout,
+  .animate-fade-in {
+    animation: none !important;
+  }
+  [role="tabpanel"][data-state="active"] {
+    animation: none !important;
+  }
+}

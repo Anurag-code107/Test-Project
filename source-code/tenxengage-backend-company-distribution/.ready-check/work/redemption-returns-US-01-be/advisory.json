@@ -1,0 +1,20 @@
+[
+  {
+    "stage": "adversarial-review",
+    "id": "ADV-01",
+    "severity": "high",
+    "confidence": 0.90,
+    "summary": "Kafka send future unhandled + no outbox: committed returns can permanently lose lifecycle events",
+    "details": "ReturnEventProducer.publish() correctly defers to afterCommit, but kafkaTemplate.send() future is never handled. If Kafka is unavailable or the send fails asynchronously, a committed PENDING_APPROVAL or CANCELLED return has no event, no retry, and no recovery path. A manual retry is also unsafe (duplicate check rejects the already-created active return).",
+    "recommendation": "Persist return events to outbox table in same transaction; retry from outbox with DLQ. Handle send() future failure. This is F5 Foundation scope — ReturnEventProducer is shared infrastructure."
+  },
+  {
+    "stage": "adversarial-review",
+    "id": "ADV-02",
+    "severity": "medium",
+    "confidence": 0.85,
+    "summary": "Return eligibility ignores ClientCatalogItemConfig.returnWindowDaysOverride — tenant-configured window not respected",
+    "details": "ReturnService.isReturnEligibleInner and submitReturn compute the return window exclusively from catalogItem.getDefaultReturnWindowDays(). ClientCatalogItemConfig.returnWindowDaysOverride exists and is configurable by tenant admins, but the field is never loaded in the return path. A tenant with a shorter override can still accept returns; a tenant with a longer override is incorrectly blocked.",
+    "recommendation": "Load ClientCatalogItemConfig for (clientId, catalogItemId) and compute effective return window from returnWindowDaysOverride when present; apply consistently in isReturnEligibleInner and submitReturn."
+  }
+]

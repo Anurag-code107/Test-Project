@@ -1,0 +1,117 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-analytics-advanced-US-05-be",
+  "headCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+  "startedAt": "2026-06-22T00:00:00Z",
+  "updatedAt": "2026-06-22T00:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "notes": "./gradlew check passed; spec file confirmed at ../tenxengage-blueprint/features/redemption-analytics-advanced/spec.md"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "fixes": 4,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/dto/response/redemption/AnalyticsRefreshStatusResponse.java",
+        "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+        "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "summary": "Unused Logger field in controller",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "summary": "MapSqlParameterSource on no-param query — use EmptySqlParameterSource.INSTANCE",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "summary": "Double rs.getObject() call per row — read into local variable first",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "summary": "Dual Instant.now() calls in stale-warn branch — capture once",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "autoFixable": true,
+          "fixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "fixes": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "summary": "API contract field name mismatch: staleThresholdHours vs stalenessThresholdHours",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/AnalyticsRefreshStatusResponse.java",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "summary": "Global NON_NULL Jackson policy omits null lastRefreshedAt — needs @JsonInclude(ALWAYS)",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/AnalyticsRefreshStatusResponse.java",
+          "autoFixable": true,
+          "fixed": true
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "notes": "DTO fields match contracts/endpoints/redemption-advanced-analytics.yaml exactly: isStale, lastRefreshedAt (nullable), stalenessThresholdHours. HTTP verb, path, and status codes align."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "softStage": true,
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "verdict": "needs-attention",
+      "fixes": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "summary": "Missing refresh-log rows treated as fresh — partial-failure path invisible",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+          "lineStart": 44,
+          "lineEnd": 46,
+          "confidence": 0.9,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false",
+          "autoFixable": true,
+          "fixed": true,
+          "recommendation": "Add COUNT(*) to query; treat mvCount < EXPECTED_MV_COUNT as stale (missing row = never-refreshed MV)"
+        }
+      ],
+      "advisory_findings": []
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "notes": "5 tests in RedemptionAdvancedAnalyticsServiceTest (feature flag gate, empty table, partial refresh, 5h stale, 1h fresh); 5 tests in RedemptionAdvancedAnalyticsControllerTest (isStale=true 200, isStale=false 200, null lastRefreshedAt 200, 403, 401). All green."
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "8372e6dc6b7cb051f06b259e45d1ad8e75d523cc",
+      "notes": "Controller: 100% line coverage. Service: all branches covered except JDBC row-mapper lambda body (lines 143-147) which is bypassed by Mockito stubs — acceptable gap for unit tests, would be covered by integration tests. No new service method or controller endpoint is untested."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage"
+}

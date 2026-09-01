@@ -1,0 +1,37 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temp
+*.tmp
+*.bak
+
+# Bug evidence staging area (local only, gitignored)
+/bugs-evidence/
+
+# Postman collections, test results, and testing guides (local dev artefacts, never push)
+/docs/postman/
+**/*.postman_collection.json
+**/testing-guide.md
+
+.claude/settings.local.json
+.claude/plans/
+.claude/skills/**/plan.md
+
+.analysis/
+**/.decision-log.md
+
+**/.t1-manifest.json
+**/.t1-run/
+
+# Generated HTML review/preview artefacts (local only)
+**/*.review.html
+**/*-review.html
+docs/superpowers/plans/*.html
+docs/superpowers/plans/*.py

@@ -1,0 +1,88 @@
+openapi: 3.0.3
+info:
+  title: Product Endpoints
+  description: Product catalog management
+  version: 1.0.0
+
+paths:
+  /api/v1/products:
+    get:
+      summary: List products
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      x-permission: action.product.view
+      parameters:
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of products
+
+    post:
+      summary: Create product
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      x-permission: action.product.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sku, name]
+              properties:
+                sku:
+                  type: string
+                  maxLength: 20
+                name:
+                  type: string
+                category:
+                  type: string
+                  maxLength: 100
+      responses:
+        "201":
+          description: Product created
+
+  /api/v1/products/categories:
+    get:
+      summary: List product categories
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      x-permission: action.product.view
+      responses:
+        "200":
+          description: List of distinct product category strings
+
+  /api/v1/products/upload:
+    post:
+      summary: Upload products from CSV
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      x-permission: action.product.manage
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Upload results (created/updated/skipped counts)
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

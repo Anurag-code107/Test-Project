@@ -1,0 +1,22 @@
+{
+  "featureId": "redemption-returns",
+  "storyId": "US-01",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-returns-US-01-be",
+  "baseBranch": "features/redemption-returns",
+  "headCommit": "34c92d3c192144288719bc9d16a28ff42ebc39f1",
+  "softStages": ["adversarial-review"],
+  "startedAt": "2026-06-12T15:53:00Z",
+  "updatedAt": "2026-06-13T06:00:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "34c92d3c" },
+    "code-review": { "status": "passed", "validatedAtCommit": "34c92d3c", "fixes": 2 },
+    "security-review": { "status": "passed", "validatedAtCommit": "34c92d3c", "fixes": 3 },
+    "contract-compliance": { "status": "passed", "validatedAtCommit": "34c92d3c" },
+    "adversarial-review": { "status": "advisory", "validatedAtCommit": "34c92d3c", "fixes": 0 },
+    "tests": { "status": "passed", "validatedAtCommit": "34c92d3c", "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "34c92d3c" }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage"
+}

@@ -1,0 +1,99 @@
+{
+  "featureId": "redemption-analytics-basic",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-basic-US-02-fe",
+  "headCommit": "123a5f9a7dd2272c742b80d68a398699ea41d457",
+  "startedAt": "2026-06-18T03:05:00.000Z",
+  "updatedAt": "2026-06-18T03:25:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "123a5f9a7dd2272c742b80d68a398699ea41d457",
+      "completedAt": "2026-06-18T03:10:00.000Z"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "123a5f9a7dd2272c742b80d68a398699ea41d457",
+      "completedAt": "2026-06-18T03:15:00.000Z",
+      "fixes": 0,
+      "filesReviewed": [
+        "src/hooks/useAnalyticsExport.ts",
+        "src/components/redemption-analytics/ExportConfirmDialog.tsx",
+        "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx"
+      ],
+      "findings": []
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "123a5f9a7dd2272c742b80d68a398699ea41d457",
+      "completedAt": "2026-06-18T03:18:00.000Z",
+      "fixes": 3,
+      "findings": [
+        {
+          "summary": "Missing toast.success() on successful export",
+          "details": "useAnalyticsExport.ts onSuccess handler triggered the CSV download but never called toast.success(). Fixed: added toast.success('CSV downloaded successfully.') after revokeObjectURL.",
+          "file": "src/hooks/useAnalyticsExport.ts",
+          "lineStart": 13,
+          "lineEnd": 23,
+          "severity": "critical",
+          "autoFixed": true
+        },
+        {
+          "summary": "onClick on disabled Export button",
+          "details": "Export button had both disabled={exportDisabled} and onClick handler. Fixed: onClick={exportDisabled ? undefined : () => setDialogOpen(true)}",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "lineStart": 114,
+          "lineEnd": 122,
+          "severity": "high",
+          "autoFixed": true
+        },
+        {
+          "summary": "aria-label/aria-busy missing on Export button when isPending",
+          "details": "aria-label was only set when countdown > 0, not when isPending. Fixed: added aria-busy={isPending} and extended aria-label to cover the pending state.",
+          "file": "src/pages/redemption/analytics/RedemptionAnalyticsPage.tsx",
+          "lineStart": 117,
+          "lineEnd": 117,
+          "severity": "medium",
+          "autoFixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "123a5f9a7dd2272c742b80d68a398699ea41d457",
+      "completedAt": "2026-06-18T03:20:00.000Z",
+      "fixes": 0
+    },
+    "adversarial-review": {
+      "status": "awaiting-user-review",
+      "validatedAtCommit": null,
+      "source": null,
+      "codexJobId": null,
+      "codexBaseRef": null,
+      "codexBranch": null,
+      "codexCompletedAt": null,
+      "pasteWarning": null,
+      "parseError": null,
+      "findings": [],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "note": "soft-stage — awaiting-user-review does not block overall pass"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "123a5f9a7dd2272c742b80d68a398699ea41d457",
+      "completedAt": "2026-06-18T03:22:00.000Z",
+      "testsRun": [
+        "src/components/redemption-analytics/__tests__/ExportConfirmDialog.test.tsx",
+        "e2e/redemption-analytics-basic/export-csv.spec.ts"
+      ],
+      "fixes": 0,
+      "vitestResult": "520 tests passed (80 files)",
+      "playwrightResult": "2/2 scenarios passed"
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests"
+}

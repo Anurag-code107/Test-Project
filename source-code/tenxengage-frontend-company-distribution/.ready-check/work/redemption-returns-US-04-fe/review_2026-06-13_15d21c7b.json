@@ -1,0 +1,45 @@
+{
+  "featureId": "redemption-returns",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-returns-US-04-fe",
+  "headCommit": "15d21c7bcb8b744b5eceb0927643314e787cae96",
+  "startedAt": "2026-06-13T12:30:00.000Z",
+  "updatedAt": "2026-06-13T12:36:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "15d21c7bcb8b744b5eceb0927643314e787cae96",
+      "completedAt": "2026-06-13T12:30:30.000Z"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "15d21c7bcb8b744b5eceb0927643314e787cae96",
+      "completedAt": "2026-06-13T12:33:00.000Z",
+      "fixes": 3
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "15d21c7bcb8b744b5eceb0927643314e787cae96",
+      "completedAt": "2026-06-13T12:34:00.000Z",
+      "fixes": 3
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "15d21c7bcb8b744b5eceb0927643314e787cae96",
+      "completedAt": "2026-06-13T12:34:30.000Z",
+      "fixes": 0
+    },
+    "adversarial-review": {
+      "status": "awaiting-user-review",
+      "notes": "soft stage"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "15d21c7bcb8b744b5eceb0927643314e787cae96",
+      "completedAt": "2026-06-13T12:36:00.000Z",
+      "fullSuiteResult": "80 test files, 540 tests — all green"
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests"
+}

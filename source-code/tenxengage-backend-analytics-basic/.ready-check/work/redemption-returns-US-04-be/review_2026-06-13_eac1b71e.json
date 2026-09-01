@@ -1,0 +1,99 @@
+{
+  "branch": "work/redemption-returns-US-04-be",
+  "baseBranch": "features/redemption-returns",
+  "storyId": "US-04",
+  "storyTitle": "RETURN_TIMED_OUT and manual resolution",
+  "headCommit": "eac1b71ed893394a982871a1894ea934af577089",
+  "generatedAt": "2026-06-13",
+  "softStages": ["adversarial-review"],
+  "outcome": "pass",
+  "stages": {
+    "prerequisites": {
+      "status": "passed",
+      "notes": "spec.md exists; compileJava + compileTestJava clean; gradlew check pre-existing failures (XtrmVendorServiceTest x3, RedemptionSubmissionServiceTest x3) confirmed pre-existing on base branch — not introduced by US-04"
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 2,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java",
+        "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+        "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java"
+      ],
+      "findings": [
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "rule": "api-design",
+          "message": "Bare else branch not exhaustive-proof for future ReturnResolution values",
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java",
+          "rule": "null-safety",
+          "message": "Missing verifyNoInteractions(auditLogService) in negative-path resolveTimedOut tests",
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "rule": "null-safety",
+          "message": "notes nullability contract implicit — acceptable, nullable by design per spec",
+          "fixed": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "notes": "Security concern about SecurityContext not propagated to async thread was false positive — taskExecutor has ContextPropagatingTaskDecorator that explicitly copies SecurityContextHolder. API contract aligned: POST /{id}/resolve returns 200 ReturnDetailResponse, matching redemption-returns.yaml",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "rule": "logging",
+          "message": "SecurityContext not propagated to logAsync thread — FALSE POSITIVE: AsyncConfig.ContextPropagatingTaskDecorator explicitly propagates SecurityContextHolder",
+          "fixed": false,
+          "alreadyHandled": true
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "notes": "POST /api/v1/redemption/admin/returns/{id}/resolve aligned with contracts/endpoints/redemption-returns.yaml: correct HTTP verb, 200 status, ReturnDetailResponse, @Valid request body, 404/409 error codes"
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "verdict": "needs-attention",
+      "softStage": true,
+      "fixes": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "title": "Audit written before transaction commits",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "tier": "advisory",
+          "tierReason": "soft stage — adversarial-review in SOFT_STAGES",
+          "alreadyHandled": false,
+          "message": "logAsync (REQUIRES_NEW) could commit phantom audit if outer @Transactional rolled back. Fixed by wrapping in TransactionSynchronization.afterCommit, matching ReturnEventProducer pattern already used in the same method.",
+          "fixed": true
+        }
+      ]
+    },
+    "tests": {
+      "status": "passed",
+      "notes": "ReturnServiceTest: all resolveTimedOut tests (confirm, reject, wrongState409, notFound404) pass. ReturnAdminControllerTest: pass. Total targeted tests green.",
+      "testResult": "green"
+    },
+    "coverage": {
+      "status": "passed",
+      "notes": "New resolveTimedOut method covered by 4 test cases: happy-confirm, happy-reject, wrong-state-409, not-found-404. Both audit paths verified with specific verify() assertions. Negative paths verified with verifyNoInteractions(auditLogService)."
+    }
+  },
+  "antipattern_pass": "clean",
+  "rc_fixes": 3,
+  "rc_manual": [],
+  "rc_blocked": false,
+  "diff_stat": "3 files changed, 80 insertions(+), 8 deletions(-)"
+}

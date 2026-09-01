@@ -1,0 +1,24 @@
+{
+  "featureId": "redemption-flow",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-flow",
+  "headCommit": "b7f2f2345884afbcb8f173e344c01cd18e51a407",
+  "startedAt": "2026-05-26T00:00:00Z",
+  "updatedAt": "2026-05-26T10:10:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "failed",
+      "validatedAtCommit": "b7f2f2345884afbcb8f173e344c01cd18e51a407",
+      "completedAt": "2026-05-26T10:10:00Z",
+      "error": "11 controller tests fail in ./gradlew check (991 total, 11 failed). Root cause: untracked test files in working tree have stale/incomplete request bodies. Two failure modes: (1) 400 Bad Request — test sends body missing required @NotNull fields (e.g. DealQualifierControllerTest sends {partnerRegion,dealItems} but DTO requires closeDate, productSkus, dealValue, customerSegment); (2) 500 Internal Server Error — incomplete @MockBean setup (e.g. AntiBriberyControllerTest). Affected tests are all untracked (??) files not committed to the branch: AntiBriberyControllerTest, BrandingControllerTest, BuilderConfigControllerTest, DataObjectControllerTest, DataOperationsControllerTest, DealQualifierControllerTest, KycControllerTest, PartnerUserControllerTest."
+    },
+    "code-review": {"status": "pending", "note": "Invalidated — TenantRedemptionCatalogService.java + 2 DTOs changed since last validation at 40a27d6."},
+    "security-review": {"status": "pending", "note": "Invalidated — DTOs changed since last validation at 40a27d6."},
+    "contract-compliance": {"status": "pending", "note": "Invalidated — DTOs changed since last validation at 40a27d6."},
+    "adversarial-review": {"status": "awaiting-user-review", "source": null, "parseError": null, "findings": [], "codexOutput": null},
+    "tests": {"status": "pending", "note": "Invalidated — source and test files changed since last validation at 40a27d6."},
+    "coverage": {"status": "failed", "validatedAtCommit": "40a27d6556dc7d0598844d8443eb91f3099059e9"}
+  },
+  "overall": "failed",
+  "lastCompletedStep": "prerequisites"
+}

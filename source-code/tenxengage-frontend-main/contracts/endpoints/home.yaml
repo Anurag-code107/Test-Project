@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: Home Dashboard Endpoints
+  description: Dashboard metrics for participation, incentive performance, and program performance
+  version: 1.0.0
+
+paths:
+  /api/v1/home/participation:
+    get:
+      summary: Get participation metrics
+      tags: [Home]
+      security:
+        - bearerAuth: []
+      x-permission: action.home.view_participation
+      parameters:
+        - name: dateFilter
+          in: query
+          schema:
+            type: string
+            enum: [LAST_30_DAYS, THIS_QUARTER, THIS_YEAR, CUSTOM]
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: partnerCompanyId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Participation metrics (active partners, claim rates, etc.)
+
+  /api/v1/home/incentive-performance:
+    get:
+      summary: Get incentive performance metrics
+      tags: [Home]
+      security:
+        - bearerAuth: []
+      x-permission: action.home.view_performance
+      parameters:
+        - name: dateFilter
+          in: query
+          schema:
+            type: string
+            enum: [LAST_30_DAYS, THIS_QUARTER, THIS_YEAR, CUSTOM]
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: partnerCompanyId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: incentiveType
+          in: query
+          schema:
+            type: string
+            enum: [ALL, SALES, ENABLEMENT, JOURNEYS]
+      responses:
+        "200":
+          description: Incentive performance metrics (bookings, deals, budget utilization)
+
+  /api/v1/home/program-performance:
+    get:
+      summary: Get program performance metrics
+      tags: [Home]
+      security:
+        - bearerAuth: []
+      x-permission: action.home.view_performance
+      parameters:
+        - name: region
+          in: query
+          schema: { type: string }
+        - name: partnerCompanyId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Overall program performance metrics
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

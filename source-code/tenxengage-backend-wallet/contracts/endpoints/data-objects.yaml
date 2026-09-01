@@ -1,0 +1,355 @@
+openapi: 3.0.3
+info:
+  title: DataObject Endpoints
+  description: Data object and field management — CLIENT_ADMIN CRUD, scoped by tenant
+  version: 1.0.0
+
+paths:
+  /api/v1/data-objects:
+    get:
+      summary: List data objects
+      description: Returns all data objects for the current tenant.
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data object list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataObjectResponse'
+
+    post:
+      summary: Create data object
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDataObjectRequest'
+      responses:
+        '201':
+          description: Data object created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataObjectDetailResponse'
+
+  /api/v1/data-objects/{id}:
+    get:
+      summary: Get data object with fields
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Data object with fields and mapping
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataObjectDetailResponse'
+
+    put:
+      summary: Update data object metadata
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDataObjectRequest'
+      responses:
+        '200':
+          description: Data object updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataObjectDetailResponse'
+
+    delete:
+      summary: Delete data object
+      description: Only non-default objects can be deleted.
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Data object deleted
+
+  /api/v1/data-objects/{id}/fields:
+    post:
+      summary: Add field to data object
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFieldRequest'
+      responses:
+        '201':
+          description: Field added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataObjectFieldResponse'
+
+  /api/v1/data-objects/{id}/fields/{fieldId}:
+    put:
+      summary: Update field
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFieldRequest'
+      responses:
+        '200':
+          description: Field updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataObjectFieldResponse'
+
+    delete:
+      summary: Delete field
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: fieldId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Field deleted
+
+  /api/v1/data-objects/{id}/connector-mapping:
+    put:
+      summary: Set connector field mappings
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectorMappingRequest'
+      responses:
+        '200':
+          description: Mapping saved
+
+    delete:
+      summary: Remove connector mapping
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Mapping removed
+
+  /api/v1/data-objects/rule-fields:
+    get:
+      summary: Get all rule-eligible fields
+      description: Returns a flat list of all fields where excludeFromRules is false and ruleLabel is set. Used by the incentive rules engine.
+      tags: [Data Objects]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dataObjectId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+          description: Filter by data object ID
+      responses:
+        '200':
+          description: Rule-eligible fields
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RuleFieldResponse'
+
+components:
+  schemas:
+    CreateDataObjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: string, maxLength: 1000 }
+
+    UpdateDataObjectRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: string, maxLength: 1000 }
+
+    CreateFieldRequest:
+      type: object
+      required: [name, dataType]
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: string, maxLength: 1000 }
+        dataType: { type: string, enum: [TEXT, NUMBER, CURRENCY, DATE, BOOLEAN, LIST] }
+        ruleLabel: { type: string, maxLength: 255 }
+        excludeFromRules: { type: boolean, default: false }
+        sampleValues: { type: array, items: { type: string } }
+
+    UpdateFieldRequest:
+      type: object
+      properties:
+        name: { type: string, maxLength: 255 }
+        description: { type: string, maxLength: 1000 }
+        dataType: { type: string, enum: [TEXT, NUMBER, CURRENCY, DATE, BOOLEAN, LIST] }
+        ruleLabel: { type: string, maxLength: 255 }
+        excludeFromRules: { type: boolean }
+        sampleValues: { type: array, items: { type: string } }
+
+    ConnectorMappingRequest:
+      type: object
+      required: [connectorId, mappings]
+      properties:
+        connectorId: { type: string, format: uuid }
+        mappings:
+          type: array
+          items:
+            type: object
+            required: [fieldId, sourceTable, sourceField]
+            properties:
+              fieldId: { type: string, format: uuid }
+              sourceTable: { type: string, maxLength: 255 }
+              sourceField: { type: string, maxLength: 255 }
+
+    DataObjectResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        isDefault: { type: boolean }
+        fieldCount: { type: integer }
+        connectorName: { type: string, description: "Name of the mapped connector, if any" }
+        sortOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DataObjectDetailResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        isDefault: { type: boolean }
+        sortOrder: { type: integer }
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataObjectFieldResponse'
+        connectorMapping:
+          $ref: '#/components/schemas/ConnectorMappingDetailResponse'
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    DataObjectFieldResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        dataType: { type: string }
+        ruleLabel: { type: string }
+        excludeFromRules: { type: boolean }
+        sampleValues: { type: array, items: { type: string } }
+        sortOrder: { type: integer }
+
+    ConnectorMappingDetailResponse:
+      type: object
+      properties:
+        connectorId: { type: string, format: uuid }
+        connectorName: { type: string }
+        connectorType: { type: string }
+        mappings:
+          type: array
+          items:
+            type: object
+            properties:
+              fieldId: { type: string, format: uuid }
+              sourceTable: { type: string }
+              sourceField: { type: string }
+
+    RuleFieldResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        dataType: { type: string }
+        ruleLabel: { type: string }
+        sampleValues: { type: array, items: { type: string } }
+        dataObjectId: { type: string, format: uuid }
+        dataObjectName: { type: string }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

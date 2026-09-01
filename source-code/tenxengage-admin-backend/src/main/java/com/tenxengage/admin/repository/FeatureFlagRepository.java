@@ -1,0 +1,14 @@
+package com.tenxengage.admin.repository;
+
+import com.tenxengage.admin.entity.FeatureFlag;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface FeatureFlagRepository extends JpaRepository<FeatureFlag, UUID> {
+
+    Optional<FeatureFlag> findByFeatureKey(String featureKey);
+}

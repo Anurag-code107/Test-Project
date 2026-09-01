@@ -1,0 +1,167 @@
+{
+  "featureId": "redemption-returns",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-returns-US-03-be",
+  "headCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+  "startedAt": "2026-06-13T00:00:00Z",
+  "updatedAt": "2026-06-13T10:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "completedAt": "2026-06-13T10:00:00Z",
+      "notes": "Compilation OK. Spec exists. 7 pre-existing test failures (TenxengageApplicationTests, RedemptionSubmissionServiceTest x3, XtrmVendorServiceTest x3) — none introduced by US-03."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "completedAt": "2026-06-13T10:00:00Z",
+      "fixes": 6,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java",
+        "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java",
+        "src/main/java/com/tenxengage/app/dto/request/redemption/XoxodayReturnWebhookPayload.java",
+        "src/main/java/com/tenxengage/app/dto/request/redemption/ResolveTimedOutReturnRequest.java",
+        "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+        "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+        "src/main/java/com/tenxengage/app/config/SecurityConfig.java"
+      ],
+      "findings": [
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 78, "rule": "api-design", "message": "@Audited(COMPLETED) fires for both confirm and reject paths — reject emits incorrect COMPLETED audit action", "autoFixable": false, "fixed": false},
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java", "line": 165, "rule": "api-design", "message": "@Audited(COMPLETED) hardcoded on resolve endpoint — REJECT resolution produces COMPLETED audit", "autoFixable": false, "fixed": false},
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java", "line": 403, "rule": "exception-handling", "message": "Silent wallet-credit miss: when originalRedemption not found in processVendorConfirmation, return transitions to RETURN_CONFIRMED with no wallet credit", "autoFixable": false, "fixed": false},
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java", "line": 66, "rule": "api-design", "message": "RestTemplate constructed inline (new RestTemplate()) — untestable, no timeouts", "autoFixable": false, "fixed": false},
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java", "line": 76, "rule": "api-design", "message": "@Profile on @PostConstruct is silently ignored — validateConfig runs in all profiles", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 105, "rule": "exception-handling", "message": "catch(Exception e) too broad — narrowed to JsonProcessingException", "autoFixable": true, "fixed": true},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/dto/request/redemption/XoxodayReturnWebhookPayload.java", "line": 13, "rule": "api-design", "message": "failureReason had no @Size — added @Size(max=1000)", "autoFixable": true, "fixed": true},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 141, "rule": "null-safety", "message": "Dead null check for secret — removed", "autoFixable": true, "fixed": true},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java", "line": 70, "rule": "idioms", "message": "TERMINAL_STATUSES used FQN java.util.EnumSet — added import and use simple name", "autoFixable": true, "fixed": true},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java", "line": 382, "rule": "idioms", "message": "orElse(null) + null check — replaced with Optional chaining", "autoFixable": true, "fixed": true},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 55, "rule": "concurrency", "message": "@Value field injection for xoxodaySigningSecret — moved to constructor injection", "autoFixable": true, "fixed": true}
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "completedAt": "2026-06-13T10:00:00Z",
+      "fixes": 3,
+      "findings": [
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 55, "rule": "auth", "message": "No startup guard for blank signing secret — app starts without error, silently rejects all webhooks", "autoFixable": false, "fixed": false},
+        {"severity": "high", "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java", "line": 165, "rule": "auth", "message": "Audit action COMPLETED hardcoded on resolve endpoint — REJECT produces wrong audit", "autoFixable": false, "fixed": false},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/dto/request/redemption/XoxodayReturnWebhookPayload.java", "line": 11, "rule": "input-validation", "message": "vendorReturnReference had no @NotBlank @Size — added", "autoFixable": true, "fixed": true},
+        {"severity": "medium", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 112, "rule": "logging", "message": "vendorReturnReference logged unescaped (log injection risk) — sanitized", "autoFixable": true, "fixed": true},
+        {"severity": "low", "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java", "line": 157, "rule": "logging", "message": "HMAC error log missing vendor — added vendor param to validateHmac", "autoFixable": true, "fixed": true}
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "completedAt": "2026-06-13T10:00:00Z",
+      "notes": "1 drift fixed: webhook header name corrected from X-Xoxoday-Hmac-Sha256 to X-Webhook-Signature per redemption-returns.yaml. POST /api/v1/redemption/admin/returns/{id}/resolve matches contract schema (ResolveTimedOutReturnRequest, 200 ReturnDetailResponse, 409 for wrong state). All other US-03 endpoints match contract."
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "source": "codex",
+      "parseError": null,
+      "fixes": 0,
+      "findings": [
+        {
+          "summary": "Wallet credit can commit while return transition later loses a race",
+          "details": "processVendorConfirmation loads the return without a pessimistic lock, calls walletMutationDelegate.doReturnCreditInTx(...) in REQUIRES_NEW, and only then saves RETURN_CONFIRMED. A concurrent vendor rejection webhook or admin reject/resolve path can save RETURN_REJECTED before the confirm path saves; because the credit already committed in the separate transaction, an optimistic-lock failure or rollback on the return save leaves the user credited while the return is rejected.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "lineStart": 382,
+          "lineEnd": 485,
+          "severity": "high",
+          "confidence": 0.95,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.95 (>=0.70), alreadyHandled=false",
+          "recommendation": "Serialize terminal return transitions with a pessimistic lock by vendor reference/id, and do not commit the wallet credit in a separate transaction before the return transition is durable. Prefer one atomic transaction for state+ledger or an outbox/state-machine step.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        },
+        {
+          "summary": "Vendor notification can hang forever and bypass retry/DLQ handling",
+          "details": "ReturnVendorService constructs a default RestTemplate and calls postForObject from an async worker. With no connect/read timeout, a stalled Xoxoday connection can block the worker indefinitely; the retry loop and DLQ route only run after an exception, so blackholed dependencies can exhaust the async executor.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+          "lineStart": 59,
+          "lineEnd": 148,
+          "severity": "medium",
+          "confidence": 0.92,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Inject a configured HTTP client with bounded connect/read/response timeouts, make timeout values configurable.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "softStagePromotion": "adversarial-review is in --soft-stages; blocking finding demoted to advisory",
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against features/redemption-returns\nVerdict: needs-attention\n\nNo-ship: the change can commit wallet credits independently of the return state transition, and vendor notification can hang without ever reaching retry/DLQ handling.\n\nFindings:\n- [high] Wallet credit can commit while the return transition later loses a race\n- [medium] Vendor notification can hang forever and bypass retry/DLQ handling"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "completedAt": "2026-06-13T10:00:00Z",
+      "testsRun": [
+        "ReturnServiceTest",
+        "ReturnVendorServiceTest",
+        "ReturnWebhookControllerTest",
+        "ReturnAdminControllerTest"
+      ],
+      "fixes": 0,
+      "testQualityFindings": [],
+      "notes": "All US-03 specific tests pass. 7 pre-existing failures (TenxengageApplicationTests x1, RedemptionSubmissionServiceTest x3, XtrmVendorServiceTest x3) confirmed on parent commit — not introduced by US-03. Integration tests in test-plan.md are cross-story (IT tracker row, not-started) — deferred until all stories complete."
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+      "completedAt": "2026-06-13T10:00:00Z",
+      "gaps": [],
+      "notes": "Coverage gaps fixed during Step 7: added resolveTimedOut() unit tests (4) to ReturnServiceTest and resolveTimedOutReturn() @WebMvcTest tests (5) to ReturnAdminControllerTest."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "advisory_findings": [
+    {
+      "stage": "adversarial-review",
+      "severity": "high",
+      "summary": "Wallet credit commits independently before return state transition is durable — race condition can produce credited-but-rejected return",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+      "lineStart": 382,
+      "lineEnd": 485,
+      "recommendation": "Serialize terminal return transitions with a pessimistic lock by vendor reference/id, and do not commit the wallet credit in a separate transaction before the return transition is durable."
+    },
+    {
+      "stage": "adversarial-review",
+      "severity": "medium",
+      "summary": "RestTemplate has no connect/read timeout — vendor API hang can exhaust async executor",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+      "lineStart": 59,
+      "lineEnd": 148,
+      "recommendation": "Inject a configured HTTP client with bounded connect/read/response timeouts."
+    },
+    {
+      "stage": "code-review",
+      "severity": "high",
+      "summary": "@Audited(COMPLETED) fires for both confirm and reject paths — REJECT resolution emits incorrect audit action",
+      "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java",
+      "lineStart": 78,
+      "lineEnd": 82
+    },
+    {
+      "stage": "code-review",
+      "severity": "high",
+      "summary": "@Profile silently ignored on @PostConstruct validateConfig — runs in all profiles including test",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+      "lineStart": 75,
+      "lineEnd": 82
+    }
+  ]
+}

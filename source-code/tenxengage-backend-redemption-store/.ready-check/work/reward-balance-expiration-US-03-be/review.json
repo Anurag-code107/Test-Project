@@ -1,0 +1,157 @@
+{
+  "branch": "work/reward-balance-expiration-US-03-be",
+  "featureId": "reward-balance-expiration",
+  "storyId": "US-03",
+  "validatedAtCommit": "c49d77e28afd85487ae2425fedf4a9d8d8504bb0",
+  "generatedAt": "2026-06-25T04:10:00Z",
+  "overallStatus": "passed",
+  "softStages": ["adversarial-review"],
+  "changedFiles": [
+    "src/main/java/com/tenxengage/app/repository/BalanceExpiryNoticeRepository.java",
+    "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java",
+    "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+    "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java",
+    "src/test/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchServiceTest.java",
+    "src/test/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeServiceTest.java"
+  ],
+  "stages": {
+    "prerequisites": {
+      "status": "passed",
+      "detail": "./gradlew test BUILD SUCCESSFUL — 29 US-03 unit tests (23 batch + 6 notice), 0 failures, 0 skipped"
+    },
+    "code-review": {
+      "status": "passed",
+      "fixes": 9,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/repository/BalanceExpiryNoticeRepository.java",
+        "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java",
+        "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+        "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java"
+      ],
+      "findings": [
+        {
+          "id": "CR-01",
+          "severity": "critical",
+          "title": "@Transactional self-call bypass on processExpireForNotice",
+          "details": "processExpireForNotice was called via this. from processExpirePhaseForPolicy within the same bean. Spring AOP proxy is bypassed — @Transactional never activates and expiry debit runs without a transaction boundary.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "recommendation": "Inject @Lazy self-proxy and call self.processExpireForNotice()",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-02",
+          "severity": "high",
+          "title": "TOCTOU race: idempotency check before row lock",
+          "details": "existsByRewardWalletIdAndReferenceTypeAndReferenceIdAndEntryType was called before lockWallet. Two concurrent sweeps could both pass the check then both write duplicate EXPIRY ledger entries.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "recommendation": "Move idempotency check to after lockWallet acquisition",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-03",
+          "severity": "high",
+          "title": "In-memory cross-policy filter in expire phase",
+          "details": "processExpirePhaseForPolicy loaded ALL NOTIFIED notices for the client then filtered by policyId in-memory — O(N) over all policies' notices, not just the current policy.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "recommendation": "Add findByClientIdAndPolicyIdAndStatusAndScheduledExpiryDateLessThanEqual to repository",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-04",
+          "severity": "high",
+          "title": "LocalDate.now() without ZoneOffset in validateRequest",
+          "details": "LocalDate.now() uses system default timezone — server timezone drift could cause a fixed expiry date that is valid in UTC to be rejected as past.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpirationPolicyService.java",
+          "recommendation": "Use LocalDate.now(ZoneOffset.UTC)",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-05",
+          "severity": "medium",
+          "title": "SecurityContext loss: auditLogService.logAsync() from @Transactional",
+          "details": "logAsync() is @Async — runs on a different thread where SecurityContext (ThreadLocal) is null. auditLogService.log() silently returns when clientId cannot be resolved, dropping the audit entry.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java",
+          "recommendation": "Switch to synchronous auditLogService.log() which resolves SecurityContext on the caller thread",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-06",
+          "severity": "low",
+          "title": "Dead variable: UUID ledgerEntryId assigned but never used",
+          "details": "The local variable ledgerEntryId was assigned savedEntry.getId() but then never referenced.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "recommendation": "Remove dead variable or add to event metadata for traceability",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-07",
+          "severity": "low",
+          "title": "Dead parameter in resolveRecipientsForWalletType",
+          "details": "Method parameter notice was never used inside the method body.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java",
+          "recommendation": "Remove unused parameter; rename to resolveRecipients()",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-08",
+          "severity": "low",
+          "title": "Misleading log using pending.get(0).getCurrencyId()",
+          "details": "Log statement only showed first notice's currency — misleading for multi-currency scenarios.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java",
+          "recommendation": "Remove currency from the log or aggregate correctly",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-09",
+          "severity": "low",
+          "title": "Unused WalletType import",
+          "details": "WalletType was imported but not referenced in BalanceExpiryNoticeService.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryNoticeService.java",
+          "recommendation": "Remove unused import",
+          "autoFixable": true,
+          "fixed": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "not_applicable",
+      "reason": "No controller, security class, or DTO files in the diff — only service, repository, and test files changed"
+    },
+    "contract-compliance": {
+      "status": "not_applicable",
+      "reason": "Contract file exists (contracts/endpoints/balance-expiration.yaml) but no controller or DTO files in the diff"
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "note": "Soft stage — not blocking. Codex adversarial review not run in this pass. Key risks already addressed: @Transactional proxy bypass (CRITICAL, fixed), TOCTOU race (HIGH, fixed), cross-policy over-fetch (HIGH, fixed)."
+    },
+    "tests": {
+      "status": "passed",
+      "detail": "29 unit tests green (0 failures, 0 skipped). BalanceExpiryBatchServiceTest: 23 tests covering warn phase, expire phase happy path, idempotency, reserved balance protection, zero balance, partial balance, policy disabled skip. BalanceExpiryNoticeServiceTest: 6 tests covering cancellation no-op, scheduled-only, notified event emit, mixed states, audit log, multiple notified."
+    },
+    "coverage": {
+      "status": "passed",
+      "detail": "BalanceExpiryBatchService: ~77% instruction / ~70% branch. BalanceExpirationPolicyService: ~82% instruction. BalanceExpiryNoticeService: ~89% instruction. Anonymous TransactionSynchronization inner classes show 0% (unit tests use direct-publish fallback branch) — covered at integration test level.",
+      "gaps": [
+        "afterCommit() lambdas in TransactionSynchronization inner classes — exercised only in integration tests",
+        "processExpireForNotice @Transactional boundary — not testable at unit level without Spring context"
+      ]
+    }
+  },
+  "advisory_findings": [
+    {
+      "stage": "adversarial-review",
+      "note": "Soft stage skipped in this run. Key architectural risks from code review were all auto-fixed (CR-01 through CR-09)."
+    }
+  ],
+  "manualActionItems": [],
+  "summary": "All 7 stages passed or not_applicable (adversarial-review is a soft stage, marked advisory). 9 auto-fixes applied across 4 source files. Full test suite green. No blocking manual action items remaining. Branch is ready for merge into features/reward-balance-expiration."
+}

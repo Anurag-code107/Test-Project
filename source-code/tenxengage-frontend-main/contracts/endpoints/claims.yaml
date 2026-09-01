@@ -1,0 +1,366 @@
+openapi: 3.0.3
+info:
+  title: Claims Endpoints
+  description: Manage reward claims for purchase orders — list, detail, claim, unclaim, summary
+  version: 1.0.0
+
+paths:
+  /api/v1/claims:
+    get:
+      summary: List claims (paginated, role-scoped)
+      tags: [Claims]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [UNCLAIMED, CLAIMED]
+        - name: search
+          in: query
+          description: Search by PO order number (partial match)
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: partnerCompanyId
+          in: query
+          description: Filter by partner company (client admin only)
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: query
+          description: Filter by seller user (partner admin only)
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: Paginated claim list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedClaimResponse'
+
+  /api/v1/claims/{id}:
+    get:
+      summary: Get claim detail
+      tags: [Claims]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Detailed claim with eligible/ineligible incentives
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDetailResponse'
+
+  /api/v1/claims/{id}/claim:
+    post:
+      summary: Claim a deal
+      tags: [Claims]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Updated claim detail after claiming
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDetailResponse'
+
+  /api/v1/claims/{id}/unclaim:
+    post:
+      summary: Unclaim a deal (admin only)
+      tags: [Claims]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnclaimRequest'
+      responses:
+        '200':
+          description: Updated claim detail after unclaiming
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimDetailResponse'
+
+  /api/v1/claims/summary:
+    get:
+      summary: Get claim summary (earnings + counts)
+      tags: [Claims]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [UNCLAIMED, CLAIMED]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Summary of earnings and claim counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClaimSummaryResponse'
+
+components:
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    pageSize:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 50
+
+  schemas:
+    ClaimResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        orderDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [UNCLAIMED, CLAIMED]
+        sellerName:
+          type: string
+        partnerName:
+          type: string
+        region:
+          type: string
+        totalAmount:
+          type: number
+        totalMonetaryReward:
+          type: number
+        rewardBreakdown:
+          $ref: '#/components/schemas/RewardBreakdownResponse'
+        eligibleIncentiveCount:
+          type: integer
+        primaryIncentiveName:
+          type: string
+          nullable: true
+        eligibleIncentiveNames:
+          type: array
+          items:
+            type: string
+        claimers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimerInfo'
+
+    ClaimDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        orderDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [UNCLAIMED, CLAIMED]
+        sellerName:
+          type: string
+        sellerId:
+          type: string
+          format: uuid
+        partnerName:
+          type: string
+        partnerCompanyId:
+          type: string
+          format: uuid
+        region:
+          type: string
+        customerName:
+          type: string
+        totalAmount:
+          type: number
+        totalMonetaryReward:
+          type: number
+        rewardBreakdown:
+          $ref: '#/components/schemas/RewardBreakdownResponse'
+        claimers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimerInfo'
+        maxClaimers:
+          type: integer
+        eligibleIncentives:
+          type: array
+          items:
+            $ref: '#/components/schemas/EligibleIncentiveResponse'
+        ineligibleIncentives:
+          type: array
+          items:
+            $ref: '#/components/schemas/IneligibleIncentiveResponse'
+        adminComment:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ClaimSummaryResponse:
+      type: object
+      properties:
+        totalEarnings:
+          type: string
+          description: Monetary total as string (stripped trailing zeros)
+        currencyBreakdown:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of currency ID to amount string
+        claimed:
+          type: integer
+          format: int64
+        unclaimed:
+          type: integer
+          format: int64
+
+    RewardBreakdownResponse:
+      type: object
+      properties:
+        monetary:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of monetary currency ID (cash, points) to amount string
+        nonMonetary:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of non-monetary currency ID (tickets, credits) to amount string
+
+    EligibleIncentiveResponse:
+      type: object
+      properties:
+        incentiveId:
+          type: string
+          format: uuid
+        incentiveName:
+          type: string
+        rewardBreakdown:
+          $ref: '#/components/schemas/RewardBreakdownResponse'
+        totalReward:
+          type: number
+
+    IneligibleIncentiveResponse:
+      type: object
+      properties:
+        incentiveId:
+          type: string
+          format: uuid
+        incentiveName:
+          type: string
+        reason:
+          type: string
+
+    ClaimerInfo:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        claimedAt:
+          type: string
+          format: date-time
+
+    UnclaimRequest:
+      type: object
+      required:
+        - comment
+      properties:
+        comment:
+          type: string
+          description: Admin comment explaining why the claim was reversed
+
+    PaginatedClaimResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer

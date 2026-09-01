@@ -1,0 +1,243 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-backend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "5f3d742be153abed89539f69daecc2c0875a8ed8",
+  "startedAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-08T17:45:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "5f3d742be153abed89539f69daecc2c0875a8ed8",
+      "completedAt": "2026-05-08T17:45:00Z",
+      "notes": "Compilation passes. No checkstyle plugin configured. Spec verified at ../tenxengage-blueprint/features/wallet-ledger-foundation/spec.md. 2 pre-existing unit test failures (LocationServiceTest, LocalStorageProviderTest) exist on main — not introduced by this branch."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "f5e2b316ccca30f336dc04fb79ec39f17f796bc9",
+      "completedAt": "2026-05-08T17:10:00Z",
+      "fixes": 0,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+        "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+        "src/main/java/com/tenxengage/app/service/WalletService.java"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "line": 70,
+          "rule": "jpa",
+          "message": "java-code-review suggested clearAutomatically=true on acquireGrantLock @Modifying. Adversarial review found this INCORRECT for advisory lock SELECT — would evict Incentive from persistence context causing LazyInitializationException on Incentive.budgets (LAZY @OneToMany) in non-JOIN-FETCH callers (ActivityCompletionService, JourneyCompletionService). Fix attempted and reverted. flushAutomatically=true is correct and sufficient.",
+          "fixed": false,
+          "manualAction": "Do NOT add clearAutomatically to advisory lock queries. pg_advisory_xact_lock modifies no rows — cache clearing is harmful when lazy associations are in the same persistence context."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "line": 24,
+          "rule": "performance",
+          "message": "findByClientId returns all RewardTransactions for a client with no pagination — OOM risk on high-volume clients.",
+          "fixed": false,
+          "manualAction": "Add Pageable overload: Page<RewardTransaction> findByClientId(UUID clientId, Pageable pageable)."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "line": 22,
+          "rule": "performance",
+          "message": "findByClientIdAndUserId loads all transactions for a user with no limit.",
+          "fixed": false,
+          "manualAction": "Add Pageable parameter or limit to a recent time window."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "line": 36,
+          "rule": "performance",
+          "message": "findByClientIdAndIncentiveId loads all transactions for a client+incentive pair with no pagination.",
+          "fixed": false,
+          "manualAction": "Add Pageable support or replace with aggregate query where callers only need totals."
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "line": 71,
+          "rule": "correctness",
+          "message": "hashtext() produces a 32-bit hash — collision probability non-trivial at scale for distinct (incentiveId:userId) pairs.",
+          "fixed": false,
+          "manualAction": "Use pg_advisory_xact_lock(bigint, bigint) with two separate hashtext() calls for a 64-bit combined key."
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "line": 89,
+          "rule": "api-design",
+          "message": "Null-guard throws IllegalArgumentException after @Transactional proxy opens a transaction — wasteful for a programming-error condition.",
+          "fixed": false,
+          "manualAction": "Validate at RewardGrantRequest construction site using Objects.requireNonNull(), before the transactional boundary."
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "line": 135,
+          "rule": "api-design",
+          "message": "@Audited action='CREATED' on creditInCurrentTx is inaccurate — called on every credit, not just wallet creation.",
+          "fixed": false,
+          "manualAction": "Change @Audited action to 'CREDITED', or move @Audited to credit() only."
+        }
+      ],
+      "notes": "3 HIGH performance findings (unbounded queries) are pre-existing in repository layer, not introduced by this branch's 3-file change. clearAutomatically fix attempted and reverted after adversarial review identified LazyInitializationException risk on Incentive.budgets lazy proxy."
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T01:00:00Z",
+      "notes": "Not invalidated — no controller/security/DTO files changed since last validation.",
+      "fixes": 0,
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "auth",
+          "message": "hasRole() reads SecurityContextHolder — may hold wrong principal in async contexts.",
+          "fixed": false,
+          "manualAction": "Use user.getAuthorities() exclusively."
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "logging",
+          "message": "AccessDeniedException throws not logged — financial access denials should be recorded for audit.",
+          "fixed": false,
+          "manualAction": "Add log.warn() before each AccessDeniedException throw."
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "70abf187add31107111e3c8f987970fd185b9869",
+      "completedAt": "2026-05-08T01:00:00Z",
+      "notes": "Not invalidated — no controller/DTO files changed since last validation. All 3 endpoints match contract."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "f5e2b316ccca30f336dc04fb79ec39f17f796bc9",
+      "completedAt": "2026-05-08T17:15:00Z",
+      "findings": [
+        {
+          "summary": "Per-user and per-partner cap SUM queries without row-level lock — RESOLVED via pg_advisory_xact_lock on (incentiveId:userId)",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 87,
+          "lineEnd": 165,
+          "severity": "high",
+          "confidence": 0.80,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true",
+          "recommendation": "Already handled.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "creditInCurrentTx() wallet creation race — RESOLVED via ensureIndividualWalletExists() + findForUpdate()",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "lineStart": 136,
+          "lineEnd": 174,
+          "severity": "high",
+          "confidence": 0.75,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true",
+          "recommendation": "Already handled.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "clearAutomatically=true on advisory lock SELECT would detach Incentive causing LazyInitializationException — fix attempted and reverted",
+          "file": "src/main/java/com/tenxengage/app/repository/RewardTransactionRepository.java",
+          "lineStart": 70,
+          "lineEnd": 72,
+          "severity": "high",
+          "confidence": 0.85,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — clearAutomatically fix reverted; flushAutomatically=true only is correct",
+          "recommendation": "Do not add clearAutomatically to advisory lock queries.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "grantReward() calls creditInCurrentTx(awarded=ZERO) when fully capped — creates zero-amount ledger entries",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 166,
+          "lineEnd": 182,
+          "severity": "medium",
+          "confidence": 0.70,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Add early return when awarded <= 0 before creating the RewardTransaction and calling creditInCurrentTx.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Per-partner cap race across different users for same partner+incentive — advisory lock only serializes per (incentiveId:userId)",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 116,
+          "lineEnd": 141,
+          "severity": "medium",
+          "confidence": 0.65,
+          "tier": "advisory",
+          "tierReason": "confidence=0.65 (< 0.70)",
+          "recommendation": "Add a second pg_advisory_xact_lock on (incentiveId:partnerCompanyId) when partnerCompanyId is non-null.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "hasRole() reads SecurityContextHolder — may hold wrong principal in async contexts",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "lineStart": 261,
+          "lineEnd": 266,
+          "severity": "medium",
+          "confidence": 0.55,
+          "tier": "advisory",
+          "tierReason": "confidence=0.55 (< 0.70)",
+          "recommendation": "Use user.getAuthorities() exclusively.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND alreadyHandled=false",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled=true"
+      },
+      "codexOutput": "Re-evaluated at f5e2b31. New finding: clearAutomatically=true on acquireGrantLock causes LazyInitializationException on Incentive.budgets (high, conf=0.85) — fix attempted during code-review phase and reverted, alreadyHandled=true. 0 new blocking findings. 6 total advisory (5 unchanged + 1 resolved). Step PASSED."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "f5e2b316ccca30f336dc04fb79ec39f17f796bc9",
+      "completedAt": "2026-05-08T17:20:00Z",
+      "testsRun": [
+        "RewardGrantServiceTest",
+        "WalletServiceTest",
+        "WalletIntegrationTest"
+      ],
+      "fixes": 0,
+      "testQualityFindings": [],
+      "notes": "All 3 scoped tests passed. BUILD SUCCESSFUL in 56s. Pre-existing failures (LocationServiceTest, LocalStorageProviderTest) unchanged and unrelated."
+    },
+    "coverage": {
+      "status": "not_applicable",
+      "validatedAtCommit": "f5e2b316ccca30f336dc04fb79ec39f17f796bc9",
+      "completedAt": "2026-05-08T17:25:00Z",
+      "gaps": [],
+      "notes": "Net changes at HEAD are 3 autofix modifications to existing methods. No new methods or endpoints added."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "pendingManualActions": [
+    "RewardTransactionRepository.java:22 — Add Pageable to findByClientIdAndUserId",
+    "RewardTransactionRepository.java:24 — Add Pageable to findByClientId",
+    "RewardTransactionRepository.java:36 — Add Pageable to findByClientIdAndIncentiveId or replace with aggregate",
+    "RewardTransactionRepository.java:71 — Replace hashtext() 32-bit with 64-bit pg_advisory_xact_lock(bigint,bigint)",
+    "RewardWalletRepository.java:58 — Add explicit ON CONFLICT (client_id, user_id, currency_id) WHERE wallet_type = 'INDIVIDUAL' DO NOTHING",
+    "BudgetUtilizationRepository.java:38 — Add explicit conflict target columns to ensureExists() INSERT",
+    "RewardGrantService.java:89 — Move null validation to RewardGrantRequest construction site",
+    "RewardGrantService.java:116 — Add pg_advisory_xact_lock on (incentiveId:partnerCompanyId) for partner cap serialization",
+    "RewardGrantService.java:166 — Add early return when awarded <= 0 to skip zero-amount credit",
+    "WalletService.java:135 — Change @Audited action from 'CREATED' to 'CREDITED' on creditInCurrentTx",
+    "WalletService.java:261 — Use user.getAuthorities() exclusively in hasRole()"
+  ]
+}

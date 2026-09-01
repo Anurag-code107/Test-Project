@@ -1,0 +1,19 @@
+{
+  "featureId": "redemption-analytics-basic",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-analytics-basic-US-02-be",
+  "headCommit": "235e7b6a48457795d501d97c91508c69393ce0d0",
+  "startedAt": "2026-06-17T00:00:00Z",
+  "updatedAt": "2026-06-17T00:00:00Z",
+  "steps": {
+    "prerequisites": { "status": "pending" },
+    "code-review": { "status": "pending" },
+    "security-review": { "status": "pending" },
+    "contract-compliance": { "status": "pending" },
+    "adversarial-review": { "status": "pending" },
+    "tests": { "status": "pending" },
+    "coverage": { "status": "pending" }
+  },
+  "overall": "in-progress",
+  "advisory_findings": []
+}

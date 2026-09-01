@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Self-service Mobile Number Change (OTP-synced to XTRM)
+  description: >
+    Changes the current user's mobile number and keeps the XTRM payout profile in sync. XTRM requires a
+    mobile on the user profile for payout enrollment and withdrawal. For an XTRM-enrolled payee this is a
+    2-step, OTP-confirmed flow (XTRM's UpdateUser texts the code to the NEW number being set); our copy is
+    written only after XTRM confirms, so the two never drift. A not-yet-enrolled user skips the OTP and the
+    number is saved immediately (it flows to XTRM at enrollment via CreateUser). Mobile is collected as
+    country (ISO2) + national number. Requires action.profile.edit. Self-only (resolved from the JWT).
+  version: 1.0.0
+
+paths:
+  /api/v1/me/phone/initiate:
+    post:
+      summary: Start changing my mobile number (sends a one-time password if enrolled)
+      description: >
+        Step 1. If the user is XTRM-enrolled, calls UpdateUser (no OTP) so XTRM texts a one-time password to
+        the new number, and returns otpRequired=true WITHOUT persisting the change. If not enrolled, saves
+        the number immediately and returns otpRequired=false.
+      tags: [Profile]
+      security:
+        - bearerAuth: []
+      x-permission: action.profile.edit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitiatePhoneUpdateRequest"
+      responses:
+        "200":
+          description: OTP sent (otpRequired=true) or saved immediately for a non-enrolled user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhoneUpdateResponse"
+        "400":
+          description: Validation error (phone not 7–20 digits, country not a 2-letter code)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unsupported mobile country (UNSUPPORTED_MOBILE_COUNTRY) or XTRM rejection (XTRM_PROFILE_UPDATE_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: XTRM temporarily unavailable (XTRM_UNAVAILABLE) — retry later
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/me/phone/confirm:
+    post:
+      summary: Confirm my mobile-number change with the one-time password
+      description: >
+        Step 2. Resends the same country + number as /initiate plus the OTP. On success XTRM applies the new
+        mobile and we persist it locally. A wrong/expired code is rejected with XTRM_PROFILE_OTP_INVALID (422).
+      tags: [Profile]
+      security:
+        - bearerAuth: []
+      x-permission: action.profile.edit
+      x-audited: EDITED USER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmPhoneUpdateRequest"
+      responses:
+        "200":
+          description: Mobile number applied at XTRM and persisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhoneUpdateResponse"
+        "400":
+          description: Validation error (missing otp, bad phone/country)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Invalid/expired OTP (XTRM_PROFILE_OTP_INVALID) or XTRM rejection (XTRM_PROFILE_UPDATE_FAILED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: XTRM temporarily unavailable (XTRM_UNAVAILABLE) — retry later
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    InitiatePhoneUpdateRequest:
+      type: object
+      required: [phone, phoneCountryIso2]
+      properties:
+        phone:
+          type: string
+          pattern: "^[0-9]{7,20}$"
+          description: National mobile number (digits only, no country code)
+        phoneCountryIso2:
+          type: string
+          pattern: "^[A-Z]{2}$"
+          description: 2-letter uppercase ISO country of the mobile
+
+    ConfirmPhoneUpdateRequest:
+      type: object
+      required: [phone, phoneCountryIso2, otp]
+      properties:
+        phone:
+          type: string
+          pattern: "^[0-9]{7,20}$"
+        phoneCountryIso2:
+          type: string
+          pattern: "^[A-Z]{2}$"
+        otp:
+          type: string
+          maxLength: 20
+          description: The one-time password XTRM sent on /initiate
+
+    PhoneUpdateResponse:
+      type: object
+      required: [otpRequired]
+      properties:
+        otpRequired:
+          type: boolean
+          description: True after /initiate for an enrolled user (prompt for the OTP); false once applied/saved
+        phone:
+          type: string
+          nullable: true
+          description: The applied national number (null when otpRequired)
+        phoneCountryIso2:
+          type: string
+          nullable: true
+          description: The applied ISO2 country (null when otpRequired)
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

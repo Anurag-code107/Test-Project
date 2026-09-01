@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: Wallet Endpoints
+  description: Reward wallet balance reads. Wallet mutations (reserve, debit, release, returnCredit) are internal service calls — no API endpoints in F-01.
+  version: 1.0.0
+
+paths:
+  /api/v1/wallets/me:
+    get:
+      summary: Get my wallets
+      description: Returns all per-currency individual wallets for the authenticated user. Approved deviation from conventions.md — uses isAuthenticated() rather than @RequiresPermission because balance data is the user's own financial record.
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of individual wallets for the authenticated user (one per currency)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardWalletResponse'
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/wallets/company/{companyId}:
+    get:
+      summary: Get company wallets
+      description: |
+        Returns all per-currency wallets for a partner company.
+        - PARTNER_ADMIN: server validates `companyId` matches the caller's JWT `partnerCompanyId` claim; returns 403 if mismatch or if caller has no company claim
+        - CLIENT_ADMIN: any company within their tenant; returns 404 if not found
+        - PARTNER_SELLER: always 403 (role check before wallet lookup)
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      x-permission: module.redemption_store
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of company wallets (one per currency)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardWalletResponse'
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: PARTNER_ADMIN companyId mismatch, no company claim, or caller is PARTNER_SELLER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Company not found in tenant (CLIENT_ADMIN only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/wallets/users/{userId}:
+    get:
+      summary: Get wallets for a user (admin)
+      description: CLIENT_ADMIN view of any individual user's wallets within their tenant. Cross-tenant userId returns 404, not 403, to prevent enumeration.
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_all_history
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of individual wallets for the specified user (one per currency)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardWalletResponse'
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Caller is not CLIENT_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: User not found in tenant (prevents cross-tenant enumeration)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RewardWalletResponse:
+      type: object
+      required: [id, walletType, currencyId, availableBalance, reservedBalance]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Wallet ID — referenced by F-03 redemption submission
+        walletType:
+          type: string
+          enum: [INDIVIDUAL, COMPANY]
+        currencyId:
+          type: string
+          description: Currency code (e.g. "cash", "points", "credits", "tickets")
+        availableBalance:
+          type: string
+          description: Spendable balance as decimal string (e.g. "150.00")
+        reservedBalance:
+          type: string
+          description: Locked in-flight balance as decimal string (e.g. "30.00")
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

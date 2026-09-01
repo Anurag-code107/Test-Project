@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: User Endpoints
+  description: User management CRUD operations
+  version: 2.0.0
+
+paths:
+  /api/v1/users:
+    get:
+      summary: List users (paginated)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      x-permission: action.users.view
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - $ref: "#/components/parameters/pageSize"
+        - $ref: "#/components/parameters/sortBy"
+        - $ref: "#/components/parameters/sortDirection"
+        - $ref: "#/components/parameters/search"
+        - name: partnerCompanyId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by partner company
+        - name: internal
+          in: query
+          schema:
+            type: boolean
+          description: Filter internal (true) or external (false) users
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedUserResponse"
+
+    post:
+      summary: Create a user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      x-permission: action.users.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Validation error
+        "409":
+          description: Email already exists
+
+  /api/v1/users/{id}:
+    get:
+      summary: Get user by ID
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      x-permission: action.users.view
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: User not found
+
+    put:
+      summary: Update user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      x-permission: action.users.edit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: User not found
+
+    delete:
+      summary: Delete user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      x-permission: action.users.delete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: User deleted
+        "404":
+          description: User not found
+
+components:
+  schemas:
+    CreateUserRequest:
+      type: object
+      required: [email, firstName, lastName, password, clientRoleId]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        password:
+          type: string
+          minLength: 8
+        clientRoleId:
+          type: string
+          format: uuid
+          description: Role to assign to the user
+        partnerCompanyId:
+          type: string
+          format: uuid
+          description: Required for external (partner) users
+        countryCode:
+          type: string
+          maxLength: 10
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+        lastName:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          maxLength: 20
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED, PENDING_VERIFICATION, RESTRICTED]
+        clientRoleId:
+          type: string
+          format: uuid
+        countryCode:
+          type: string
+          maxLength: 10
+
+    UserResponse:
+      type: object
+      description: See models/user.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        avatar:
+          type: string
+        status:
+          type: string
+          enum:
+            [
+              ACTIVE,
+              INACTIVE,
+              SUSPENDED,
+              PENDING_VERIFICATION,
+              ANONYMIZED,
+              RESTRICTED,
+            ]
+        clientRoleId:
+          type: string
+          format: uuid
+        clientRoleName:
+          type: string
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        partnerCompanyId:
+          type: string
+          format: uuid
+        partnerCompanyName:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedUserResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+    pageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        default: 20
+        maximum: 100
+    sortBy:
+      name: sortBy
+      in: query
+      schema:
+        type: string
+        default: createdAt
+    sortDirection:
+      name: sortDirection
+      in: query
+      schema:
+        type: string
+        enum: [ASC, DESC]
+        default: DESC
+    search:
+      name: search
+      in: query
+      schema:
+        type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

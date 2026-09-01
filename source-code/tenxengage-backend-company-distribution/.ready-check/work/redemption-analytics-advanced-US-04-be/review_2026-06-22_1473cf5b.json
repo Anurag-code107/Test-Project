@@ -1,0 +1,232 @@
+{
+    "branch":  "work/redemption-analytics-advanced-US-04-be",
+    "startedAt":  "2026-06-22T22:18:00Z",
+    "headCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+    "advisory_findings":  [
+                              {
+                                  "step":  "code-review",
+                                  "message":  "Cache key null collision pattern (alreadyHandled — pre-existing across US-01/02/03)",
+                                  "severity":  "high"
+                              },
+                              {
+                                  "step":  "code-review",
+                                  "message":  "periodDate nullable without annotation",
+                                  "severity":  "medium"
+                              },
+                              {
+                                  "step":  "code-review",
+                                  "message":  "double precision for redemptionRate",
+                                  "severity":  "medium"
+                              },
+                              {
+                                  "step":  "security-review",
+                                  "message":  "429 rate limiting not implemented in controller",
+                                  "severity":  "medium"
+                              },
+                              {
+                                  "step":  "security-review",
+                                  "message":  "double NaN/Infinity serialisation risk",
+                                  "severity":  "low"
+                              },
+                              {
+                                  "step":  "security-review",
+                                  "message":  "currencyId no @Size constraint",
+                                  "severity":  "low"
+                              }
+                          ],
+    "lastCompletedStep":  "coverage",
+    "featureId":  "redemption-analytics-advanced",
+    "updatedAt":  "2026-06-22T22:45:00Z",
+    "repo":  "tenxengage-backend",
+    "overall":  "passed",
+    "steps":  {
+                  "security-review":  {
+                                          "status":  "passed",
+                                          "completedAt":  "2026-06-22T22:35:00Z",
+                                          "validatedAtCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+                                          "fixes":  0,
+                                          "findings":  [
+                                                           {
+                                                               "rule":  "status-code",
+                                                               "tier":  "advisory",
+                                                               "tierReason":  "severity=medium",
+                                                               "fixed":  false,
+                                                               "severity":  "medium",
+                                                               "message":  "429 rate limiting not enforced in controller — documented in contract but no implementation",
+                                                               "file":  "RedemptionAdvancedAnalyticsController.java"
+                                                           },
+                                                           {
+                                                               "rule":  "input-validation",
+                                                               "tier":  "advisory",
+                                                               "tierReason":  "severity=low",
+                                                               "fixed":  false,
+                                                               "severity":  "low",
+                                                               "message":  "double redemptionRate allows NaN/Infinity serialisation",
+                                                               "file":  "TrendDataPointDto.java"
+                                                           },
+                                                           {
+                                                               "rule":  "input-validation",
+                                                               "tier":  "advisory",
+                                                               "tierReason":  "severity=low",
+                                                               "fixed":  false,
+                                                               "severity":  "low",
+                                                               "message":  "currencyId has no @Size constraint",
+                                                               "file":  "TrendDataPointDto.java"
+                                                           }
+                                                       ]
+                                      },
+                  "code-review":  {
+                                      "filesReviewed":  [
+                                                            "src/main/java/com/tenxengage/app/dto/response/redemption/TrendDataPointDto.java",
+                                                            "src/main/java/com/tenxengage/app/dto/response/redemption/RedemptionTrendResponse.java",
+                                                            "src/main/java/com/tenxengage/app/service/redemption/RedemptionAdvancedAnalyticsService.java",
+                                                            "src/main/java/com/tenxengage/app/controller/redemption/RedemptionAdvancedAnalyticsController.java"
+                                                        ],
+                                      "findings":  [
+                                                       {
+                                                           "rule":  "api-design",
+                                                           "tier":  "advisory",
+                                                           "tierReason":  "alreadyHandled=true",
+                                                           "fixed":  false,
+                                                           "severity":  "high",
+                                                           "message":  "buildTrendCacheKey receives null dateFrom/dateTo causing null cache key collisions — same pre-existing pattern as US-01/02/03 (alreadyHandled)",
+                                                           "file":  "RedemptionAdvancedAnalyticsService.java"
+                                                       },
+                                                       {
+                                                           "rule":  "null-safety",
+                                                           "tier":  "advisory",
+                                                           "tierReason":  "severity=medium",
+                                                           "fixed":  false,
+                                                           "severity":  "medium",
+                                                           "message":  "periodDate can be null in row mapper with no @Nullable annotation",
+                                                           "file":  "RedemptionAdvancedAnalyticsService.java"
+                                                       },
+                                                       {
+                                                           "rule":  "api-design",
+                                                           "tier":  "advisory",
+                                                           "tierReason":  "severity=medium",
+                                                           "fixed":  false,
+                                                           "severity":  "medium",
+                                                           "message":  "redemptionRate typed as double loses precision vs NUMERIC(x,2)",
+                                                           "file":  "TrendDataPointDto.java"
+                                                       },
+                                                       {
+                                                           "rule":  "idioms",
+                                                           "tier":  "advisory",
+                                                           "tierReason":  "severity=low",
+                                                           "fixed":  true,
+                                                           "severity":  "low",
+                                                           "message":  "tenantId= log key inconsistency — fixed to clientId=",
+                                                           "file":  "RedemptionAdvancedAnalyticsService.java"
+                                                       },
+                                                       {
+                                                           "rule":  "api-design",
+                                                           "tier":  "advisory",
+                                                           "tierReason":  "severity=low",
+                                                           "fixed":  false,
+                                                           "severity":  "low",
+                                                           "message":  "mutable list in cached response — attempted List.copyOf(), reverted by linter",
+                                                           "file":  "RedemptionAdvancedAnalyticsService.java"
+                                                       }
+                                                   ],
+                                      "validatedAtCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+                                      "fixes":  2,
+                                      "completedAt":  "2026-06-22T22:32:00Z",
+                                      "status":  "passed"
+                                  },
+                  "tests":  {
+                                "testQualityFindings":  [
+                                                            {
+                                                                "rule":  "naming",
+                                                                "message":  "Happy-path test name uses vague \u0027happyPath\u0027 qualifier",
+                                                                "severity":  "medium"
+                                                            },
+                                                            {
+                                                                "rule":  "assertj",
+                                                                "message":  "Multiple positional index assertions — use extracting/tuple pattern",
+                                                                "severity":  "medium"
+                                                            },
+                                                            {
+                                                                "rule":  "coverage",
+                                                                "message":  "span365Days test lacks dateWindow assertions",
+                                                                "severity":  "low"
+                                                            },
+                                                            {
+                                                                "rule":  "anti-pattern",
+                                                                "message":  "stubTrendQuery relies on invocation order rather than SQL matchers",
+                                                                "severity":  "low"
+                                                            },
+                                                            {
+                                                                "rule":  "naming",
+                                                                "message":  "TREND_ENDPOINT constant scoped to test section instead of class-level",
+                                                                "severity":  "low"
+                                                            },
+                                                            {
+                                                                "rule":  "coverage",
+                                                                "message":  "No test for malformed/missing dateFrom/dateTo params (400)",
+                                                                "severity":  "low"
+                                                            },
+                                                            {
+                                                                "rule":  "assertj",
+                                                                "message":  "lastRefreshedAt asserted with .exists() only; fixed value would be more precise",
+                                                                "severity":  "low"
+                                                            }
+                                                        ],
+                                "status":  "passed",
+                                "validatedAtCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+                                "fixes":  0,
+                                "testsRun":  [
+                                                 "RedemptionAdvancedAnalyticsServiceTest",
+                                                 "RedemptionAdvancedAnalyticsControllerTest"
+                                             ]
+                            },
+                  "adversarial-review":  {
+                                             "fixes":  1,
+                                             "parseError":  null,
+                                             "source":  "codex",
+                                             "findings":  [
+                                                              {
+                                                                  "severity":  "high",
+                                                                  "confidence":  0.95,
+                                                                  "file":  "contracts/endpoints/redemption-advanced-analytics.yaml",
+                                                                  "tier":  "blocking",
+                                                                  "details":  "ItemBreakdownResponse and SegmentBreakdownResponse declared lastRefreshedAt as non-null date-time but service can return null from queryMinLastRefreshedAt() on first deploy",
+                                                                  "autoFixable":  true,
+                                                                  "autoFixed":  true,
+                                                                  "lineStart":  415,
+                                                                  "summary":  "First-deploy nulls still break generated clients for item and segment analytics",
+                                                                  "tierReason":  "severity=high, confidence=0.95 (\u003e=0.70), alreadyHandled=false",
+                                                                  "lineEnd":  463,
+                                                                  "alreadyHandled":  false,
+                                                                  "recommendation":  "Add nullable: true to all analytics response schemas where lastRefreshedAt can be null"
+                                                              }
+                                                          ],
+                                             "status":  "passed",
+                                             "validatedAtCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+                                             "codexOutput":  "Target: branch diff against HEAD~1\nVerdict: needs-attention\n\nNo-ship: the contract fix is incomplete; first-deploy nulls still violate schemas for sibling analytics endpoints.\n\n[high] First-deploy nulls still break generated clients for item and segment analytics (contracts/endpoints/redemption-advanced-analytics.yaml:415-463)",
+                                             "classificationRules":  {
+                                                                         "blockingThreshold":  "severity critical/high AND confidence \u003e= 0.70 AND not alreadyHandled",
+                                                                         "advisoryThreshold":  "severity medium/low OR confidence \u003c 0.70 OR alreadyHandled"
+                                                                     }
+                                         },
+                  "contract-compliance":  {
+                                              "status":  "passed",
+                                              "completedAt":  "2026-06-22T22:36:00Z",
+                                              "validatedAtCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+                                              "fixes":  1,
+                                              "notes":  "Added nullable: true to RedemptionTrendResponse.lastRefreshedAt in YAML"
+                                          },
+                  "prerequisites":  {
+                                        "status":  "passed",
+                                        "completedAt":  "2026-06-22T22:20:00Z",
+                                        "validatedAtCommit":  "e93648b9172a05762f755ca3e33f7b8287203757"
+                                    },
+                  "coverage":  {
+                                   "status":  "passed",
+                                   "validatedAtCommit":  "1473cf5b4d371e3d3f9b13ed0915ac4bb20644eb",
+                                   "gaps":  [
+
+                                            ]
+                               }
+              }
+}

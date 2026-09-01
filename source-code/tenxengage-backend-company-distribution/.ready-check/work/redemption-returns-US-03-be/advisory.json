@@ -1,0 +1,132 @@
+{
+  "featureId": "redemption-returns",
+  "storyId": "US-03",
+  "branch": "work/redemption-returns-US-03-be",
+  "generatedAt": "2026-06-13T10:00:00Z",
+  "headCommit": "e20d4be312db1213acec16b6ef46099dded278c4",
+  "advisoryFindings": [
+    {
+      "id": "adv-01",
+      "stage": "adversarial-review",
+      "severity": "high",
+      "source": "codex",
+      "confidence": 0.95,
+      "summary": "Wallet credit commits independently before return state transition is durable — race condition can produce credited-but-rejected return",
+      "details": "processVendorConfirmation calls walletMutationDelegate.doReturnCreditInTx(...) in a REQUIRES_NEW transaction, then saves RETURN_CONFIRMED in the outer transaction. If the outer transaction rolls back (e.g., due to an OptimisticLockException from a concurrent vendor rejection webhook or admin resolve), the wallet credit is already committed but the return status is not RETURN_CONFIRMED. The user ends up with a credited wallet on a rejected return.",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+      "lineStart": 382,
+      "lineEnd": 485,
+      "recommendation": "Serialize terminal return transitions with a pessimistic lock (e.g., findByIdWithLock) before committing wallet credit. Prefer one atomic transaction for state+ledger, or use an outbox/state-machine step pattern where the wallet credit is only enqueued (not committed) until the return state is durable.",
+      "softStagePromotion": "adversarial-review in --soft-stages: blocking tier demoted to advisory",
+      "actionRequired": "manual — requires architectural decision on pessimistic locking or outbox pattern"
+    },
+    {
+      "id": "adv-02",
+      "stage": "adversarial-review",
+      "severity": "medium",
+      "source": "codex",
+      "confidence": 0.92,
+      "summary": "RestTemplate constructed inline without timeouts — stalled vendor API can exhaust async executor",
+      "details": "ReturnVendorService constructs new RestTemplate() inline on every call path. With no connect/read timeout configured, a stalled Xoxoday endpoint will block the async thread indefinitely. The retry/DLQ path only activates on exception — so a blackholed connection never reaches it.",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+      "lineStart": 59,
+      "lineEnd": 148,
+      "recommendation": "Inject a configured RestTemplate or RestClient bean with bounded connect/read/response timeouts. Make timeout values configurable via application.yml.",
+      "actionRequired": "manual — inject RestTemplate bean with timeout configuration"
+    },
+    {
+      "id": "adv-03",
+      "stage": "code-review",
+      "severity": "high",
+      "source": "code-review",
+      "summary": "@Audited(COMPLETED) fires for both confirm and reject paths in webhook handler",
+      "details": "The @Audited(action = 'COMPLETED') annotation on handleReturnWebhook fires for every invocation, including when payload.confirmed() == false. This causes the audit log to record COMPLETED for returns that are being rejected by the vendor.",
+      "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java",
+      "lineStart": 79,
+      "lineEnd": 83,
+      "recommendation": "Remove @Audited from the controller method and emit a programmatic audit event inside ReturnService.processVendorConfirmation(), branching on the confirmed flag.",
+      "actionRequired": "manual — requires programmatic audit call in service layer"
+    },
+    {
+      "id": "adv-04",
+      "stage": "code-review",
+      "severity": "high",
+      "source": "code-review",
+      "summary": "@Audited(COMPLETED) hardcoded on resolveTimedOutReturn — REJECT resolution emits incorrect audit action",
+      "details": "The @Audited(action = 'COMPLETED') annotation on the resolveTimedOutReturn endpoint fires regardless of whether the admin chose CONFIRM or REJECT as the resolution. A reject resolution produces a COMPLETED audit entry, which is incorrect.",
+      "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnAdminController.java",
+      "lineStart": 165,
+      "lineEnd": 170,
+      "recommendation": "Remove @Audited from the controller method and emit a programmatic audit event inside ReturnService.resolveTimedOut(), branching on the resolution enum.",
+      "actionRequired": "manual — requires programmatic audit call in service layer"
+    },
+    {
+      "id": "adv-05",
+      "stage": "security-review",
+      "severity": "high",
+      "source": "security-review",
+      "summary": "No startup guard for blank xoxoday signing secret — app starts silently and rejects all webhooks",
+      "details": "If redemption.return-webhook.xoxoday.signing-secret is not set in the environment, xoxodaySigningSecret defaults to '' (empty string). The app starts without error but silently rejects every Xoxoday webhook with 403. Per PROJECT-CONTEXT.md, webhook signing secrets must be validated non-blank at startup via @PostConstruct.",
+      "file": "src/main/java/com/tenxengage/app/controller/ReturnWebhookController.java",
+      "lineStart": 59,
+      "lineEnd": 65,
+      "recommendation": "Add a @PostConstruct method (or @Configuration @Bean guard) that throws IllegalStateException if xoxodaySigningSecret is blank in non-test profiles.",
+      "actionRequired": "manual — needs @PostConstruct guard or @Configuration extraction"
+    },
+    {
+      "id": "adv-06",
+      "stage": "code-review",
+      "severity": "high",
+      "source": "code-review",
+      "summary": "@Profile silently ignored on @PostConstruct validateConfig in ReturnVendorService",
+      "details": "Spring's @Profile annotation is not supported on individual @PostConstruct methods within a @Service class — it is only honoured on @Bean and @Configuration class declarations. As a result, validateConfig() runs in ALL profiles, including test and localtest, despite the annotation.",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnVendorService.java",
+      "lineStart": 75,
+      "lineEnd": 82,
+      "recommendation": "Extract the @PostConstruct validation to a @Configuration class (or a @Bean method guarded by @Profile), or add a programmatic profile check inside the method: if (env.acceptsProfiles(Profiles.of('!test', '!localtest'))) { ... }",
+      "actionRequired": "manual — Spring limitation, needs @Configuration extraction or programmatic profile check"
+    },
+    {
+      "id": "adv-07",
+      "stage": "code-review",
+      "severity": "medium",
+      "source": "code-review",
+      "summary": "Kafka events published inside @Transactional before commit in processVendorConfirmation",
+      "details": "returnEventProducer.publishReturnConfirmed(ret) is called inside the @Transactional processVendorConfirmation before the transaction commits. approveReturn() correctly uses TransactionSynchronizationManager.afterCommit() for event publishing. This inconsistency means that if the DB commit fails after Kafka publish in processVendorConfirmation, consumers receive a RETURN_CONFIRMED event for a return that was never saved as confirmed.",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+      "lineStart": 382,
+      "lineEnd": 485,
+      "recommendation": "Wrap the publishReturnConfirmed call in TransactionSynchronizationManager.afterCommit(() -> returnEventProducer.publishReturnConfirmed(ret)) to match the pattern used in approveReturn().",
+      "actionRequired": "manual — requires wrapping in TransactionSynchronizationManager.afterCommit()"
+    },
+    {
+      "id": "adv-08",
+      "stage": "code-review",
+      "severity": "medium",
+      "source": "code-review",
+      "summary": "Silent wallet-credit miss when original redemption not found in processVendorConfirmation",
+      "details": "When the originalRedemption lookup returns empty in processVendorConfirmation, the code logs a warning but then continues to transition the return to RETURN_CONFIRMED with no wallet credit issued. The caller receives a RETURN_CONFIRMED audit event but no funds were returned to the user.",
+      "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+      "lineStart": 403,
+      "lineEnd": 420,
+      "recommendation": "On missing originalRedemption, either throw a recoverable exception (to trigger retry), transition to a RETURN_ERROR state, or at minimum log at ERROR level with a PagerDuty-triggerable alert key.",
+      "actionRequired": "manual — requires a decision on error state vs retry strategy"
+    }
+  ],
+  "summary": {
+    "totalAdvisories": 8,
+    "bySeverity": {
+      "high": 5,
+      "medium": 3,
+      "low": 0
+    },
+    "byStage": {
+      "adversarial-review": 2,
+      "code-review": 5,
+      "security-review": 1
+    },
+    "softStagePromotions": ["adv-01 promoted from blocking to advisory (adversarial-review in --soft-stages)"],
+    "autoFixAttempted": 0,
+    "allManual": true
+  }
+}

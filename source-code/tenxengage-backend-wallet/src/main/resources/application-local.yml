@@ -1,0 +1,33 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tenxengage}
+    username: tenxengage
+    password: localdev
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+    admin:
+      fail-fast: false
+    listener:
+      missing-topics-fatal: false
+  mail:
+    password: ${RESEND_API_KEY:}
+
+app:
+  mail:
+    enabled: true
+    from: ${MAIL_FROM:onboarding@resend.dev}
+
+logging:
+  level:
+    com.tenxengage: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.apache.kafka: ERROR

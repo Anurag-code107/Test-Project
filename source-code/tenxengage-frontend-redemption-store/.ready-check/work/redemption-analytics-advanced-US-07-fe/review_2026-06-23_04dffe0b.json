@@ -1,0 +1,132 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-advanced-US-07-fe",
+  "headCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+  "startedAt": "2026-06-23T02:03:00.000Z",
+  "updatedAt": "2026-06-23T02:10:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+      "completedAt": "2026-06-23T02:05:00.000Z",
+      "notes": "tsc --noEmit exit 0; scoped ESLint exit 0; full-repo lint errors are pre-existing in unrelated files outside US-07 diff; contract types match FailureModeDto in contracts/models/redemption-advanced-analytics.md"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+      "completedAt": "2026-06-23T02:07:00.000Z",
+      "fixes": 1,
+      "filesReviewed": [
+        "src/hooks/redemption/useFailureBreakdown.ts",
+        "src/components/analytics/advanced/FailureBreakdownTable.tsx",
+        "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "low",
+          "file": "src/components/analytics/advanced/FailureBreakdownTable.tsx",
+          "lineStart": 133,
+          "lineEnd": 133,
+          "rule": "rendering-conditional-render",
+          "summary": "&& short-circuit on string|undefined type — prefer explicit ternary",
+          "details": "lastRefreshedAt typed as string|undefined; && short-circuit risks rendering empty string. Rule 6.8: use explicit ternary for non-boolean conditions.",
+          "recommendation": "Replace lastRefreshedAt && (...) with lastRefreshedAt ? (...) : null",
+          "tier": "advisory",
+          "tierReason": "severity=low",
+          "alreadyHandled": false,
+          "autoFixed": true
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+      "completedAt": "2026-06-23T02:08:00.000Z",
+      "fixes": 1,
+      "filesReviewed": [
+        "src/components/analytics/advanced/FailureBreakdownTable.tsx",
+        "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/components/analytics/advanced/FailureBreakdownTable.tsx",
+          "lineStart": 66,
+          "lineEnd": 69,
+          "rule": "currency-format",
+          "summary": "currencyId column rendered raw instead of via getCurrency().label",
+          "details": "All peer components (ItemBreakdownTable, SegmentBreakdownTable, LiabilityTrendChart, RedemptionTrendChart) use getCurrency(info.getValue().toLowerCase()).label for the currency column. FailureBreakdownTable was rendering the raw backend value (e.g. 'POINTS') instead of the display label ('Points').",
+          "recommendation": "Import getCurrency from @/config/currencies; cell: (info) => getCurrency(info.getValue().toLowerCase()).label",
+          "tier": "advisory",
+          "tierReason": "severity=high but autoFixed — no longer blocking",
+          "alreadyHandled": true,
+          "autoFixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/analytics/advanced/FailureBreakdownTable.tsx",
+          "lineStart": 99,
+          "lineEnd": 103,
+          "rule": "accessibility",
+          "summary": "Skeleton sr-only spans reviewed — CORRECTLY PRESENT",
+          "details": "UI/UX reviewer suggested removing sr-only spans from skeleton TableHead cells, comparing against ItemBreakdownTable (US-01, older). However, PROJECT-CONTEXT.md anti-pattern register explicitly requires sr-only spans in skeleton TableHead cells (rule: 'Skeleton TableHead cells that render only a Skeleton must also include a visually-hidden column name'). SegmentBreakdownTable and TimeToFirstRedemptionTable (later stories) confirm the correct pattern. Finding dismissed — no fix applied.",
+          "recommendation": "No action — sr-only spans are required by PROJECT-CONTEXT anti-pattern register",
+          "tier": "advisory",
+          "tierReason": "severity=low; alreadyHandled=true (pattern is correct per PROJECT-CONTEXT)",
+          "alreadyHandled": true,
+          "autoFixed": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+      "completedAt": "2026-06-23T02:06:00.000Z",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage, no fetch(), no dangerouslySetInnerHTML, no any types, no secrets. All API calls via configured axios instance (getFailureBreakdown uses @/lib/axios via service layer)."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+      "source": "job-store",
+      "codexJobId": "review-mqpmmwyg-o6pytx",
+      "codexBaseRef": null,
+      "codexBranch": "work/redemption-analytics-advanced-US-07-fe",
+      "codexCompletedAt": "2026-06-22T20:04:06.314Z",
+      "pasteWarning": null,
+      "parseError": null,
+      "findings": [],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: working tree diff\nVerdict: approve\n\nNo no-ship finding supported from the working tree evidence. The failureRate conversion multiplies the contracted 0.0-1.0 decimal into a one-decimal percentage, processingMode maps both the contracted INSTANT/BATCH/APPROVAL_REQUIRED values and the story mock values, the Playwright routes register broad analytics first and failure-breakdown last, and the requested accessibility states are present.\n\nNo material findings.",
+      "notes": "Job target mode=working-tree (baseRef null, not --base main); completedAt 2026-06-22T20:04:06Z is after HEAD committer 2026-06-22T19:19:32Z. Branch match confirmed. Zero findings. getCurrency omission not caught by Codex (all file-read commands timed out/blocked); caught and fixed by ui-ux-review subagent in Step 3."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "04dffe0b7cb04009dc2de8bf962ac0a96d9183a9",
+      "completedAt": "2026-06-23T02:09:00.000Z",
+      "testsRun": [
+        "src/components/analytics/advanced/__tests__/FailureBreakdownTable.test.tsx"
+      ],
+      "fixes": 0,
+      "testPlanCoverage": {
+        "planned": 14,
+        "implemented": 14,
+        "generated": 0,
+        "passing": 14
+      },
+      "playwrightResult": "deferred",
+      "playwrightNotes": "E2E spec scaffolded at e2e/redemption-analytics-advanced/failure-breakdown.spec.ts; requires BE not available in this session. Mock-based scenarios verified via spec review.",
+      "notes": "14/14 Vitest tests green after getCurrency fix. Pre-existing failures in CreateRoleSheet, TenantTransactionHistoryPage, TransactionDetailSheet are unrelated to US-07."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests",
+  "rcFixes": 2,
+  "rcManual": [],
+  "rcBlocked": false,
+  "antipatternPass": "clean"
+}

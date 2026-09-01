@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -u
+# Test stub mimicking `claude -p --output-format=stream-json` output.
+#
+# Reads MODE from FAKE_CLAUDE_MODE env var (default: "success"):
+#   success      — emit a result event with ORCHESTRATOR_RETURN lines, exit 0
+#   no-orch      — emit a result event WITHOUT ORCHESTRATOR_RETURN lines, exit 0
+#   crash        — emit nothing, exit 1
+#   hang         — sleep forever (for watchdog tests)
+#
+# Ignores all args except for shape compatibility with the real claude.
+
+MODE="${FAKE_CLAUDE_MODE:-success}"
+
+case "$MODE" in
+  success)
+    echo '{"type":"system","session_id":"test-session-abc"}'
+    sleep 0.1
+    echo '{"type":"assistant","message":{"content":[{"type":"text","text":"working"}]}}'
+    sleep 0.1
+    cat <<'EOF'
+{"type":"result","result":"work done\nORCHESTRATOR_RETURN status=success\nORCHESTRATOR_RETURN unit_id=US-99-BE\nORCHESTRATOR_RETURN branch=work/test\n","session_id":"test-session-abc","total_cost_usd":0.0123}
+EOF
+    exit 0
+    ;;
+  no-orch)
+    echo '{"type":"system","session_id":"test-session-def"}'
+    cat <<'EOF'
+{"type":"result","result":"work done but I forgot to emit ORCHESTRATOR_RETURN","session_id":"test-session-def","total_cost_usd":0.005}
+EOF
+    exit 0
+    ;;
+  crash)
+    echo "fake-claude crashed" >&2
+    exit 1
+    ;;
+  hang)
+    while true; do sleep 1; done
+    ;;
+  *)
+    echo "fake-claude: unknown mode $MODE" >&2
+    exit 2
+    ;;
+esac

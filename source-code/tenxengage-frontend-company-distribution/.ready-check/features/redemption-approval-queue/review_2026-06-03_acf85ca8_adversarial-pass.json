@@ -1,0 +1,113 @@
+{
+  "featureId": "redemption-approval-queue",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-approval-queue",
+  "headCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+  "startedAt": "2026-06-02T12:40:24Z",
+  "updatedAt": "2026-06-03T03:51:20Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+      "completedAt": "2026-06-02T12:40:24Z",
+      "fixes": 0
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+      "completedAt": "2026-06-02T13:36:14Z",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/types/redemption/redemption.types.ts",
+        "src/services/redemption/redemption-approval.service.ts",
+        "src/hooks/redemption/useApprovalQueue.ts",
+        "src/hooks/redemption/useRedemptionApproval.ts",
+        "src/components/redemption/ApprovalQueueTable.tsx",
+        "src/components/redemption/ApprovalQueueFilters.tsx",
+        "src/components/redemption/ApproveConfirmDialog.tsx",
+        "src/components/redemption/RejectDialog.tsx",
+        "src/pages/redemption/ApprovalQueuePage.tsx"
+      ],
+      "findings": []
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+      "completedAt": "2026-06-02T13:36:14Z",
+      "fixes": 2,
+      "findings": []
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+      "completedAt": "2026-06-02T13:36:14Z",
+      "fixes": 0
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+      "completedAt": "2026-06-03T03:51:20Z",
+      "source": "job-store",
+      "codexJobId": "review-mpwop5vh-tfusfz",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-approval-queue",
+      "codexCompletedAt": "2026-06-02T13:43:54.396Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Global item edits can silently disable tenant catalog config",
+          "details": "tenantConfig?.enabled ?? false defaulted to false when tenantConfig was absent, silently disabling items.",
+          "file": "src/components/redemption-catalog/GlobalCatalogItemForm.tsx",
+          "lineStart": 180,
+          "lineEnd": 185,
+          "severity": "high",
+          "confidence": 0.86,
+          "alreadyHandled": true,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — fixed: upsertConfig now guarded by `if (tenantConfig != null)`, enabled reads tenantConfig.enabled directly",
+          "recommendation": "Do not upsert tenant config from the global item form unless tenant-specific fields actually changed and the current config has been fetched for that exact item."
+        },
+        {
+          "summary": "Concurrent approval failures leave stale actionable rows",
+          "details": "409 closes the dialog but does not invalidate ['approval-queue'], so the actioned row stays visible for up to 5 minutes.",
+          "file": "src/components/redemption/ApproveConfirmDialog.tsx",
+          "lineStart": 38,
+          "lineEnd": 42,
+          "severity": "medium",
+          "confidence": 0.78,
+          "alreadyHandled": false,
+          "tier": "advisory",
+          "tierReason": "severity=medium — does not meet blocking threshold",
+          "recommendation": "Invalidate ['approval-queue'] on 409/404 before closing the dialog."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nFindings:\n- [high] Global item edits can silently disable tenant catalog config (GlobalCatalogItemForm.tsx:180-185)\n- [medium] Concurrent approval failures leave stale actionable rows (ApproveConfirmDialog.tsx:38-42)"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "acf85ca8f725fa4a942e7c8cd28fe6f19b0b1ac1",
+      "completedAt": "2026-06-02T13:36:14Z",
+      "fixes": 0,
+      "testsRun": [
+        "src/components/redemption/__tests__/*.test.tsx",
+        "e2e/redemption-approval-queue.spec.ts"
+      ],
+      "results": {
+        "vitest": "466 passed, 0 failed (68 test files)",
+        "playwright": "10 passed, 0 failed"
+      },
+      "testPlanCoverage": {
+        "planned": 14,
+        "implemented": 14,
+        "generated": 0,
+        "passing": 14
+      }
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "adversarial-review"
+}

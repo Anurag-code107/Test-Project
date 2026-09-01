@@ -1,0 +1,277 @@
+{
+  "featureId": "redemption-returns",
+  "storyId": "US-01",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-returns-US-01-be",
+  "baseBranch": "features/redemption-returns",
+  "headCommit": "0358db82",
+  "softStages": ["adversarial-review"],
+  "startedAt": "2026-06-12T15:53:00Z",
+  "updatedAt": "2026-06-13T00:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "0358db82",
+      "completedAt": "2026-06-13T00:00:00Z",
+      "notes": "Compilation clean. Spec exists at ../tenxengage-blueprint/features/redemption-returns/spec.md. 6 pre-existing test failures on base branch (XtrmVendorServiceTest x3, RedemptionSubmissionServiceTest x3) — not regressions."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "0358db82",
+      "completedAt": "2026-06-13T00:00:00Z",
+      "fixes": 4,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+        "src/main/java/com/tenxengage/app/dto/request/redemption/SubmitReturnRequest.java",
+        "src/main/java/com/tenxengage/app/dto/response/RedemptionRequestResponse.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnDetailResponse.java",
+        "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnSummaryResponse.java",
+        "src/main/java/com/tenxengage/app/repository/RedemptionRequestRepository.java",
+        "src/main/java/com/tenxengage/app/repository/RedemptionReturnRepository.java",
+        "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+        "src/main/java/com/tenxengage/app/service/redemption/RedemptionHistoryService.java",
+        "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java"
+      ],
+      "findings": [
+        {
+          "id": "CR-01",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "size parameter missing @Min(1) @Max(50) Bean Validation constraints",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-02",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/repository/RedemptionReturnRepository.java",
+          "summary": "findRedemptionIdsWithActiveReturns JPQL missing DISTINCT — provider may return duplicates",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-03",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/RedemptionRequestResponse.java",
+          "summary": "Legacy two-arg from() factory Javadoc did not warn callers it always sets isReturnEligible=false",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-04",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionHistoryService.java",
+          "summary": "@Lazy circular-dependency comment missing on ReturnService field",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-05",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+          "summary": "kafkaTemplate.send() future silently discarded — send failures invisible",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-06",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+          "summary": "JsonProcessingException swallowed after logging — caller unaware event was never published",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-07",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "summary": "cancelReturn uses non-locking read — concurrent cancels protected by @Version optimistic lock but exception maps to 500 not 409",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-08",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "summary": "resolveCatalogName issues 2 sequential DB queries per getReturnById call",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "0358db82",
+      "completedAt": "2026-06-13T00:00:00Z",
+      "fixes": 3,
+      "findings": [
+        {
+          "id": "SEC-01",
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "summary": "submitReturn returned ReturnDetailResponse.from() instead of buildPartnerDetailResponse() — latent admin field leak for partner callers",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "SEC-02",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "Redundant size > 50 runtime check removed; @Validated added to controller class; @Max(50) now enforced via Bean Validation",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "SEC-03",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnSummaryResponse.java",
+          "summary": "@JsonInclude(NON_NULL) added — resolvedAt: null no longer emitted for pending returns",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "SEC-04",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/dto/request/redemption/SubmitReturnRequest.java",
+          "summary": "reason field has no @Pattern constraint — free-text allows log/event injection",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-05",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "DELETE used for state transition (cancel) — not idempotent; second DELETE returns different error",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-06",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "sortBy/sortDirection validation errors use ResponseStatusException (REQUEST_ERROR) inconsistently with rest of API (VALIDATION_ERROR)",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "3e601ec5",
+      "completedAt": "2026-06-12T17:15:00Z",
+      "notes": "Carried forward — no endpoint signature, HTTP method, path param, or DTO shape changes since last validation. POST/GET/GET{id}/DELETE all match contracts/endpoints/redemption-returns.yaml."
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "validatedAtCommit": "0358db82",
+      "completedAt": "2026-06-13T00:00:00Z",
+      "source": "codex",
+      "parseError": null,
+      "fixes": 0,
+      "findings": [
+        {
+          "summary": "Committed returns can lose lifecycle event with no retry path",
+          "details": "submitReturn and cancelReturn persist the return, then rely on ReturnEventProducer to publish after commit. The producer calls kafkaTemplate.send() after the DB transaction commits, does not store an outbox record, does not wait on or attach failure handling to the send future, and only catches JSON serialization errors. If Kafka is unavailable or send fails asynchronously, the committed return has no durable event and no recovery mechanism. A retry is also not safe (duplicate check rejects already-created active return).",
+          "file": "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+          "lineStart": 75,
+          "lineEnd": 94,
+          "severity": "high",
+          "confidence": 0.90,
+          "tier": "advisory",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false — stage is in $SOFT_STAGES so outcome is advisory",
+          "recommendation": "Persist return events to outbox table in same transaction; retry from outbox with DLQ visibility. Handle send() future failure callback. This is F5 Foundation scope — fix in ReturnEventProducer shared infrastructure.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "Verdict: needs-attention. No-ship: the return state commits before the Kafka side effect is durably recorded, so a successful API call can leave downstream return processing permanently unaware of the request."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "0358db82",
+      "completedAt": "2026-06-13T00:00:00Z",
+      "testsRun": [
+        "ReturnServiceTest",
+        "ReturnControllerTest",
+        "RedemptionHistoryServiceTest",
+        "RedemptionHistoryControllerTest",
+        "RedemptionRequestControllerTest"
+      ],
+      "fixes": 1,
+      "notes": "Added @Validated to ReturnController (was missing — all 11 other controllers already have it) to enforce @Min/@Max parameter annotations. Pre-existing base-branch failures: XtrmVendorServiceTest x3, RedemptionSubmissionServiceTest x3.",
+      "testPlanCoverage": { "planned": 25, "implemented": 25, "generated": 0, "passing": 25 },
+      "testQualityFindings": [
+        { "severity": "medium", "rule": "naming", "summary": "Mixed naming convention in ReturnControllerTest — no @DisplayName" },
+        { "severity": "medium", "rule": "assertj", "summary": "Pagination + item-level assertions bundled in one test" },
+        { "severity": "medium", "rule": "coverage", "summary": "sortBy/sortDirection 400 tests don't assert error body" },
+        { "severity": "medium", "rule": "anti-pattern", "summary": "sampleDetail() uses 16-arg positional constructor" },
+        { "severity": "low", "rule": "aaa-pattern", "summary": "No @Nested grouping for 4 endpoint groups" },
+        { "severity": "low", "rule": "anti-pattern", "summary": "LENIENT strictness in ReturnServiceTest" },
+        { "severity": "low", "rule": "naming", "summary": "xtrm422 shorthand non-standard" },
+        { "severity": "low", "rule": "assertj", "summary": "cancelReturn_wrongOwner404 missing message assertion" },
+        { "severity": "low", "rule": "assertj", "summary": "cancelReturn_happyPath uses any() for publishReturnCancelled verify" }
+      ]
+    },
+    "coverage": {
+      "status": "failed",
+      "validatedAtCommit": "0358db82",
+      "completedAt": "2026-06-13T00:00:00Z",
+      "gaps": [
+        {
+          "method": "ReturnService.isReturnEligible(RedemptionRequest, RedemptionCatalogItem, UUID clientId)",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "lineStart": 245,
+          "note": "Single-item overload with existsBy DB call — no direct unit test"
+        },
+        {
+          "method": "ReturnService.isReturnEligible(RedemptionRequest, RedemptionCatalogItem, Set<UUID>)",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "lineStart": 256,
+          "note": "Batch overload (in-memory Set.contains) — no direct unit test; mocked in HistoryServiceTest"
+        },
+        {
+          "method": "ReturnService.getRedemptionIdsWithActiveReturns(List<UUID>, UUID)",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "lineStart": 279,
+          "note": "Batch IN-clause query — no direct unit test; mocked in HistoryServiceTest"
+        }
+      ]
+    }
+  },
+  "advisory_findings": [
+    {
+      "stage": "adversarial-review",
+      "id": "ADV-01",
+      "severity": "high",
+      "confidence": 0.90,
+      "summary": "Kafka send future unhandled + no outbox: committed returns can permanently lose lifecycle events",
+      "recommendation": "Persist return events to outbox table in same transaction; retry from outbox with DLQ. Handle send() future failure. This is F5 Foundation scope — ReturnEventProducer is shared infrastructure."
+    }
+  ],
+  "manual_action_items": [
+    {
+      "id": "COV-01",
+      "stage": "coverage",
+      "severity": "medium",
+      "summary": "Add tests for ReturnService.isReturnEligible (both overloads) and getRedemptionIdsWithActiveReturns",
+      "file": "src/test/java/com/tenxengage/app/service/redemption/ReturnServiceTest.java",
+      "fix": "Add 3 tests: (1) isReturnEligible(single) — mock existsBy true/false, verify result; (2) isReturnEligible(batch) — pass Set<UUID>, verify in-memory logic; (3) getRedemptionIdsWithActiveReturns — mock findRedemptionIdsWithActiveReturns, verify delegation and empty-list guard"
+    }
+  ],
+  "overall": "failed",
+  "failReason": "coverage failed (strict stage): 3 new public service methods lack direct unit tests — see COV-01",
+  "gateOutcome": "no-merge",
+  "gateNote": "Fix COV-01, then re-run /ready-check coverage to unblock."
+}

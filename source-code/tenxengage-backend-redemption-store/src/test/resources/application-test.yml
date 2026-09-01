@@ -1,0 +1,49 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: true
+  batch:
+    jdbc:
+      initialize-schema: always
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+app:
+  auth:
+    strategy: jwt
+  jwt:
+    secret: test-secret-key-for-unit-tests-must-be-at-least-256-bits-long-for-hmac-sha
+    access-token-expiration-ms: 3600000
+    refresh-token-expiration-ms: 604800000
+
+logging:
+  level:
+    com.tenxengage: DEBUG
+
+redemption:
+  webhook:
+    xtrm:
+      signing-secret: test-xtrm-secret
+    xoxoday:
+      signing-secret: test-xoxoday-secret
+  xoxoday:
+    return-api-url: http://mock-xoxoday-api.test/returns
+  xtrm:
+    base-url: https://xapisandbox.xtrm.com
+    token-url: https://xapisandbox.xtrm.com/oAuth/token
+    client-id: test-client-id
+    client-secret: test-client-secret
+    issuer-account-number: TEST-ACCOUNT
+    payment-method-id: TEST-METHOD
+    wallet-id: "000000"
+    program-id: "0000"

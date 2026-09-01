@@ -1,0 +1,111 @@
+openapi: 3.0.3
+info:
+  title: AI Endpoints
+  description: AI chat copilot and guided tour matching
+  version: 1.0.0
+
+paths:
+  /api/v1/ai/chat:
+    post:
+      summary: AI chat (SSE stream)
+      description: Send a message to the AI copilot and receive a streamed response
+      tags: [AI]
+      security:
+        - bearerAuth: []
+      x-permission: action.ai.copilot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                conversationHistory:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, assistant]
+                      content:
+                        type: string
+      responses:
+        "200":
+          description: SSE stream of AI response chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/v1/ai/chat-with-document:
+    post:
+      summary: AI chat with document upload (SSE stream)
+      description: Upload a document and chat about it with the AI assistant
+      tags: [AI]
+      security:
+        - bearerAuth: []
+      x-permission: action.ai.assistant
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                message:
+                  type: string
+                conversationHistory:
+                  type: string
+                  description: JSON-serialized conversation history
+      responses:
+        "200":
+          description: SSE stream of AI response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/v1/ai/tour-match:
+    post:
+      summary: Match query to guided tour
+      description: Uses AI to match a user's natural language query to the best guided tour
+      tags: [AI]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+      responses:
+        "200":
+          description: Tour match result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tourId:
+                    type: string
+                  confidence:
+                    type: number
+                  message:
+                    type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

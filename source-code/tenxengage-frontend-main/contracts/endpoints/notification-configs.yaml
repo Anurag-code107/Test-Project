@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: Notification Config Endpoints
+  description: Client-level notification configuration and retention
+  version: 1.0.0
+
+paths:
+  /api/v1/notification-configs:
+    get:
+      summary: List notification configs
+      tags: [Notification Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.config
+      responses:
+        "200":
+          description: Per-type notification configs with role enablement
+
+    put:
+      summary: Update notification config
+      tags: [Notification Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notificationTypeId:
+                  type: string
+                  format: uuid
+                roleName:
+                  type: string
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: Config updated
+
+  /api/v1/notification-configs/retention:
+    get:
+      summary: Get notification retention days
+      tags: [Notification Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.config
+      responses:
+        "200":
+          description: Retention days setting
+
+    put:
+      summary: Update notification retention days
+      tags: [Notification Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.notifications.config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retentionDays:
+                  type: integer
+                  minimum: 1
+      responses:
+        "200":
+          description: Retention updated
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

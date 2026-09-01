@@ -1,0 +1,129 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+  "startedAt": "2026-05-19T05:30:00.000Z",
+  "updatedAt": "2026-05-19T05:58:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+      "completedAt": "2026-05-19T05:32:00.000Z",
+      "fixes": 0,
+      "notes": "Build and lint clean."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+      "completedAt": "2026-05-19T05:38:00.000Z",
+      "fixes": 6,
+      "filesReviewed": [
+        "src/components/deal-qualifier/DealQualifierForm.tsx",
+        "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+        "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+        "src/components/redemption-catalog/ItemConfigPanel.tsx",
+        "src/components/redemption-catalog/SyncStatusBanner.tsx",
+        "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+        "src/pages/tenx-admin/GlobalCatalogAdminPage.tsx"
+      ],
+      "findings": []
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+      "completedAt": "2026-05-19T05:40:00.000Z",
+      "fixes": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 929,
+          "message": "text-[hsl(var(--success))] and text-[hsl(var(--warning))] used as arbitrary values — validate whether text-success/text-warning Tailwind utilities are available to use instead.",
+          "autoFixable": false
+        },
+        {
+          "severity": "high",
+          "file": "src/components/incentive-builder/forecasting/ForecastingPanel.tsx",
+          "line": 1014,
+          "message": "animate-fade-in class may not be defined as a keyframe — verify definition exists in index.css or Tailwind config.",
+          "autoFixable": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+      "completedAt": "2026-05-19T05:41:00.000Z",
+      "fixes": 0,
+      "notes": "fetch() calls in ForecastingPanel pre-existed (SSE streaming with credentials:include — valid axios exception). No new security issues in diff."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+      "completedAt": "2026-05-19T05:57:00.000Z",
+      "source": "job-store",
+      "codexJobId": "review-mpc7skro-84kyas",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T05:55:15.494Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Tenant catalog config only exposes the first page",
+          "details": "The config table hard-codes `useTenantCatalogConfig({ page: 0, pageSize: 20 })` and renders only `data.data`, with no pagination, search, or fetch-all path despite the API returning `totalPages`/`hasNext`. Any catalog item after the first 20 cannot be enabled, disabled, or have overrides configured from this screen. That is a tenant-facing administration gap, not just a display limitation.",
+          "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+          "lineStart": 22,
+          "lineEnd": 93,
+          "severity": "medium",
+          "confidence": 0.95,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Add pagination/search/infinite loading, or request an intentional complete page size and surface a warning when `totalElements` exceeds the loaded rows.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Redemption store drops rewards after the first API page",
+          "details": "`CatalogBrowseGrid` calls the paginated `usePartnerCatalog(filters)` query, then renders only the current `data.data` without using `hasNext`, `totalPages`, `page`, or `pageSize`. If the backend returns more than one page, partners cannot see or redeem rewards outside the first page even though they are enabled and available.",
+          "file": "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+          "lineStart": 16,
+          "lineEnd": 64,
+          "severity": "medium",
+          "confidence": 0.9,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Track page state and render pagination/load-more controls, or use an infinite query that fetches all available catalog pages for the selected filters.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Inherited regional availability is rendered as disabled",
+          "details": "For a region with no explicit override, the component labels it as `Using tenant default` but computes `isEnabled` as `config?.enabled ?? false`, so every inherited row is shown as off. Inference: because removing an override is supported and absent config is described as inheriting tenant default, the effective state can be on when the switch renders off. That can lead admins to make unnecessary writes or misunderstand which regions are available.",
+          "file": "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+          "lineStart": 80,
+          "lineEnd": 108,
+          "severity": "medium",
+          "confidence": 0.78,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Pass the inherited effective enabled state into `RegionalConfigMatrix` and render absent overrides from that value, while clearly distinguishing inherited state from explicit regional overrides.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "582d2851db3db71dc3c4db7757f459f5ae4f3bac",
+      "completedAt": "2026-05-19T05:58:00.000Z",
+      "testFiles": 14,
+      "tests": 88,
+      "notes": "23 redemption-catalog tests + 65 incentive-builder tests. All passed. No deal-qualifier test file exists."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests",
+  "updatedAt": "2026-05-19T05:58:00.000Z"
+}

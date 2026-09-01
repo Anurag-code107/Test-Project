@@ -1,0 +1,18 @@
+spring:
+  flyway:
+    clean-on-validation-error: true
+    clean-disabled: false
+
+redemption:
+  webhook:
+    xtrm:
+      signing-secret: test-xtrm-secret
+    xoxoday:
+      signing-secret: test-xoxoday-secret
+  xtrm:
+    base-url: https://xapisandbox.xtrm.com
+    auth-token: test-token
+    issuer-account-number: TEST-ACCOUNT
+    payment-method-id: TEST-METHOD
+    wallet-id: "000000"
+    program-id: "0000"

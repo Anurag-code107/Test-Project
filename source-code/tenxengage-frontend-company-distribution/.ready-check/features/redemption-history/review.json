@@ -1,0 +1,155 @@
+{
+  "featureId": "redemption-history",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-history",
+  "headCommit": "f54b6ee1bdecff856e4531b77a4ab2992ad4b60b",
+  "startedAt": "2026-06-12T09:30:00Z",
+  "updatedAt": "2026-06-12T09:55:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "a4141559605daa4c9b9d833cab54128b66412a50",
+      "completedAt": "2026-06-12T09:35:00Z",
+      "build": "passed",
+      "lint": "passed",
+      "lintErrors": 0,
+      "notes": "0 ESLint errors. 3 pre-existing warnings: react-refresh in ItemConfigPanel, useEffect dep in ItemConfigPanel and ExportDialog — all intentional."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "a4141559605daa4c9b9d833cab54128b66412a50",
+      "completedAt": "2026-06-12T09:45:00Z",
+      "fixes": 5,
+      "filesReviewed": [
+        "src/hooks/useUser.ts",
+        "src/pages/redemption-history/TransactionHistoryPage.tsx",
+        "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+        "src/types/redemption-history/redemption-history.types.ts",
+        "src/components/layout/sidebars/sidebarConfigs.ts",
+        "src/components/redemption-history/ExportDialog.tsx",
+        "src/components/redemption-history/TransactionDetailSheet.tsx",
+        "src/pages/client-admin/UserSettingsPage.tsx"
+      ],
+      "fixesApplied": [
+        "TransactionHistoryPage.tsx: add useMemo import",
+        "TransactionHistoryPage.tsx: hoist EMPTY_ROWS constant to module scope",
+        "TransactionHistoryPage.tsx: wrap pagination with useMemo in HistoryPane",
+        "TransactionHistoryPage.tsx: wrap pagination with useMemo in non-tab TransactionHistoryPage path",
+        "Tests: update withViewDetail mock to use view_all_history; update TransactionHistoryPage test to use 'Partner Admin' role name"
+      ],
+      "findings": [],
+      "advisory": [
+        {
+          "summary": "Hardcoded role name string gates company tab",
+          "details": "user?.clientRoleName === 'Partner Admin' — hardcoded role name. Per project conventions (permissions-and-feature-flags.md Rule 4), role name strings should not be used for gating. However this is an intentional design decision by the developer and no dedicated 'show company tab' permission exists. Left as advisory.",
+          "severity": "high",
+          "tier": "advisory",
+          "tierReason": "Business decision — no dedicated permission to replace role name check; developer made intentional choice"
+        },
+        {
+          "summary": "useEffect for error toast (low severity)",
+          "details": "HistoryPane useEffect fires toast on isError — acceptable query-error pattern but could be moved to query meta.onError.",
+          "severity": "low",
+          "tier": "advisory"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "a4141559605daa4c9b9d833cab54128b66412a50",
+      "completedAt": "2026-06-12T09:48:00Z",
+      "fixes": 3,
+      "fixesApplied": [
+        "TransactionDetailSheet.tsx: add reviewedBy Row before reviewedAt Row",
+        "TransactionHistoryPage.tsx: add aria-label='Transaction history tabs' to Tabs root",
+        "UserSettingsPage.tsx: add h-full to Edit User SheetContent"
+      ],
+      "advisory": [
+        {
+          "summary": "Amber PENDING_APPROVAL badge uses hardcoded text-amber-600",
+          "details": "bg-[hsl(38_90%_50%/0.12)] text-amber-600 — project-wide pattern across many files; --warning token is a different hue (22 90% 55%). Not auto-fixed.",
+          "tier": "advisory"
+        },
+        {
+          "summary": "Redundant personal query fires in tab branch",
+          "details": "When showCompanyTab=true the outer TransactionHistoryPage still runs usePersonalRedemptions and its isError toast effect. Low risk.",
+          "tier": "advisory"
+        },
+        {
+          "summary": "Transaction count causes layout shift while loading in HistoryPane",
+          "details": "Count span absent during loading, causes filter bar reflow when data resolves. Low severity.",
+          "tier": "advisory"
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "a4141559605daa4c9b9d833cab54128b66412a50",
+      "completedAt": "2026-06-12T09:50:00Z",
+      "fixes": 0,
+      "checks": {
+        "no-localstorage": "passed",
+        "no-sessionstorage": "passed",
+        "no-any-types": "passed",
+        "no-dangerouslySetInnerHTML": "passed",
+        "no-raw-fetch": "passed",
+        "no-secrets": "passed"
+      }
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "a4141559605daa4c9b9d833cab54128b66412a50",
+      "completedAt": "2026-06-12T09:38:21Z",
+      "source": "job-store",
+      "codexJobId": "review-mqaqemrq-l98sn0",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-history",
+      "codexCompletedAt": "2026-06-12T09:38:21.318Z",
+      "verdict": "needs-attention",
+      "blockingCount": 0,
+      "advisoryCount": 1,
+      "findings": [
+        {
+          "summary": "Tenant catalog config reads flattened fields but contract returns nested tenantConfig",
+          "details": "TenantCatalogItemResponse uses flat fields (configId, enabled, overrides at root) while the contract YAML defines tenantConfig: ClientCatalogItemConfigResponse | null (nested). If the contract is authoritative, switches could render disabled and override panels empty.",
+          "file": "src/types/redemption-catalog.types.ts",
+          "lineStart": 88,
+          "lineEnd": 105,
+          "severity": "high",
+          "confidence": 0.94,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — commit 1d38ac0 explicitly flattened type to match actual backend flat response shape; all consumers updated consistently; pre-existing from redemption-catalog, not introduced by redemption-history; contract YAML is stale",
+          "alreadyHandled": true,
+          "recommendation": "Reconcile the contract YAML with the actual backend shape. If backend is flat, update redemption-catalog.yaml. If backend is nested, update FE type and consumers back to nested tenantConfig structure."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "a4141559605daa4c9b9d833cab54128b66412a50",
+      "completedAt": "2026-06-12T09:54:00Z",
+      "testsRun": [
+        "src/pages/redemption-history/__tests__/TenantTransactionHistoryPage.test.tsx",
+        "src/pages/redemption-history/__tests__/TransactionHistoryPage.test.tsx",
+        "src/components/redemption-history/__tests__/TransactionDetailSheet.test.tsx",
+        "src/components/redemption-history/__tests__/TransactionHistoryTable.test.tsx",
+        "src/components/redemption-history/__tests__/ExportDialog.test.tsx",
+        "src/components/redemption-history/__tests__/HistoryFilterBar.test.tsx"
+      ],
+      "fixes": 2,
+      "vitest": {
+        "files": 6,
+        "tests": 34,
+        "passed": 34,
+        "failed": 0,
+        "result": "passed"
+      }
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "adversarial-review"
+}

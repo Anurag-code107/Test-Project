@@ -1,0 +1,162 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+  "snapshotAt": "2026-05-15T00:02:00.000Z",
+  "skill": "ui-ux-review",
+  "status": "failed",
+  "findings": [
+    {
+      "severity": "high",
+      "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+      "line": 84,
+      "rule": "accessibility",
+      "message": "React.Fragment used inside .map() without a key prop — fragments wrapping <tr> and the expanded <tr> are keyless, causing React reconciliation warnings and potential rendering bugs",
+      "suggestion": "Replace <> ... </> with <React.Fragment key={item.id}> ... </React.Fragment> so each fragment pair has the item.id key",
+      "autoFixable": true
+    },
+    {
+      "severity": "high",
+      "file": "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+      "line": 17,
+      "rule": "error-state",
+      "message": "No error state handling — usePartnerCatalog isError is destructured nowhere; a network failure renders neither an error message nor a retry action",
+      "suggestion": "Destructure isError from usePartnerCatalog and render a user-friendly error message with a retry button when isError is true",
+      "autoFixable": false
+    },
+    {
+      "severity": "high",
+      "file": "src/components/redemption-catalog/CatalogItemDetailSheet.tsx",
+      "line": 31,
+      "rule": "error-state",
+      "message": "Non-404 errors have no user-facing feedback — only 404 is handled; any other API error (5xx, network failure) leaves the sheet blank with no message or retry",
+      "suggestion": "Add an else branch for isError && !is404 that renders an error message and a retry button",
+      "autoFixable": false
+    },
+    {
+      "severity": "high",
+      "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+      "line": 55,
+      "rule": "error-state",
+      "message": "Error state has no retry action — displays a plain text error message with no way for the user to retry the failed request",
+      "suggestion": "Add a retry Button that re-triggers the query, consistent with the pattern used in GlobalCatalogAdminPage",
+      "autoFixable": false
+    },
+    {
+      "severity": "medium",
+      "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+      "line": 71,
+      "rule": "responsive",
+      "message": "Table has no horizontal scroll wrapper — on small screens the table overflows the viewport without a scroll mechanism",
+      "suggestion": "Wrap the <div className='rounded-md border'> in an <div className='overflow-x-auto'> container",
+      "autoFixable": true
+    },
+    {
+      "severity": "medium",
+      "file": "src/pages/tenx-admin/GlobalCatalogAdminPage.tsx",
+      "line": 155,
+      "rule": "responsive",
+      "message": "Table has no horizontal scroll wrapper — on small screens the table overflows without a scroll mechanism",
+      "suggestion": "Wrap the table container <div className='rounded-md border'> in an <div className='overflow-x-auto'> container",
+      "autoFixable": true
+    },
+    {
+      "severity": "medium",
+      "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+      "line": 112,
+      "rule": "design-consistency",
+      "message": "Hardcoded Tailwind color classes border-amber-400 and text-amber-600 used for 'Globally inactive' badge instead of semantic CSS custom property tokens",
+      "suggestion": "Use warning token classes — e.g. className='ml-2 border-warning/60 text-warning' — to align with the --warning HSL token defined in index.css",
+      "autoFixable": true
+    },
+    {
+      "severity": "medium",
+      "file": "src/components/redemption-catalog/SyncStatusBanner.tsx",
+      "line": 87,
+      "rule": "design-consistency",
+      "message": "Template literal used for conditional className instead of cn() helper — `w-3.5 h-3.5 mr-1.5 ${sync.isPending ? 'animate-spin' : ''}` leaves a trailing space when not spinning",
+      "suggestion": "Use cn('w-3.5 h-3.5 mr-1.5', sync.isPending && 'animate-spin') for clean conditional class merging",
+      "autoFixable": true
+    },
+    {
+      "severity": "medium",
+      "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+      "line": 22,
+      "rule": "empty-state",
+      "message": "Hardcoded pageSize: 20 with no pagination UI — table silently truncates at 20 items with no way to navigate to further pages",
+      "suggestion": "Either add pagination controls (consistent with GlobalCatalogAdminPage) or increase pageSize to a practical ceiling and document the limitation",
+      "autoFixable": false
+    },
+    {
+      "severity": "medium",
+      "file": "src/components/redemption-catalog/ItemConfigPanel.tsx",
+      "line": 107,
+      "rule": "accessibility",
+      "message": "Processing Mode Override Select has no htmlFor/id linkage — the Label above it has no htmlFor attribute and SelectTrigger has no id, breaking label–input association for screen readers",
+      "suggestion": "Add id='processingModeOverride' to SelectTrigger and htmlFor='processingModeOverride' to the Label",
+      "autoFixable": true
+    },
+    {
+      "severity": "low",
+      "file": "src/components/redemption-catalog/GlobalCatalogItemForm.tsx",
+      "line": 97,
+      "rule": "accessibility",
+      "message": "Category Select has no error display — errors.category is never rendered beneath the select even though the field is required",
+      "suggestion": "Add {errors.category && <p className='text-sm text-destructive'>{errors.category.message}</p>} below the Select",
+      "autoFixable": true
+    },
+    {
+      "severity": "low",
+      "file": "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+      "line": 1,
+      "rule": "animation",
+      "message": "No prefers-reduced-motion consideration — the Switch toggle and Delete button interactions have no reduced-motion handling, though this is low severity as shadcn/ui handles most transitions",
+      "suggestion": "No immediate action required; shadcn/ui components respect reduced-motion internally",
+      "autoFixable": false
+    },
+    {
+      "severity": "low",
+      "file": "src/pages/RedemptionStorePage.tsx",
+      "line": 7,
+      "rule": "animation",
+      "message": "Page root div lacks animate-route-in class — other pages use this for staggered child entrance animations consistent with the route transition pattern in index.css",
+      "suggestion": "Add className='animate-route-in' to the outer div to match the route transition pattern used by other pages",
+      "autoFixable": true
+    },
+    {
+      "severity": "low",
+      "file": "src/pages/client-admin/CatalogConfigPage.tsx",
+      "line": 6,
+      "rule": "animation",
+      "message": "Page root div lacks animate-route-in class — other pages use this for staggered child entrance animations",
+      "suggestion": "Add className='animate-route-in' to the outer div",
+      "autoFixable": true
+    },
+    {
+      "severity": "low",
+      "file": "src/pages/tenx-admin/GlobalCatalogAdminPage.tsx",
+      "line": 61,
+      "rule": "animation",
+      "message": "Page root div lacks animate-route-in class — other pages use this for staggered child entrance animations",
+      "suggestion": "Add className='animate-route-in' to the outer div",
+      "autoFixable": true
+    }
+  ],
+  "filesReviewed": [
+    "src/components/redemption-catalog/GlobalCatalogItemForm.tsx",
+    "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+    "src/components/redemption-catalog/ItemConfigPanel.tsx",
+    "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+    "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+    "src/components/redemption-catalog/CatalogItemCard.tsx",
+    "src/components/redemption-catalog/CatalogItemDetailSheet.tsx",
+    "src/components/redemption-catalog/ShortfallBadge.tsx",
+    "src/components/redemption-catalog/SyncStatusBanner.tsx",
+    "src/components/redemption-catalog/TenantRedemptionSettingsForm.tsx",
+    "src/pages/tenx-admin/GlobalCatalogAdminPage.tsx",
+    "src/pages/client-admin/CatalogConfigPage.tsx",
+    "src/pages/RedemptionStorePage.tsx"
+  ],
+  "summary": "15 UI/UX issue(s) found across 10 file(s)"
+}

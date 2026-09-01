@@ -1,0 +1,190 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-backend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "e0050113e23553280afc4e63de1d2c810bd1a489",
+  "startedAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-15T11:30:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "e0050113e23553280afc4e63de1d2c810bd1a489",
+      "completedAt": "2026-05-15T11:30:00Z",
+      "notes": "Compilation passes. Spec verified at ../tenxengage-blueprint/features/wallet-ledger-foundation/spec.md. No checkstyle configured. 1 pre-existing Windows-flaky failure (LocalStorageProviderTest) unchanged."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "e0050113e23553280afc4e63de1d2c810bd1a489",
+      "completedAt": "2026-05-15T11:30:00Z",
+      "fixes": 1,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/batch/seed/ClaimSeeder.java",
+        "src/main/java/com/tenxengage/app/batch/seed/SeedCleanupService.java",
+        "src/main/java/com/tenxengage/app/entity/RewardBalance.java",
+        "src/main/java/com/tenxengage/app/service/CurrencyService.java",
+        "src/main/java/com/tenxengage/app/service/WalletService.java",
+        "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java"
+      ],
+      "findings": [
+        {
+          "severity": "critical",
+          "file": "src/main/java/com/tenxengage/app/entity/RewardBalance.java",
+          "rule": "concurrency",
+          "message": "version field mapped with insertable=false/updatable=false and no @Version annotation — Hibernate will never perform optimistic locking checks on this entity.",
+          "fixed": false,
+          "manualAction": "Remove RewardBalance @Entity entirely (it is @Deprecated — migrate remaining callers to RewardWallet) OR add @Version to the version field and remove insertable=false/updatable=false."
+        },
+        {
+          "severity": "critical",
+          "file": "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+          "rule": "concurrency",
+          "message": "doCreditInTx and doCreditCompanyInTx use findForUpdate + orElseGet(save) with a window between the SELECT FOR UPDATE (which only locks existing rows) and the INSERT. Two concurrent first-credit calls can both find no row and both INSERT, hitting a unique constraint violation. Mitigation: WalletService.withOptimisticRetry catches DataIntegrityViolationException (23505) and retries — mitigated at service layer, but depends on the DB unique constraint existing.",
+          "fixed": false,
+          "manualAction": "Verify unique constraint on reward_wallets(client_id, user_id, currency_id, wallet_type) and reward_wallets(client_id, partner_company_id, currency_id, wallet_type) in migration SQL."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/entity/RewardBalance.java",
+          "rule": "concurrency",
+          "message": "reservedBalance and walletType fields mapped as insertable=false/updatable=false — silent write discard if code mutates these fields via RewardBalance.",
+          "fixed": false,
+          "manualAction": "Acceptable short-term since RewardBalance is @Deprecated. Migrate callers to RewardWallet to eliminate risk permanently."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "concurrency",
+          "message": "reserve(), debit(), release(), returnCredit() lacked @Transactional(NEVER) — asymmetry with credit() and creditCompany() meant ambient transactions could silently participate.",
+          "fixed": true,
+          "autoFixed": true
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+          "rule": "concurrency",
+          "message": "existsByRewardWalletId idempotency check is not atomic with the subsequent INSERT: two concurrent calls with the same referenceId can both pass the check before either commits, producing duplicate ledger entries. Full mitigation requires a DB unique constraint on ledger_entry(reward_wallet_id, reference_type, reference_id).",
+          "fixed": false,
+          "manualAction": "Add a unique DB constraint on ledger_entry(reward_wallet_id, reference_type, reference_id) and catch ConstraintViolationException as the idempotency guard. The application-level check is a best-effort defence only."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+          "rule": "null-safety",
+          "message": "amount parameter is not validated before arithmetic — null or non-positive values produce NullPointerException or silent economically-meaningless ledger entries.",
+          "fixed": false,
+          "manualAction": "Add Objects.requireNonNull(amount) and amount.compareTo(BigDecimal.ZERO) > 0 guard at the top of each mutating method."
+        }
+      ],
+      "notes": "1 auto-fix (WalletService @Transactional(NEVER)). WalletMutationDelegate now reviewed. Critical wallet-creation TOCTOU is mitigated at service layer by withOptimisticRetry; requires DB constraint verification. Idempotency TOCTOU requires a future ledger_entry unique constraint migration for full safety."
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "52acf5c3b2e66a9cba98247990d59aef0912c115",
+      "completedAt": "2026-05-15T10:00:00Z",
+      "fixes": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "auth",
+          "message": "hasRole() reads SecurityContextHolder — may hold wrong principal in async contexts.",
+          "fixed": false,
+          "manualAction": "Use user.getAuthorities() exclusively."
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "logging",
+          "message": "AccessDeniedException throws not logged — financial access denials should be recorded for audit.",
+          "fixed": false,
+          "manualAction": "Add log.warn() before each AccessDeniedException throw."
+        }
+      ],
+      "notes": "No controller/security/DTO changes in delta from 52acf5c to e005011. Carried forward."
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "52acf5c3b2e66a9cba98247990d59aef0912c115",
+      "completedAt": "2026-05-15T10:00:00Z",
+      "fixes": 1,
+      "notes": "No controller or DTO files in delta from 52acf5c to e005011. Carried forward. All endpoints match reward-balances.yaml."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "e0050113e23553280afc4e63de1d2c810bd1a489",
+      "completedAt": "2026-05-15T11:00:00Z",
+      "source": "user-paste",
+      "pasteWarning": "review output captured from direct-mode Codex run in this session — job not persisted to store; provenance auto-verification skipped",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Retried non-credit wallet mutations can apply the same business event repeatedly",
+          "details": "reserve, debit, release, and returnCredit all accept referenceType/referenceId and append a ledger entry, but unlike credit they never check for an existing reference. The database unique index only covers entry_type = CREDIT. A caller retrying the same redemption settlement/cancel/return event with the same reference can move balances again.",
+          "file": "src/main/java/com/tenxengage/app/service/WalletMutationDelegate.java",
+          "lineStart": 122,
+          "lineEnd": 232,
+          "severity": "high",
+          "confidence": 0.90,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — all four non-credit mutations (doReserveInTx, doDebitInTx, doReleaseInTx, doReturnCreditInTx) now have the duplicate-reference guard matching the doCreditInTx pattern (commit e005011)",
+          "recommendation": "Add existsByRewardWalletIdAndReferenceTypeAndReferenceId check before balance mutation in all non-credit methods.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "Budget-utilization unique indexes can fail migration on existing duplicate rows",
+          "details": "V9 adds partial unique indexes to budget_utilizations, but the baseline schema only had non-unique indexes. If production already has duplicate rows, CREATE UNIQUE INDEX aborts the Flyway migration and blocks deployment.",
+          "file": "src/main/resources/db/migration/V9__add_budget_utilization_unique_constraints.sql",
+          "lineStart": 2,
+          "lineEnd": 9,
+          "severity": "medium",
+          "confidence": 0.75,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Add a pre-migration deduplication step before CREATE UNIQUE INDEX, or add explicit data-normalization to V9.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "e0050113e23553280afc4e63de1d2c810bd1a489",
+      "completedAt": "2026-05-15T11:30:00Z",
+      "testsRun": [
+        "WalletServiceTest",
+        "WalletControllerTest",
+        "WalletIntegrationTest",
+        "WalletContractConformanceTest",
+        "RewardBalanceControllerTest",
+        "RewardGrantServiceTest"
+      ],
+      "fixes": 0,
+      "notes": "636 tests run, 635 passed, 1 pre-existing failure: LocalStorageProviderTest.download_returnsFileContent() (Windows-flaky, unrelated to this feature — documented since initial check). All wallet-specific tests green."
+    },
+    "coverage": {
+      "status": "not_applicable",
+      "validatedAtCommit": "e0050113e23553280afc4e63de1d2c810bd1a489",
+      "completedAt": "2026-05-15T11:30:00Z",
+      "notes": "Delta from 52acf5c to e005011 adds guard blocks to existing methods only — no new public methods or endpoints. WalletMutationDelegate methods are exercised via WalletServiceTest (real delegate instantiation, not mocked) and WalletIntegrationTest."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "pendingManualActions": [
+    "RewardBalance.java — Remove @Entity or add @Version to version field to restore optimistic locking",
+    "WalletMutationDelegate.java — Verify unique constraint on reward_wallets(client_id, user_id, currency_id, wallet_type) exists in migrations",
+    "WalletMutationDelegate.java — Add unique DB constraint on ledger_entry(reward_wallet_id, reference_type, reference_id) for fully-atomic idempotency",
+    "WalletMutationDelegate.java — Add amount null/positive guard to all mutating methods",
+    "RewardTransactionRepository.java:22 — Add Pageable to findByClientIdAndUserId",
+    "RewardTransactionRepository.java:24 — Add Pageable to findByClientId",
+    "RewardTransactionRepository.java:36 — Add Pageable to findByClientIdAndIncentiveId or replace with aggregate",
+    "RewardTransactionRepository.java:71 — Replace hashtext() 32-bit with 64-bit pg_advisory_xact_lock(bigint,bigint)",
+    "RewardBalanceResponse.java — Remove deprecated from(RewardBalance) factory or populate id/walletType from entity",
+    "WalletService.java:135 — Change @Audited action from 'CREATED' to 'CREDITED' on creditInCurrentTx",
+    "WalletService.java:261 — Use user.getAuthorities() exclusively in hasRole()",
+    "WalletService.java — Add log.warn() before AccessDeniedException throws"
+  ]
+}

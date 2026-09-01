@@ -1,0 +1,311 @@
+openapi: 3.0.3
+info:
+  title: Anti-Bribery Compliance Endpoints
+  description: Anti-bribery program acknowledgments, value caps, and government segment restrictions
+  version: 1.0.0
+
+paths:
+  /api/v1/compliance/anti-bribery/acknowledgments:
+    post:
+      summary: Acknowledge anti-bribery program
+      description: Records an anti-bribery acknowledgment for an incentive program. Restricted to PARTNER_ADMIN.
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcknowledgeProgramRequest'
+      responses:
+        '201':
+          description: Acknowledgment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcknowledgmentResponse'
+        '400':
+          description: Validation error
+        '403':
+          description: Insufficient permissions (PARTNER_ADMIN required)
+        '409':
+          description: Already acknowledged
+
+  /api/v1/compliance/anti-bribery/acknowledgments/incentive/{id}:
+    get:
+      summary: Get acknowledgments for incentive
+      description: Returns all anti-bribery acknowledgments for a given incentive program
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Incentive program ID
+      responses:
+        '200':
+          description: List of acknowledgments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AcknowledgmentResponse'
+        '404':
+          description: Incentive not found
+
+  /api/v1/compliance/anti-bribery/acknowledgments/partner/{id}:
+    get:
+      summary: Get acknowledgments for partner
+      description: Returns all anti-bribery acknowledgments for a given partner company
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Partner company ID
+      responses:
+        '200':
+          description: List of acknowledgments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AcknowledgmentResponse'
+        '404':
+          description: Partner company not found
+
+  /api/v1/compliance/anti-bribery/value-caps:
+    get:
+      summary: Get value caps
+      description: Returns the per-country annual reward value caps for the current client
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of value caps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplianceValueCapResponse'
+
+  /api/v1/compliance/anti-bribery/value-caps/defaults:
+    get:
+      summary: Get platform default value caps
+      description: Returns the platform-wide default value caps. Restricted to TENX_ADMIN.
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Default value caps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ComplianceValueCapResponse'
+        '403':
+          description: Insufficient permissions (TENX_ADMIN required)
+
+  /api/v1/compliance/anti-bribery/value-caps/{countryCode}:
+    put:
+      summary: Update value cap for country
+      description: Updates the annual reward value cap for a specific country. Restricted to CLIENT_ADMIN.
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: countryCode
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 2
+          description: ISO 3166-1 alpha-2 country code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateComplianceValueCapRequest'
+      responses:
+        '200':
+          description: Value cap updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceValueCapResponse'
+        '400':
+          description: Validation error
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+  /api/v1/compliance/anti-bribery/government-segments:
+    get:
+      summary: Get government segment configuration
+      description: Returns the government segment restriction settings for the current client. Restricted to CLIENT_ADMIN.
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Government segment configuration
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GovernmentSegmentResponse'
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+    put:
+      summary: Update government segment configuration
+      description: Updates the government segment restriction settings. Restricted to CLIENT_ADMIN.
+      tags: [Anti-Bribery]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/GovernmentSegmentResponse'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GovernmentSegmentResponse'
+        '400':
+          description: Validation error
+        '403':
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+components:
+  schemas:
+    AcknowledgmentResponse:
+      type: object
+      description: See models/acknowledgment.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        incentiveId:
+          type: string
+          format: uuid
+        partnerCompanyId:
+          type: string
+          format: uuid
+        acknowledgedByUserId:
+          type: string
+          format: uuid
+        acknowledgedByName:
+          type: string
+        acknowledgedAt:
+          type: string
+          format: date-time
+        policyVersion:
+          type: string
+
+    AcknowledgeProgramRequest:
+      type: object
+      required: [incentiveId, partnerCompanyId, policyVersion]
+      properties:
+        incentiveId:
+          type: string
+          format: uuid
+        partnerCompanyId:
+          type: string
+          format: uuid
+        policyVersion:
+          type: string
+          maxLength: 50
+          description: Version of the anti-bribery policy being acknowledged
+
+    ComplianceValueCapResponse:
+      type: object
+      description: See models/compliance-value-cap.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        countryCode:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+        countryName:
+          type: string
+        annualCapAmount:
+          type: string
+          description: BigDecimal as string (e.g. "5000.00")
+        currency:
+          type: string
+          enum: [USD, EUR, GBP, CAD]
+        perRecipient:
+          type: boolean
+          description: Whether the cap applies per individual recipient
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateComplianceValueCapRequest:
+      type: object
+      required: [annualCapAmount, currency, perRecipient]
+      properties:
+        annualCapAmount:
+          type: string
+          description: BigDecimal as string (e.g. "5000.00")
+        currency:
+          type: string
+          enum: [USD, EUR, GBP, CAD]
+        perRecipient:
+          type: boolean
+
+    GovernmentSegmentResponse:
+      type: object
+      description: See models/government-segment.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        segmentName:
+          type: string
+        restrictionMode:
+          type: string
+          enum: [NONE, STRICT, APPROVAL_REQUIRED, AUDIT_ONLY]
+        maxRewardPerRecipient:
+          type: string
+          description: BigDecimal as string, nullable
+          nullable: true
+        requiresApproval:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

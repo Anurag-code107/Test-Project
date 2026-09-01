@@ -1,0 +1,19 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-backend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "ea92d4414d4b16b2ca519bcbac25289486a0f84b",
+  "startedAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-08T14:00:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed" },
+    "code-review": { "status": "passed", "fixes": 1 },
+    "security-review": { "status": "passed" },
+    "contract-compliance": { "status": "passed" },
+    "adversarial-review": { "status": "failed", "blockingFindings": 2 },
+    "tests": { "status": "passed" },
+    "coverage": { "status": "failed", "gaps": 2 }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "coverage"
+}

@@ -1,0 +1,677 @@
+openapi: 3.0.3
+info:
+  title: Redemption Flow Endpoints
+  description: >
+    Redemption submission, history, and vendor webhook processing.
+    Partners submit redemptions from personal or company wallets.
+    Vendor webhooks (XTRM, Xoxoday) finalize ledger entries on fulfillment or failure.
+    Webhook endpoints use HMAC-SHA256 authentication — excluded from JWT filter chain.
+  version: 1.0.0
+
+paths:
+  # ─── Redemption Requests ──────────────────────────────────────────────────────
+
+  /api/v1/redemption/requests:
+    post:
+      summary: Submit personal wallet redemption
+      description: >
+        PARTNER_SELLER submits a redemption from their individual wallet.
+        Immediately reserves the amount from available balance regardless of processing mode.
+        Returns 409 if in-flight limit reached, 422 if balance or amount rules violated.
+        Rate limited to 10 req/min per user.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitPersonalRedemptionRequest"
+      responses:
+        "201":
+          description: Redemption submitted — balance reserved
+          headers:
+            Location:
+              description: Absolute URI of the created redemption request
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionSubmissionConfirmationResponse"
+        "400":
+          description: Validation error (missing required field, invalid enum, malformed UUID, pageSize > 50)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: In-flight limit exceeded (maxInFlightRedemptions) or optimistic lock conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Business rule violation — insufficient available balance, amount below catalog minimum, or currency mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (10 req/min per user)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      summary: List redemption requests (paginated)
+      description: >
+        PARTNER_SELLER / PARTNER_ADMIN: returns their own requests only.
+        CLIENT_ADMIN all-tenant history view is deferred to F-05.
+        Filterable by status and currencyId. sortBy allowlist enforced server-side.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_history
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        - name: currencyId
+          in: query
+          schema:
+            type: string
+            description: Filter by currency ID — "cash", "points", "credits", "tickets"
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [submittedAt, amount, status]
+            default: submittedAt
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        "200":
+          description: Paginated list of redemption requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedRedemptionRequestResponse"
+        "400":
+          description: Validation error (pageSize > 50, unknown sortBy, invalid sortDirection)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/requests/bank-transfer:
+    post:
+      summary: Submit a bank-transfer redemption into the user's linked bank
+      description: >
+        PARTNER_SELLER / PARTNER_ADMIN redeems cash from their individual wallet directly to a linked
+        bank. The catalog item (the reserved per-client bank-transfer card) and currency ("cash") are
+        resolved server-side. Pays the bank given by `bankId`, or the user's default bank when omitted.
+        Returns 409 if no bank is linked or the in-flight limit is reached, 422 on amount/balance rules.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.redeem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BankTransferRedemptionRequest"
+      responses:
+        "201":
+          description: Bank-transfer redemption submitted — balance reserved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionSubmissionConfirmationResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: Insufficient permissions
+        "404":
+          description: The chosen bankId does not belong to the caller
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: No bank account linked, or in-flight limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Business rule violation — insufficient balance or amount below minimum
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/requests/{id}:
+    get:
+      summary: Get redemption request detail
+      description: >
+        Full detail for a single redemption request.
+        Cross-tenant id returns 404, not 403 (prevents tenant boundary enumeration).
+        vendorReferenceId only included when status=COMPLETED.
+        failureReason is a generic user-friendly message — raw vendor text is never returned.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_history
+      parameters:
+        - $ref: "#/components/parameters/redemptionRequestId"
+      responses:
+        "200":
+          description: Redemption request detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequestDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Redemption request not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Vendor Webhooks — HMAC-SHA256 auth only, no JWT ─────────────────────────
+
+  /api/v1/redemption/webhook/xtrm:
+    post:
+      summary: Receive XTRM fulfillment webhook
+      description: >
+        Inbound webhook from XTRM reporting redemption completion or failure.
+        Authenticated via HMAC-SHA256 signature in X-Webhook-Signature header — excluded from JWT filter chain.
+        Idempotent: duplicate idempotency key returns 200 without reprocessing.
+        On completion: writes DEBIT ledger entry and transitions RedemptionRequest to COMPLETED.
+        On failure: writes RELEASE ledger entry and transitions to FAILED.
+        Rate limited to 100 req/min per IP.
+      tags: [Redemption Webhooks]
+      parameters:
+        - name: X-Webhook-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature computed using XTRM signing secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw XTRM webhook payload — stored as JSONB; structure defined by XTRM API
+      responses:
+        "200":
+          description: Webhook received and processed (or idempotently discarded as duplicate)
+        "400":
+          description: Malformed request (missing Content-Type or unparseable body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or missing HMAC-SHA256 signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: redemptionId in payload not found in resolved tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/webhook/xoxoday:
+    post:
+      summary: Receive Xoxoday fulfillment webhook
+      description: >
+        Inbound webhook from Xoxoday reporting order fulfillment or failure.
+        Authenticated via HMAC-SHA256 signature in X-Webhook-Signature header — excluded from JWT filter chain.
+        Idempotent: duplicate idempotency key returns 200 without reprocessing.
+        On fulfillment: writes DEBIT ledger entry and transitions RedemptionRequest to COMPLETED.
+        On failure: writes RELEASE ledger entry and transitions to FAILED.
+        Rate limited to 100 req/min per IP.
+      tags: [Redemption Webhooks]
+      parameters:
+        - name: X-Webhook-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: HMAC-SHA256 signature computed using Xoxoday signing secret
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Xoxoday webhook payload — stored as JSONB; structure defined by Xoxoday API
+      responses:
+        "200":
+          description: Webhook received and processed (or idempotently discarded as duplicate)
+        "400":
+          description: Malformed request (missing Content-Type or unparseable body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Invalid or missing HMAC-SHA256 signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: redemptionId in payload not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Modified Existing Endpoints (V16: maxInFlightRedemptions added) ──────────
+
+  /api/v1/redemption/settings:
+    get:
+      x-modified: true
+      summary: Get tenant redemption settings
+      description: >
+        Returns current tenant's RedemptionSettings.
+        Auto-creates with batchCadence=DAILY and maxInFlightRedemptions=10 if no row exists.
+        (V16 adds maxInFlightRedemptions column.)
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      responses:
+        "200":
+          description: Tenant redemption settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantRedemptionSettingsResponse"
+
+    put:
+      x-modified: true
+      summary: Update tenant redemption settings
+      description: Updates batchCadence and/or maxInFlightRedemptions for the tenant.
+      tags: [Redemption Config]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.configure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTenantRedemptionSettingsRequest"
+      responses:
+        "200":
+          description: Tenant redemption settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenantRedemptionSettingsResponse"
+        "400":
+          description: Validation error (invalid batchCadence, maxInFlightRedemptions < 1)
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────────────────
+
+    SubmitPersonalRedemptionRequest:
+      type: object
+      required: [catalogItemId, amount, currencyId]
+      properties:
+        catalogItemId:
+          type: string
+          format: uuid
+          description: Active catalog item enabled for tenant; validated in service layer
+        amount:
+          type: string
+          description: Decimal string (e.g. "150.00"); must be > 0 and >= item's effective minTransactionAmount
+        currencyId:
+          type: string
+          maxLength: 50
+          description: Currency ID — "cash", "points", "credits", "tickets"; must match catalog item and wallet currencyId
+
+    BankTransferRedemptionRequest:
+      type: object
+      required: [walletId, amount]
+      properties:
+        walletId:
+          type: string
+          format: uuid
+          description: The user's individual cash reward wallet to fund the transfer from
+        amount:
+          type: string
+          description: Decimal string (e.g. "25.00"); must be > 0 and at least $1
+        bankId:
+          type: string
+          format: uuid
+          description: >
+            Which linked bank to pay (our bank id from GET /api/v1/redemption/payout/banks).
+            Optional — omit to pay the user's default bank.
+        clientIdempotencyKey:
+          type: string
+          maxLength: 255
+          description: Optional idempotency key; a repeat with the same key returns the original result
+
+    UpdateTenantRedemptionSettingsRequest:
+      type: object
+      required: [batchCadence]
+      properties:
+        batchCadence:
+          type: string
+          enum: [DAILY, WEEKLY]
+        maxInFlightRedemptions:
+          type: integer
+          minimum: 1
+          description: Max concurrent PENDING_APPROVAL+RESERVED+PROCESSING redemptions per partner. Default 10.
+
+    # ─── Response Schemas ─────────────────────────────────────────────────────────
+
+    RedemptionSubmissionConfirmationResponse:
+      type: object
+      description: Returned on POST. Includes estimated delivery and scheduledBatchDate for BATCH mode.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING]
+        amount:
+          type: string
+          description: Decimal string
+        currencyId:
+          type: string
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        estimatedDelivery:
+          type: string
+          description: >
+            Human-readable payout timeline.
+            INSTANT: vendor SLA text.
+            BATCH: "Queued for processing on [scheduledBatchDate]".
+            APPROVAL_REQUIRED: "Awaiting admin approval".
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Next batch processing date. Only present when processingMode=BATCH.
+        submittedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionRequestResponse:
+      type: object
+      description: Summary view for list endpoint.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+          description: >
+            Redemption category. Additive (2026-07, redemption-store-feedback). Drives the history
+            Actions column: CASH → "N/A"; NON_CASH → "Request Return" when return-eligible.
+        submittedAt:
+          type: string
+          format: date-time
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH and status=RESERVED
+        estimatedDelivery:
+          type: string
+          description: Human-readable payout timeline
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionRequestDetailResponse:
+      type: object
+      description: >
+        Full detail view. Adds catalogItemName, vendorReferenceId (COMPLETED only),
+        completedAt, and generic failureReason (raw vendor text never returned).
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the selected catalog item
+        imageUrl:
+          type: string
+          nullable: true
+          description: >
+            Proxy URL for the catalog item's uploaded image
+            (/api/v1/admin/redemption-catalog/{id}/image). Null when none was uploaded.
+        providerImageUrl:
+          type: string
+          nullable: true
+          description: >
+            Brand image URL from the item's vendor gift-card SKU. Fallback for the confirmation card
+            when no image was uploaded (or it fails to load); when both are absent the card renders the
+            category-themed inline SVG illustration. Additive (2026-07, redemption-store-feedback).
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        walletType:
+          type: string
+          enum: [INDIVIDUAL, COMPANY]
+        vendorReferenceId:
+          type: string
+          description: Vendor transaction ID. Only included when status=COMPLETED.
+        submittedAt:
+          type: string
+          format: date-time
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH
+        completedAt:
+          type: string
+          format: date-time
+          description: Present when status=COMPLETED or FAILED
+        failureReason:
+          type: string
+          description: Generic user-friendly failure message. Raw vendor text never returned. Present when status=FAILED.
+        reviewedByName:
+          type: string
+          description: >
+            Display name of the approver/reviewer, resolved server-side from reviewedBy. Additive
+            (2026-07, redemption-store-feedback). Present for COMPLETED and CANCELLED (rejected)
+            requests; null when the reviewer user can no longer be resolved.
+        estimatedDelivery:
+          type: string
+          description: Human-readable payout timeline
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TenantRedemptionSettingsResponse:
+      type: object
+      description: Full response including maxInFlightRedemptions added in V16.
+      properties:
+        id:
+          type: string
+          format: uuid
+        batchCadence:
+          type: string
+          enum: [DAILY, WEEKLY]
+        maxInFlightRedemptions:
+          type: integer
+          description: Maximum concurrent in-flight redemptions per partner. Default 10.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Paginated Response Wrappers ─────────────────────────────────────────────
+
+    PaginatedRedemptionRequestResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedemptionRequestResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  parameters:
+    redemptionRequestId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

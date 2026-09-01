@@ -1,0 +1,3 @@
+# Tests run in /tmp, but if any case writes here, ignore it
+*.tmp
+*.log

@@ -1,0 +1,195 @@
+{
+  "featureId": "reward-balance-expiration",
+  "repo": "tenxengage-frontend",
+  "branch": "features/reward-balance-expiration",
+  "headCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+  "diffBase": "5eb0e693",
+  "diffBaseNote": "Branch is stacked on roadmaps/redemption-store (5eb0e693). Diff scoped to this feature's 3 commits, not to main, to exclude ~200 already-merged files from other features (analytics, catalog, flow, history, returns).",
+  "startedAt": "2026-06-29T08:20:33Z",
+  "updatedAt": "2026-06-29T09:25:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:26:00Z",
+      "notes": "npm run build (tsc -b && vite build) exit 0 — whole-project TypeScript compile passes. npm run lint: 21 pre-existing errors + 3 warnings, ALL in other features' files inherited from the roadmap base (redemption-returns E2E specs, redemption-catalog, redemption-history) — ZERO in any balance-expiration file; feature is lint-clean. Contracts pointer bumped to ff1cdf2d8dc1; types in balanceExpiration.types.ts match contract models (header-documented)."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:33:00Z",
+      "fixes": 3,
+      "filesReviewed": [
+        "src/App.tsx",
+        "src/components/balanceExpiration/BalanceExpirationPolicyForm.tsx",
+        "src/components/balanceExpiration/BreakageReportTable.tsx",
+        "src/components/balanceExpiration/ExpiringSoonPreviewCard.tsx",
+        "src/components/balanceExpiration/balanceExpirationPolicySchema.ts",
+        "src/components/layout/sidebars/sidebarConfigs.ts",
+        "src/hooks/useBalanceBreakage.ts",
+        "src/hooks/useBalanceExpirationPolicies.ts",
+        "src/hooks/useExpiringSoon.ts",
+        "src/hooks/useUpsertBalanceExpirationPolicy.ts",
+        "src/pages/balanceExpiration/BalanceBreakageReportPage.tsx",
+        "src/pages/balanceExpiration/BalanceExpirationSettingsPage.tsx",
+        "src/services/balanceExpiration.service.ts",
+        "src/types/balanceExpiration.types.ts"
+      ],
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/components/balanceExpiration/ExpiringSoonPreviewCard.tsx",
+          "line": 111,
+          "message": "Used currency.format() (budget formatter — points render as USD) instead of currency.rewardFormat() (reward-facing — 'X pts') for the at-risk reward balance. Sibling BreakageReportTable uses rewardFormat. No crash (format coerces via Number), purely semantic mislabel.",
+          "recommendation": "Use currency.rewardFormat(item.totalAmountAtRisk).",
+          "autoFixable": true,
+          "fixApplied": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/balanceExpiration/BalanceExpirationPolicyForm.tsx",
+          "line": 214,
+          "message": "min={new Date().toISOString().split('T')[0]} for the fixed-date input uses toISOString() to build a date-only string (PROJECT-CONTEXT anti-pattern: UTC shift gives wrong calendar day for users east of UTC). Inconsistent with BreakageReportTable's local toLocalDateString helper. Also flagged by UI/UX review.",
+          "recommendation": "Build the min string from local calendar fields.",
+          "autoFixable": true,
+          "fixApplied": true
+        },
+        {
+          "severity": "low",
+          "file": "src/components/balanceExpiration/balanceExpirationPolicySchema.ts",
+          "line": 75,
+          "message": "superRefine parsed fixedExpiryDate with new Date('YYYY-MM-DD') (UTC midnight) and compared against local today — off-by-one rejection/acceptance at the timezone boundary for UTC+ users.",
+          "recommendation": "Parse the YYYY-MM-DD string into local calendar fields before comparison.",
+          "autoFixable": true,
+          "fixApplied": true
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:31:00Z",
+      "fixes": 0,
+      "fixesNote": "Its sole auto-fixable finding (toISOString min in BalanceExpirationPolicyForm) overlapped with code-review and was fixed jointly — counted once under code-review to avoid double-counting.",
+      "findings": [
+        {
+          "severity": "low",
+          "file": "src/components/balanceExpiration/ExpiringSoonPreviewCard.tsx",
+          "lineStart": 49,
+          "lineEnd": 54,
+          "message": "Loading skeleton renders a fixed 2 rows for a variable-length at-risk list — minor potential layout shift. Acceptable for a compact preview card; advisory only.",
+          "autoFixable": false
+        },
+        {
+          "severity": "low",
+          "file": "src/pages/balanceExpiration/BalanceExpirationSettingsPage.tsx",
+          "lineStart": 79,
+          "lineEnd": 120,
+          "message": "Skeleton count (4) correctly matches the 4-currency card grid. However the loading branch uses a flat grid while the loaded branch uses xl:grid-cols-3 with xl:col-span-2 + a 3rd ExpiringSoon column, so there is a horizontal reflow at the xl breakpoint on load. Advisory only.",
+          "autoFixable": false
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:28:00Z",
+      "fixes": 0,
+      "notes": "No localStorage/sessionStorage token use; no dangerouslySetInnerHTML; no `any`; no raw fetch (all via @/lib/axios); no window.location; no secrets/API keys; inputs validated via zod (balanceExpirationPolicySchema). CSV export uses a server-returned blob with a hardcoded filename — no client-synthesized URL. Routes gated by ProtectedRoute (permission + feature flag)."
+    },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "source": "job-store",
+      "codexJobId": "review-mqz03iy8-y3kdil",
+      "codexBaseRef": "main",
+      "codexBranch": "features/reward-balance-expiration",
+      "codexCompletedAt": "2026-06-29T09:17:32.457Z",
+      "parseError": null,
+      "verdict": "needs-attention",
+      "findings": [
+        {
+          "summary": "Tenant history rows are clickable under the wrong permission",
+          "details": "The tenant history page is route-gated by action.redemption.view_all_history, then uses that same permission to enable row clicks and mount TransactionDetailSheet. That sheet fetches /redemption/requests/{id}, whose contract (redemption-history.yaml:487-500, x-permission: action.redemption.view_history) requires action.redemption.view_history, not view_all_history. A client admin with tenant-history permission only sees clickable rows but every detail read can 403, breaking the all-tenant audit workflow at the detail step. VERIFIED against contract.",
+          "file": "src/pages/redemption-history/TenantTransactionHistoryPage.tsx",
+          "lineStart": 200,
+          "lineEnd": 203,
+          "severity": "high",
+          "confidence": 0.86,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.86 (>= 0.70), alreadyHandled=false",
+          "recommendation": "Gate the detail sheet with the permission required by the detail endpoint (action.redemption.view_history), or add/use an admin detail endpoint authorized by action.redemption.view_all_history.",
+          "alreadyHandled": false,
+          "scopeNote": "Pre-existing in the redemption-history feature (inherited from roadmaps/redemption-store base) — NOT introduced by reward-balance-expiration. Surfaced because Codex diffs against main."
+        },
+        {
+          "summary": "Personal history route bypasses the history permission gate",
+          "details": "The /redemption/history route is nested under only module.redemption_store (App.tsx:202-208), but TransactionHistoryPage immediately calls personal/company history APIs that require action.redemption.view_history. Users with store access but without history permission can navigate directly and trigger unauthorized reads + error states the sidebar correctly hides.",
+          "file": "src/App.tsx",
+          "lineStart": 202,
+          "lineEnd": 207,
+          "severity": "medium",
+          "confidence": 0.82,
+          "tier": "advisory",
+          "tierReason": "severity=medium -> advisory regardless of confidence",
+          "recommendation": "Move /redemption/history under a ProtectedRoute for action.redemption.view_history, separate from the store and confirmation routes.",
+          "alreadyHandled": false,
+          "scopeNote": "Pre-existing; explicitly noted in tracker US-04 row as a known issue to fix separately. Not introduced by reward-balance-expiration."
+        },
+        {
+          "summary": "Fixed-date validation can accept a non-future expiry date",
+          "details": "The schema validated a YYYY-MM-DD form value with new Date(data.fixedExpiryDate), which parses as UTC midnight; in positive-offset timezones selecting todays date could pass the future-date check. Codex reviewed the COMMITTED code at HEAD (c01ab011), which had the bug. The current working tree already fixes this (balanceExpirationPolicySchema.ts:72-85 now parses local calendar parts and rejects selectedDate <= local today) as an auto-fix applied during ready-check Steps 2/3.",
+          "file": "src/components/balanceExpiration/balanceExpirationPolicySchema.ts",
+          "lineStart": 73,
+          "lineEnd": 76,
+          "severity": "medium",
+          "confidence": 0.78,
+          "tier": "advisory",
+          "tierReason": "severity=medium -> advisory; also alreadyHandled=true (already mitigated in working tree)",
+          "recommendation": "Parse date-only values from local calendar parts and reject dates <= local today; optionally set the date input minimum to tomorrow.",
+          "alreadyHandled": true,
+          "scopeNote": "Only balance-expiration-scoped finding; already fixed in working tree during this ready-check run."
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "blockingCount": 1,
+      "advisoryCount": 2,
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nDo not ship: the diff still has permission-gating mismatches that break protected redemption history flows, plus a date validation gap in expiration policy setup.\n\nFindings:\n- [high] Tenant history rows are clickable under the wrong permission (src/pages/redemption-history/TenantTransactionHistoryPage.tsx:200-203)\n  The tenant history page is route-gated by action.redemption.view_all_history, then uses that same permission to enable row clicks and mount TransactionDetailSheet. That sheet fetches /redemption/requests/{id}, whose contract requires action.redemption.view_history, not view_all_history. A client admin with tenant-history permission only will see clickable rows but every detail read can 403, making the all-tenant audit workflow fail at the detail step.\n  Recommendation: Gate the detail sheet with the permission required by the detail endpoint, or add/use an admin detail endpoint authorized by action.redemption.view_all_history.\n- [medium] Personal history route bypasses the history permission gate (src/App.tsx:202-207)\n  The /redemption/history route is nested under only module.redemption_store, but the page immediately calls personal/company history APIs that require action.redemption.view_history. Users with store access but without history permission can directly navigate to the page and trigger unauthorized reads and error states that the sidebar correctly hides.\n  Recommendation: Move /redemption/history under a ProtectedRoute for action.redemption.view_history, separate from the store and confirmation routes.\n- [medium] Fixed-date validation can accept a non-future expiry date (src/components/balanceExpiration/balanceExpirationPolicySchema.ts:73-76)\n  The schema validates a YYYY-MM-DD form value with new Date(data.fixedExpiryDate), which parses the date as UTC midnight. In positive-offset timezones, selecting today's date compares later than local midnight and can pass the “future date” check, despite the contract requiring a strictly future tenant date. That lets the form submit an invalid policy and rely on backend rejection.\n  Recommendation: Parse date-only values from local calendar parts and reject dates <= local today; also set the date input minimum to tomorrow, not today.\n\nNext steps:\n- Fix the permission gates and add regression tests for users with view_all_history-only and module.redemption_store-only permission sets.\n- Add a timezone-safe fixed-date validation test for selecting today's date in a positive UTC offset.\n"
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "c01ab01191d749af9bdab9252fe8ef507cc8557f",
+      "completedAt": "2026-06-29T08:30:00Z",
+      "testsRun": [
+        "src/components/balanceExpiration/__tests__/BalanceExpirationPolicyForm.test.tsx",
+        "src/components/balanceExpiration/__tests__/BreakageReportTable.test.tsx",
+        "src/components/balanceExpiration/__tests__/ExpiringSoonPreviewCard.test.tsx",
+        "e2e/balance-expiration.spec.ts",
+        "e2e/balance-expiration-breakage.spec.ts"
+      ],
+      "fixes": 0,
+      "results": "Vitest: 3 files / 25 tests passed (and 25 passed again after code-review fixes). Playwright (page.route-mocked, auto dev server): 7/7 passed in 47s.",
+      "trackerSignal": {
+        "stories": [
+          {
+            "id": "US-01",
+            "sha": "e7acbf02",
+            "feTests": "green @ e7acbf02cecc"
+          },
+          {
+            "id": "US-04",
+            "sha": "c01ab011",
+            "feTests": "green @ c01ab01191d7"
+          }
+        ],
+        "allMatch": false,
+        "note": "Tracker skip NOT taken: US-04 FE-tests sha == HEAD but US-01 FE-tests sha (e7acbf02) != HEAD (c01ab011) — HEAD advanced one commit past US-01's green marker, so tests were run live rather than skipped."
+      }
+    }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review"
+}

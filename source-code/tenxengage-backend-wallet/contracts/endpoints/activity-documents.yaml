@@ -1,0 +1,80 @@
+openapi: 3.0.3
+info:
+  title: Activity Document Endpoints
+  description: Document submission and review for activity-based incentives
+  version: 1.0.0
+
+paths:
+  /api/v1/activity-documents/{activityDefinitionId}/submit:
+    post:
+      summary: Submit document for an activity
+      tags: [Activity Documents]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.view
+      parameters:
+        - name: activityDefinitionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Submission details (file reference, metadata)
+      responses:
+        "200":
+          description: Document submitted
+
+  /api/v1/activity-documents/{activityDefinitionId}/submissions:
+    get:
+      summary: List submissions for an activity
+      tags: [Activity Documents]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.view
+      parameters:
+        - name: activityDefinitionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of document submissions
+
+  /api/v1/activity-documents/submissions/{submissionId}/review:
+    put:
+      summary: Review a document submission (approve/reject)
+      tags: [Activity Documents]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.manage
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [APPROVED, REJECTED]
+                rejectionReason:
+                  type: string
+                  maxLength: 2000
+      responses:
+        "200":
+          description: Submission reviewed
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

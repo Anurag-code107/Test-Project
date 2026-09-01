@@ -1,0 +1,334 @@
+openapi: 3.0.3
+info:
+  title: Redemption Analytics Endpoints
+  description: >
+    Analytics dashboard for CLIENT_ADMIN. Surfaces four metric groups — redemption rate,
+    unredeemed balance liability, failed/cancelled rate, and total redemption count — all
+    scoped to the authenticated admin's tenant. Reads exclusively from existing entities
+    (RewardWallet, LedgerEntry, RedemptionRequest); no new database tables introduced.
+    Analytics summary responses are backed by a Redis cache (TTL 60 s, keyed
+    {clientId}:{dateFrom}:{dateTo}). The CSV export delivers synchronously, is rate-limited
+    to 3 req/min per tenant, and emits an audit record on each download.
+  version: 1.0.0
+
+paths:
+  # ─── Analytics Summary ────────────────────────────────────────────────────────
+
+  /api/v1/redemption/analytics:
+    get:
+      summary: Get redemption analytics summary
+      description: >
+        CLIENT_ADMIN retrieves four metric groups for the tenant.
+        Lifetime metrics (redemptionRates, unredeemedBalances) are unaffected by the date
+        window — they always reflect the full lifetime of the tenant.
+        Windowed metrics (failedCancelledRates, totalRedemptionCount) are scoped to the
+        dateFrom/dateTo window; default window is today-minus-30-days to today.
+        Response served from Redis cache on cache hit (TTL 60 s).
+        Metric arrays contain only entries for currency types with at least one RewardWallet
+        in the tenant; empty arrays indicate no program activity.
+        Rate limited to 10 req/min per user.
+      tags: [Redemption Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_analytics
+      parameters:
+        - name: dateFrom
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: >
+            Start of the date window (ISO 8601: YYYY-MM-DD). Defaults to today minus 30 days.
+            Applied as start-of-day UTC. Affects windowed metrics only (failedCancelledRates,
+            totalRedemptionCount) — does not affect redemptionRates or unredeemedBalances.
+        - name: dateTo
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+          description: >
+            End of the date window (ISO 8601: YYYY-MM-DD). Defaults to today.
+            Applied as exclusive end-of-day UTC. Must not be before dateFrom.
+            Maximum range is 730 days (24 months).
+      responses:
+        "200":
+          description: Redemption analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionAnalyticsSummaryResponse"
+        "400":
+          description: Invalid date format (non-ISO-8601 string)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller does not hold action.redemption.view_analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: dateFrom after dateTo, or date range exceeds 730 days (24 months)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (10 req/min per user)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── CSV Export ───────────────────────────────────────────────────────────────
+
+  /api/v1/redemption/analytics/export:
+    get:
+      summary: Export unredeemed balances as CSV
+      description: >
+        CLIENT_ADMIN downloads a CSV snapshot of all RewardWallet rows in the tenant,
+        with one row per wallet. Delivered synchronously as a direct file attachment
+        (Content-Disposition: attachment). PII fields (userName, companyName) are included;
+        every download is audited (action=DATA_EXPORTED, resourceType=REDEMPTION_ANALYTICS_EXPORT).
+        Individual wallets with no partner company affiliation export companyId as empty
+        string and companyName as "Individual".
+        Rate limited to 3 req/min per tenant; 429 includes Retry-After header.
+        Not cached — always reflects a live snapshot.
+      tags: [Redemption Analytics]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_analytics
+      responses:
+        "200":
+          description: >
+            CSV file delivered as a binary attachment.
+            Columns (in order): userId, userName, companyId, companyName,
+            currencyType, availableBalance, reservedBalance.
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="redemption-unredeemed-balances.csv"'
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: >
+            Invalid request (reserved for future date params — no date params on this endpoint
+            in the current version; included per spec error-surface definition).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller does not hold action.redemption.view_analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            Business rule violation (reserved for future date range validation — no date
+            params on this endpoint in the current version; included per spec error-surface
+            definition).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: >
+            Rate limit exceeded (3 req/min per tenant).
+            Retry-After header contains seconds until the rate limit resets.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds until the per-tenant rate limit resets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    # ─── Response Schemas ─────────────────────────────────────────────────────────
+
+    RedemptionAnalyticsSummaryResponse:
+      type: object
+      description: >
+        Top-level analytics summary for the CLIENT_ADMIN dashboard. All currency-typed
+        arrays contain only entries for currency types with at least one RewardWallet in
+        the tenant; an empty array indicates no program activity. Lifetime metrics
+        (redemptionRates, unredeemedBalances) are always full-lifetime figures regardless
+        of the date window. clientId is never returned.
+      properties:
+        dateWindow:
+          $ref: "#/components/schemas/DateWindowDto"
+        redemptionRates:
+          type: array
+          description: >
+            Lifetime redemption rate per active currency type. Unaffected by the date filter.
+            Formula: SUM(LedgerEntry.amount WHERE entryType=REDEMPTION, lifetime) /
+            SUM(LedgerEntry.amount WHERE entryType=REWARD, lifetime) × 100, per currencyId.
+          items:
+            $ref: "#/components/schemas/CurrencyTypeRateDto"
+        unredeemedBalances:
+          type: array
+          description: >
+            Unredeemed balance liability snapshot per active currency type. Unaffected by the
+            date filter. Formula: SUM(availableBalance + reservedBalance) per currencyId,
+            scoped to tenant.
+          items:
+            $ref: "#/components/schemas/CurrencyTypeBalanceDto"
+        failedCancelledRates:
+          type: array
+          description: >
+            Failed and cancelled redemption rate per active currency type within the selected
+            date window. Formula: COUNT(status IN [FAILED, CANCELLED] AND submittedAt IN window)
+            / COUNT(submittedAt IN window) × 100, per currencyId.
+          items:
+            $ref: "#/components/schemas/CurrencyTypeRateDto"
+        totalRedemptionCount:
+          $ref: "#/components/schemas/RedemptionCountDto"
+
+    DateWindowDto:
+      type: object
+      description: >
+        Echoes the effective date window applied to windowed metrics (failedCancelledRates,
+        totalRedemptionCount). Lifetime metrics (redemptionRates, unredeemedBalances) ignore
+        this window.
+      properties:
+        from:
+          type: string
+          format: date
+          description: Start of the selected date window (inclusive, ISO 8601 date)
+        to:
+          type: string
+          format: date
+          description: End of the selected date window (inclusive, ISO 8601 date)
+
+    CurrencyTypeRateDto:
+      type: object
+      description: >
+        Rate card for a single currency type. Used for both redemption rate cards
+        (numerator = total redeemed amount, denominator = total earned amount, lifetime)
+        and failed/cancelled rate cards (numerator = count of FAILED + CANCELLED
+        RedemptionRequests, denominator = total RedemptionRequests in window).
+        hasActivity = false when denominator = 0; see hasActivity field for empty-state details.
+      properties:
+        currencyId:
+          type: string
+          description: >
+            Platform currency identifier. One of: "CASH", "POINTS", "CREDITS", "TICKETS".
+        numerator:
+          type: integer
+          format: int64
+          description: >
+            Absolute numerator. For redemption rate: total amount redeemed (lifetime).
+            For failed/cancelled rate: count of FAILED + CANCELLED requests in window.
+        denominator:
+          type: integer
+          format: int64
+          description: >
+            Absolute denominator. For redemption rate: total amount earned (lifetime).
+            For failed/cancelled rate: total request count in window.
+        ratePercentage:
+          type: string
+          description: >
+            Percentage to 2 decimal places, BigDecimal HALF_UP rounding (e.g. "34.25").
+            Omitted when hasActivity = false.
+        hasActivity:
+          type: boolean
+          description: >
+            false when denominator = 0 (FR-07.8). Empty-state message differs by card type:
+            lifetime rate cards (redemptionRates) render "No program activity yet";
+            windowed rate cards (failedCancelledRates) render "No redemptions in this period".
+
+    CurrencyTypeBalanceDto:
+      type: object
+      description: >
+        Unredeemed balance liability snapshot for a single currency type.
+        Snapshot figure — unaffected by the date filter.
+      properties:
+        currencyId:
+          type: string
+          description: >
+            Platform currency identifier. One of: "CASH", "POINTS", "CREDITS", "TICKETS".
+        availableBalance:
+          type: integer
+          format: int64
+          description: Sum of availableBalance across all RewardWallets in tenant for this currency
+        reservedBalance:
+          type: integer
+          format: int64
+          description: Sum of reservedBalance across all RewardWallets in tenant for this currency
+        totalOutstanding:
+          type: integer
+          format: int64
+          description: availableBalance + reservedBalance; primary card display value
+
+    RedemptionCountDto:
+      type: object
+      description: >
+        Total redemption count card for the selected date window. Includes a status-level
+        breakdown. hasActivity = false when total = 0; FE renders "No redemptions in this
+        period" empty state (FR-07.8).
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: Total count of all RedemptionRequest rows within the date window
+        byStatus:
+          type: object
+          description: >
+            Count per aggregated status key within the date window.
+            Keys: PENDING (aggregates PENDING_APPROVAL + RESERVED), PROCESSING, COMPLETED,
+            FAILED, CANCELLED. Five keys total — PENDING_APPROVAL and RESERVED are
+            intentionally merged into PENDING for the analytics display (FR-07.7).
+          additionalProperties:
+            type: integer
+            format: int64
+        hasActivity:
+          type: boolean
+          description: >
+            false when total = 0. FE renders "No redemptions in this period" empty state.
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,135 @@
+{
+  "featureId": "wallet-ledger-foundation",
+  "repo": "tenxengage-backend",
+  "branch": "features/wallet-ledger-foundation",
+  "headCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+  "startedAt": "2026-05-08T00:00:00Z",
+  "updatedAt": "2026-05-15T00:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+      "completedAt": "2026-05-15T00:00:00Z",
+      "notes": "Compilation passes. No checkstyle plugin configured. Spec verified at ../tenxengage-blueprint/features/wallet-ledger-foundation/spec.md."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+      "completedAt": "2026-05-15T00:00:00Z",
+      "fixes": 2,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/dto/response/RewardBalanceResponse.java"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/dto/response/RewardBalanceResponse.java",
+          "rule": "api-design",
+          "message": "from(RewardBalance) sets id=null and walletType=null — callers receive silent nulls.",
+          "fixed": false,
+          "manualAction": "Populate id from rb.getId() or remove the factory if no callers remain."
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/dto/response/RewardBalanceResponse.java",
+          "rule": "api-design",
+          "message": "reservedBalance hardcoded to '0.00' in deprecated factory — fabricated financial data.",
+          "fixed": false,
+          "manualAction": "Return null with nullable annotation or remove the deprecated factory."
+        }
+      ],
+      "notes": "2 auto-fixes applied: BigDecimal null guard + @Deprecated annotation on from(RewardBalance). 2 high manual actions remain on the deprecated factory."
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+      "completedAt": "2026-05-15T00:00:00Z",
+      "fixes": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "auth",
+          "message": "hasRole() reads SecurityContextHolder — may hold wrong principal in async contexts.",
+          "fixed": false,
+          "manualAction": "Use user.getAuthorities() exclusively."
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/WalletService.java",
+          "rule": "logging",
+          "message": "AccessDeniedException throws not logged — financial access denials should be recorded for audit.",
+          "fixed": false,
+          "manualAction": "Add log.warn() before each AccessDeniedException throw."
+        }
+      ],
+      "notes": "1 auto-fix applied: Objects.requireNonNull(rb) in deprecated factory. Pre-existing medium findings from prior run unchanged."
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+      "completedAt": "2026-05-15T00:00:00Z",
+      "fixes": 1,
+      "notes": "1 drift fixed: RewardBalanceController /{userId} permission corrected from action.reward_balances.admin → action.redemption.view_all_history (matches V8 seed migration and contract). All 2 endpoints now match reward-balances.yaml."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "f5e2b316ccca30f336dc04fb79ec39f17f796bc9",
+      "completedAt": "2026-05-08T17:15:00Z",
+      "notes": "Not invalidated — no service/controller logic changed in feature files since last validation. Prior findings all advisory.",
+      "findings": [
+        {
+          "summary": "Per-user and per-partner cap SUM queries without row-level lock — RESOLVED via pg_advisory_xact_lock on (incentiveId:userId)",
+          "severity": "high",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "creditInCurrentTx() wallet creation race — RESOLVED via ensureIndividualWalletExists() + findForUpdate()",
+          "severity": "high",
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true",
+          "alreadyHandled": true
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+      "completedAt": "2026-05-15T00:00:00Z",
+      "testsRun": [
+        "RewardBalanceControllerTest",
+        "WalletControllerTest",
+        "RewardGrantServiceTest",
+        "WalletServiceTest"
+      ],
+      "fixes": 0,
+      "testQualityFindings": [],
+      "notes": "BUILD SUCCESSFUL in 56s. All 4 scoped tests passed."
+    },
+    "coverage": {
+      "status": "not_applicable",
+      "validatedAtCommit": "d538a2ae6c75473b247efce774e16e57013a69a0",
+      "completedAt": "2026-05-15T00:00:00Z",
+      "gaps": [],
+      "notes": "Changes are fixes to existing methods — no new methods or endpoints added."
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "pendingManualActions": [
+    "RewardTransactionRepository.java:22 — Add Pageable to findByClientIdAndUserId",
+    "RewardTransactionRepository.java:24 — Add Pageable to findByClientId",
+    "RewardTransactionRepository.java:36 — Add Pageable to findByClientIdAndIncentiveId or replace with aggregate",
+    "RewardTransactionRepository.java:71 — Replace hashtext() 32-bit with 64-bit pg_advisory_xact_lock(bigint,bigint)",
+    "RewardBalanceResponse.java — Remove deprecated from(RewardBalance) factory or populate id/walletType from entity",
+    "WalletService.java:135 — Change @Audited action from 'CREATED' to 'CREDITED' on creditInCurrentTx",
+    "WalletService.java:261 — Use user.getAuthorities() exclusively in hasRole()",
+    "WalletService.java — Add log.warn() before AccessDeniedException throws"
+  ]
+}

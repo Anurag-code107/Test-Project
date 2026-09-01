@@ -1,0 +1,531 @@
+openapi: 3.0.3
+info:
+  title: Company Distribution Endpoints
+  description: >
+    A partner admin distributing the company wallet to their own partner sellers, and the seller-side
+    view of what they received.
+
+    Three rails. GIFT_CARD and BANK_TRANSFER leave the platform through XTRM and therefore create a
+    redemption_requests payout leg (origin=COMPANY_DISTRIBUTION), which is what lets the existing
+    dispatch, settlement, webhook and reconciliation machinery handle them unchanged. WALLET_CREDIT
+    moves money internally into the seller's own cash wallet, so it has no vendor, no webhook, and
+    deliberately no redemption row — money that never leaves the platform must not be counted as
+    redeemed, or it is counted again when the seller later redeems it.
+
+    All three rails reserve the full total on the company wallet at submit and settle per recipient
+    afterwards. That reserve is what makes per-recipient settlement safe: without it, a concurrent
+    distribution could spend balance later recipients depend on.
+
+    Visibility is PARTNER_ADMIN and PARTNER_SELLER only. A CLIENT_ADMIN can fund a company wallet
+    (see wallets.yaml) but has no application view of how it was spent — a deliberate governance choice.
+    Distributions are also excluded from redemption analytics, tenant history, the CSV export, and the
+    seller's own Transaction History; these endpoints are the only place they appear.
+  version: 1.0.0
+
+paths:
+  # ─── Distribution Store ───────────────────────────────────────────────────────
+
+  /api/v1/redemption/distribution/recipients:
+    get:
+      summary: List the company's sellers with per-rail payout readiness
+      description: >
+        Active PARTNER_SELLERs of the caller's own company. Ineligible sellers are returned WITH a
+        reason rather than filtered out, so the UI can grey the row and explain it instead of leaving
+        the admin wondering who is missing — that visibility is what makes the Wallet Transfer rail
+        useful for sellers who have set nothing up.
+
+        The signed-in admin never appears: recipients are scoped to the seller role, so an admin cannot
+        distribute to themself.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.distribute
+      parameters:
+        - name: rail
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/DistributionRail'
+          description: Readiness is evaluated against this rail.
+      responses:
+        '200':
+          description: Candidate recipients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DistributionRecipient'
+        '403':
+          description: Caller has no associated partner company, or lacks the permission
+
+  /api/v1/redemption/distribution/gift-cards:
+    get:
+      summary: List every provider gift-card SKU a partner admin can distribute
+      description: >
+        The provider's whole digital gift-card catalogue. Distinct from
+        /api/v1/admin/redemption-catalog/gift-card-catalog, which is gated on
+        action.redemption.catalog.manage — a permission a partner admin does not hold. Same cached provider
+        call, exposed behind the permission that already means "may spend the company wallet".
+        Deliberately not limited to the client's curated catalogue.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.distribute
+      responses:
+        "200":
+          description: The provider's active gift-card SKUs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DistributionGiftCardSku"
+        "403":
+          description: Caller may not distribute, or has no partner company
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: The provider gift-card catalogue is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/distribution/catalog:
+    get:
+      summary: List the gift cards available to distribute
+      description: >
+        Deliberately NOT the personal store's browse endpoint, which computes affordability against the
+        caller's own wallet — the wrong wallet here. Returns only items submit will accept: active,
+        client-owned, not the reserved bank-transfer card, and carrying a vendor SKU. A SKU-less item is
+        undistributable, so listing it would only produce a confusing failure at submit.
+
+        minAmount/maxAmount are the effective bounds with any client override applied, so the amount
+        field constrains exactly what the server enforces. valueType=FIXED means min == max: the
+        denomination is pinned and the field should be read-only.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.distribute
+      responses:
+        '200':
+          description: Distributable gift cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DistributionCatalogItem'
+
+  /api/v1/redemption/distribution:
+    post:
+      summary: Distribute the company wallet to selected sellers
+      description: >
+        Validates, reserves the full total on the company wallet, and writes the header plus one item per
+        recipient — all in one transaction that touches ONLY the company wallet. Recipients are paid
+        after it commits.
+
+        Returns 202, not 201: the funds are committed but the payouts are not finished. Poll the detail
+        endpoint for per-recipient outcomes.
+
+        Idempotent on clientIdempotencyKey — a re-POST returns the original distribution rather than
+        reserving a second time.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.distribute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyDistributionRequest'
+      responses:
+        '202':
+          description: Accepted — reserved and queued for per-recipient payout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyDistribution'
+        '404':
+          description: Source wallet is not this company's COMPANY wallet, or the gift card was not found
+        '422':
+          description: >
+            Business rule rejected: insufficient company balance, amount outside the SKU bounds, a
+            recipient who is not an active seller of this company, the caller included as a recipient,
+            or a gift card with no SKU.
+
+    get:
+      summary: List this company's distributions
+      description: >
+        Every distribution drawn from this company's wallet, by ANY of its admins — not only the
+        caller's. Several admins share one wallet, so hiding a peer's distribution would leave the
+        balance falling with no explanation; initiatedByName attributes each one instead.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_distribution_history
+      parameters:
+        - name: rail
+          in: query
+          schema:
+            $ref: '#/components/schemas/DistributionRail'
+        - name: dateFrom
+          in: query
+          schema: { type: string, format: date }
+        - name: dateTo
+          in: query
+          schema: { type: string, format: date }
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        '200':
+          description: Paged distributions, newest first. `items` is empty here — use the detail endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCompanyDistributions'
+
+  /api/v1/redemption/distribution/{id}:
+    get:
+      summary: Get one distribution with per-recipient detail
+      description: Company-scoped — another company's distribution id returns 404, not 403.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_distribution_history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Distribution with its recipient rows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyDistribution'
+        '404':
+          description: Not found, or belongs to another company
+
+  # ─── Company Award History (seller) ───────────────────────────────────────────
+
+  /api/v1/redemption/distribution/awards:
+    get:
+      summary: List the rewards this seller received from company admins
+      description: >
+        Distributions are excluded from the seller's own Transaction History, which means "redemptions I
+        made from my wallet". This is the only place a seller sees them. A WALLET_CREDIT award
+        additionally appears as a CREDIT in their wallet balance and ledger, which is correct — that
+        money genuinely arrived.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_company_awards
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        '200':
+          description: Paged awards, newest first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCompanyAwards'
+
+  /api/v1/redemption/distribution/awards/{awardId}:
+    get:
+      summary: Get one award this seller received
+      description: Scoped to the caller — a seller cannot read another seller's award by id.
+      tags: [Company Distribution]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_company_awards
+      parameters:
+        - name: awardId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The award
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyAward'
+        '404':
+          description: Not found, or belongs to another seller
+
+components:
+  schemas:
+
+    DistributionRail:
+      type: string
+      enum: [GIFT_CARD, BANK_TRANSFER, WALLET_CREDIT]
+      description: >
+        GIFT_CARD and BANK_TRANSFER pay out through XTRM. WALLET_CREDIT ("Wallet Transfer" in the UI)
+        moves money into the seller's own system cash wallet — NOT their XTRM digital wallet — and needs
+        no payout profile at all, which is why it works for a seller who has set nothing up.
+
+    DistributionItemStatus:
+      type: string
+      enum: [RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+      description: >
+        The per-recipient status, DERIVED rather than stored twice: a payout item reports its underlying
+        redemption status, a wallet-transfer item reports its own. RESERVED means earmarked but not yet
+        settled.
+
+    DistributionRollupStatus:
+      type: string
+      enum: [PROCESSING, COMPLETED, PARTIALLY_COMPLETED, FAILED]
+      description: >
+        Rolled up from the recipient rows. PARTIALLY_COMPLETED exists because per-recipient failure is
+        normal, not exceptional — some recipients paid, others released back to the company wallet.
+
+    CreateCompanyDistributionRequest:
+      type: object
+      required: [rail, sourceWalletId, amount, userIds]
+      properties:
+        rail:
+          $ref: '#/components/schemas/DistributionRail'
+        sourceWalletId:
+          type: string
+          format: uuid
+          description: The COMPANY wallet to spend. Validated against the caller's own company.
+        catalogItemId:
+          type: string
+          format: uuid
+          nullable: true
+          description: >
+            Legacy curated-catalog path. Prefer providerSku; sending both is rejected. Must be null for
+            the non-gift-card rails.
+        providerSku:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: >
+            The provider gift-card SKU, from GET /api/v1/redemption/distribution/gift-cards. The preferred
+            way to choose a card: the partner admin picks from the provider's whole catalogue rather than
+            only the client's curated items, and the server backs the chosen SKU with a hidden, inactive
+            catalog row so the payout path and the seller storefront are both unaffected. Exactly one of
+            this and catalogItemId is required for GIFT_CARD; both must be null for the other rails.
+        amount:
+          type: string
+          description: >
+            ONE amount applied to every recipient — the admin types 50 once and each selected seller
+            receives 50. Per-recipient amounts are not supported.
+          example: "50.00"
+        userIds:
+          type: array
+          minItems: 1
+          items: { type: string, format: uuid }
+          description: >
+            Active PARTNER_SELLERs of the caller's company. Must not contain the caller. Duplicates are
+            de-duplicated rather than rejected.
+        note:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Shown to recipients on their award.
+        clientIdempotencyKey:
+          type: string
+          maxLength: 255
+          nullable: true
+
+    DistributionRecipient:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        fullName: { type: string }
+        email: { type: string }
+        eligible:
+          type: boolean
+          description: Whether the selected rail can actually reach this person.
+        ineligibleReason:
+          type: string
+          nullable: true
+          description: >
+            Null when eligible. Otherwise phrased for the admin, e.g. "No bank account linked — use
+            Wallet Transfer instead".
+        destination:
+          type: string
+          nullable: true
+          description: Where the money would land — gift-card email, masked bank label, or "Cash wallet".
+
+    DistributionGiftCardSku:
+      type: object
+      description: >
+        One selectable provider gift-card SKU — a lean projection of the provider catalogue (the large HTML
+        description and terms are dropped).
+      properties:
+        sku:
+          type: string
+          description: Send this back as providerSku when creating the distribution.
+        rewardName: { type: string }
+        brandName: { type: string, nullable: true }
+        brandImageUrl: { type: string, nullable: true }
+        currencyCode:
+          type: string
+          nullable: true
+          description: The provider's currency for the card. The distribution itself spends the cash wallet.
+        valueType:
+          type: string
+          enum: [FIXED, VARIABLE]
+          nullable: true
+          description: FIXED pins the denomination to faceValue and the amount field is not editable.
+        faceValue:
+          type: string
+          nullable: true
+          description: Set for FIXED; both amount bounds collapse onto it.
+        minValue: { type: string, nullable: true }
+        maxValue: { type: string, nullable: true }
+
+    DistributionCatalogItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        imageUrl:
+          type: string
+          nullable: true
+          description: Uploaded image, served through the API proxy — never a raw storage key.
+        providerImageUrl:
+          type: string
+          nullable: true
+          description: Vendor brand image, used when there is no uploaded one.
+        currencyId: { type: string }
+        valueType:
+          type: string
+          enum: [FIXED, VARIABLE]
+          nullable: true
+        minAmount: { type: string, example: "10.00" }
+        maxAmount:
+          type: string
+          nullable: true
+          description: Null means open-value — no ceiling on this item.
+
+    CompanyDistribution:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        rail:
+          $ref: '#/components/schemas/DistributionRail'
+        railDisplayName: { type: string, example: "Wallet Transfer" }
+        catalogItemId: { type: string, format: uuid, nullable: true }
+        catalogItemName: { type: string, nullable: true }
+        currencyId: { type: string }
+        amountPerRecipient: { type: string, example: "50.00" }
+        recipientCount: { type: integer }
+        requestedTotal:
+          type: string
+          description: What was submitted — amountPerRecipient × recipientCount.
+        settledTotal:
+          type: string
+          description: >
+            What actually left the company wallet. LOWER than requestedTotal after a partial failure —
+            show both, or a half-failed distribution reads as though it paid out in full.
+        status:
+          $ref: '#/components/schemas/DistributionRollupStatus'
+        initiatedByUserId: { type: string, format: uuid }
+        initiatedByName: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        items:
+          type: array
+          description: Per-recipient rows. Empty in the list response; populated on the detail endpoint.
+          items:
+            $ref: '#/components/schemas/CompanyDistributionItem'
+
+    CompanyDistributionItem:
+      type: object
+      properties:
+        itemId: { type: string, format: uuid }
+        recipientUserId: { type: string, format: uuid }
+        recipientName: { type: string, nullable: true }
+        recipientEmail: { type: string, nullable: true }
+        amount: { type: string }
+        status:
+          $ref: '#/components/schemas/DistributionItemStatus'
+        destination: { type: string, nullable: true }
+        paymentTransactionId:
+          type: string
+          nullable: true
+          description: XTRM payment transaction id — payout rails only, and only once COMPLETED.
+        failureReason: { type: string, nullable: true }
+        settledAt: { type: string, format: date-time, nullable: true }
+
+    CompanyAward:
+      type: object
+      properties:
+        awardId: { type: string, format: uuid }
+        receivedAt: { type: string, format: date-time }
+        rail:
+          $ref: '#/components/schemas/DistributionRail'
+        railDisplayName: { type: string }
+        rewardName:
+          type: string
+          nullable: true
+          description: Gift-card name, or the rail's label for bank/wallet transfers.
+        amount: { type: string }
+        currencyId: { type: string, nullable: true }
+        status:
+          $ref: '#/components/schemas/DistributionItemStatus'
+        destination: { type: string, nullable: true }
+        awardedByName:
+          type: string
+          nullable: true
+          description: The admin who sent it.
+        companyName: { type: string, nullable: true }
+        note: { type: string, nullable: true }
+        failureReason: { type: string, nullable: true }
+        paymentTransactionId: { type: string, nullable: true }
+
+    PaginatedCompanyDistributions:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyDistribution'
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        hasNext: { type: boolean }
+        hasPrevious: { type: boolean }
+
+    PaginatedCompanyAwards:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyAward'
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
+        hasNext: { type: boolean }
+        hasPrevious: { type: boolean }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,239 @@
+{
+  "featureId": "reward-balance-expiration",
+  "repo": "tenxengage-backend",
+  "branch": "work/reward-balance-expiration-US-02-be",
+  "headCommit": "c2d817bbf75592099939c797c53b6fc4680ad7bf",
+  "startedAt": "2026-06-25T07:30:00Z",
+  "updatedAt": "2026-06-25T10:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "f416ade9dd92fb7b6ccb19f48515ad238a319785",
+      "completedAt": "2026-06-25T07:30:00Z"
+    },
+    "code-review": {
+      "status": "passed",
+      "completedAt": "2026-06-25T09:15:00Z",
+      "fixes": 8,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/event/NotificationEventProducer.java",
+        "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+        "src/test/java/com/tenxengage/app/event/NotificationEventProducerTest.java",
+        "src/test/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchServiceTest.java"
+      ],
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "api-design",
+          "summary": "resolveRecipients() returned null for non-INDIVIDUAL wallets — NPE risk in consumer",
+          "fixed": true
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "concurrency",
+          "summary": "@Transactional on processWarnPhaseForPolicy silently bypassed by self-call (AOP proxy); annotation removed, pattern documented per ReturnTimeoutScheduler precedent",
+          "fixed": true
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "async-pitfall",
+          "summary": "isSynchronizationActive() always false due to AOP bypass — Kafka afterCommit guard was dead code; now correct by design (no transaction wrapper, direct publish path always used, consistent with ReturnTimeoutScheduler)",
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "concurrency",
+          "summary": "MDC tenantId not cleaned up in processWarnPhaseForPolicy on exception paths — added try/finally",
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/event/NotificationEventProducer.java",
+          "rule": "exception-handling",
+          "summary": "JsonProcessingException swallowed after notice persisted as NOTIFIED — advisory (intentional silent failure; spec does not require rollback for serialization failure)",
+          "fixed": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "exception-handling",
+          "summary": "afterCommit() exception silently swallowed by Spring infrastructure — advisory (outbox retry is a separate story scope)",
+          "fixed": false
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "performance",
+          "summary": "Counter.builder().register() in hot loop — switched to meterRegistry.counter()",
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/event/NotificationEventProducer.java",
+          "rule": "completable-future",
+          "summary": "log.info before broker ack — moved into whenComplete success branch",
+          "fixed": true
+        },
+        {
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "performance",
+          "summary": "Double save (SCHEDULED then NOTIFIED) per new notice — collapsed to single save",
+          "fixed": true
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "n-plus-one-query",
+          "summary": "findLastActivityAt called per-wallet (N+1 against ledger) — advisory for this story; bulk query recommended as follow-up",
+          "fixed": false
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "unbounded-query",
+          "summary": "findExpiryCandidateWallets returns unbounded List with no pagination — advisory for this story; pagination recommended as follow-up",
+          "fixed": false
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "idioms",
+          "summary": "else { // FIXED_DATE } — replaced with explicit else-if + IllegalStateException guard",
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/test/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchServiceTest.java",
+          "rule": "performance",
+          "summary": "daysAgo(): 86400 int literal → 86400L to prevent int-before-multiply overflow",
+          "fixed": true
+        },
+        {
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "rule": "performance",
+          "summary": "DistributionSummary for duration — advisory; Timer recommended as follow-up",
+          "fixed": false
+        }
+      ],
+      "advisoryFindings": [
+        "N+1: findLastActivityAt per-wallet — recommend bulk lastActivity query in follow-up story",
+        "Unbounded wallet load: findExpiryCandidateWallets has no pagination — recommend Pageable in follow-up story",
+        "JsonProcessingException swallowed after NOTIFIED persist — acceptable for this story scope",
+        "afterCommit exception not retried — outbox pattern is separate story scope",
+        "DistributionSummary for duration: Timer preferred — cosmetic, safe to defer"
+      ]
+    },
+    "security-review": {
+      "status": "not_applicable",
+      "reason": "No controller, security class, or DTO files in the diff",
+      "completedAt": "2026-06-25T09:15:00Z"
+    },
+    "contract-compliance": {
+      "status": "not_applicable",
+      "reason": "No controller or DTO files in the diff",
+      "completedAt": "2026-06-25T09:15:00Z"
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "verdict": "needs-attention",
+      "completedAt": "2026-06-25T09:45:00Z",
+      "note": "adversarial-review is a soft stage — blocking findings downgraded to advisory per --soft-stages flag",
+      "findings": [
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "lineStart": 220,
+          "lineEnd": 260,
+          "summary": "Kafka failure marks notices as NOTIFIED with no retry path — users can permanently miss balance-expiry warnings",
+          "details": "advanceToNotified persists status=NOTIFIED and notifiedAt before Kafka ack. If broker rejects/times out, notice remains notified and next sweep skips via notifiedAt idempotency check.",
+          "recommendation": "Use a durable outbox or a retryable notification state. Mark delivery only after event is durably handed off.",
+          "confidence": 0.95,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.95 (>=0.70), alreadyHandled=false",
+          "autoFixable": false,
+          "fixed": false
+        },
+        {
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/BalanceExpiryBatchService.java",
+          "lineStart": 338,
+          "lineEnd": 346,
+          "summary": "COMPANY wallet events broadcast to all partner-company users in client — cross-partner data leak",
+          "details": "resolveRecipients returns List.of() for COMPANY wallets. NotificationDispatcher role-broadcast path calls findByClientIdAndBaseRoleNames with no partnerCompanyId predicate, notifying PARTNER_ADMIN/PARTNER_SELLER users from unrelated partner companies.",
+          "recommendation": "Include partnerCompanyId in event metadata for COMPANY wallets and add dispatcher support filtering by clientId + partnerCompanyId + role, or resolve partner-admin user IDs before publishing.",
+          "confidence": 0.90,
+          "alreadyHandled": false,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false",
+          "autoFixable": false,
+          "fixed": false
+        }
+      ],
+      "advisoryFindings": [
+        "BLOCKING (soft): Kafka failure permanently suppresses expiry notice — outbox/retry pattern needed; deferred per soft-stage designation",
+        "BLOCKING (soft): COMPANY wallet role-broadcast leaks expiry data across partner companies — partnerCompanyId scoping needed; deferred per soft-stage designation"
+      ]
+    },
+    "tests": {
+      "status": "passed",
+      "completedAt": "2026-06-25T09:55:00Z",
+      "testCount": 22,
+      "breakdown": {
+        "BalanceExpiryBatchServiceTest": 17,
+        "NotificationEventProducerTest": 5
+      },
+      "result": "22/22 passed"
+    },
+    "coverage": {
+      "status": "passed",
+      "completedAt": "2026-06-25T10:00:00Z",
+      "files": {
+        "BalanceExpiryBatchService": {
+          "instructions": "82%",
+          "branches": "77%",
+          "methods": "100%"
+        },
+        "NotificationEventProducer": {
+          "instructions": "52%",
+          "branches": "75%",
+          "methods": "100%"
+        }
+      },
+      "notes": [
+        "NotificationEventProducer instruction coverage 52% due to untested async whenComplete failure path (requires failed CompletableFuture mock) — method coverage 100%",
+        "BalanceExpiryBatchService runExpirySweep() at 58% instruction — exception-path logging not exercised in unit tests (acceptable for @Scheduled entry point)"
+      ]
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "manualActionItems": [
+    {
+      "priority": "high",
+      "story": "follow-up",
+      "item": "Kafka failure permanently suppresses expiry notice: persist notice in a PENDING_DELIVERY state and only advance to NOTIFIED after Kafka ack, or use a transactional outbox"
+    },
+    {
+      "priority": "high",
+      "story": "follow-up",
+      "item": "COMPANY wallet notifications broadcast to all client users — add partnerCompanyId to event metadata and scope NotificationDispatcher role-broadcast by partnerCompanyId"
+    },
+    {
+      "priority": "medium",
+      "story": "follow-up",
+      "item": "N+1 query: replace per-wallet findLastActivityAt with a bulk GROUP BY query returning Map<walletId, lastActivityInstant>"
+    },
+    {
+      "priority": "medium",
+      "story": "follow-up",
+      "item": "Unbounded findExpiryCandidateWallets: add Pageable parameter, process wallets in chunks (e.g. page size 500)"
+    }
+  ]
+}

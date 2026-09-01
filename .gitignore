@@ -1,0 +1,24 @@
+# Disabled git metadata from the machine-transfer flatten - never commit these
+.git_disabled/
+**/.git_disabled/
+.git_disabled
+**/.git_disabled
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+target/
+.next/
+
+# Logs
+*.log
+logs/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+~$*

@@ -1,0 +1,21 @@
+package com.tenxengage.app.entity.enums;
+
+public enum AuditResourceType {
+    INCENTIVE,
+    USER,
+    CLAIM,
+    CONNECTOR,
+    PARTNER_COMPANY,
+    PRODUCT,
+    DATA,
+    DATA_OBJECT,
+    NOTIFICATION_CONFIG,
+    CLIENT,
+    AUTH,
+    REWARD_WALLET,
+    REDEMPTION_CATALOG_ITEM,
+    TENANT_CATALOG_CONFIG,
+    TENANT_REDEMPTION_SETTINGS,
+    REDEMPTION_REQUEST,
+    REDEMPTION_WEBHOOK_EVENT
+}

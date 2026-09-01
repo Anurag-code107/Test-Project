@@ -1,0 +1,91 @@
+openapi: 3.0.3
+info:
+  title: Deal Qualifier Endpoints
+  description: Real-time deal qualification, invoice processing, and AI insights
+  version: 1.0.0
+
+paths:
+  /api/v1/deal-qualifier/evaluate:
+    post:
+      summary: Evaluate deal eligibility
+      tags: [Deal Qualifier]
+      security:
+        - bearerAuth: []
+      x-permission: action.deal_qualifier.evaluate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Deal details for qualification (products, amounts, customer info)
+      responses:
+        "200":
+          description: Qualification results with eligible incentives
+
+  /api/v1/deal-qualifier/upload-invoice:
+    post:
+      summary: Upload invoice for extraction
+      description: Upload an invoice file and extract deal details using AI
+      tags: [Deal Qualifier]
+      security:
+        - bearerAuth: []
+      x-permission: action.deal_qualifier.upload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Extracted invoice data
+
+  /api/v1/deal-qualifier/{incentiveId}/insights:
+    post:
+      summary: Stream deal insights (SSE)
+      description: AI-generated insights about deal qualification for a specific incentive
+      tags: [Deal Qualifier]
+      security:
+        - bearerAuth: []
+      x-permission: action.deal_qualifier.insights
+      parameters:
+        - name: incentiveId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Deal context for insight generation
+      responses:
+        "200":
+          description: SSE stream of AI insights
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/v1/deal-qualifier/partner-context:
+    get:
+      summary: Get partner context for deal qualifier
+      tags: [Deal Qualifier]
+      security:
+        - bearerAuth: []
+      x-permission: action.deal_qualifier.context
+      responses:
+        "200":
+          description: Partner context (products, active incentives, recent deals)
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

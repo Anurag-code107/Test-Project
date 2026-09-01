@@ -1,0 +1,143 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-advanced-US-04-fe",
+  "headCommit": "fed3a2f4cea73b4b2119f21e4be0136cb5566c0e",
+  "startedAt": "2026-06-22T17:45:00Z",
+  "updatedAt": "2026-06-22T18:05:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "fed3a2f4cea73b4b2119f21e4be0136cb5566c0e",
+      "build": "passed",
+      "lint": "passed (no errors in changed files; pre-existing errors in unrelated files excluded)",
+      "contractAlignment": "passed — TrendDataPointDto uses currencyId per contracts/models/redemption-advanced-analytics.md"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "fed3a2f4cea73b4b2119f21e4be0136cb5566c0e",
+      "fixes": 1,
+      "filesReviewed": [
+        "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+        "src/hooks/redemption/useRedemptionTrend.ts",
+        "src/components/analytics/advanced/AdvancedAnalyticsTab.tsx"
+      ],
+      "findings": [
+        {
+          "severity": "low",
+          "autoFixable": true,
+          "fixed": true,
+          "message": "Inline `tickFormatter` arrow function in YAxis creates new function reference on every render. Hoisted to module-level `formatYAxisTick` constant.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx"
+        },
+        {
+          "severity": "medium",
+          "autoFixable": false,
+          "fixed": false,
+          "message": "Module-level mutable _fallbackIdx counter. Deterministic due to _fallbackMap caching; not incorrect but non-idiomatic. Advisory only.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx"
+        }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "fed3a2f4cea73b4b2119f21e4be0136cb5566c0e",
+      "fixes": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "autoFixable": true,
+          "fixed": true,
+          "message": "Line dot used hardcoded `fill: \"white\"` which breaks dark mode. Fixed to `fill: \"hsl(var(--card))\"` token.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+          "line": 289
+        },
+        {
+          "severity": "high",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true,
+          "message": "Hardcoded HSL literal for 'credits' currency color (`hsl(259 60% 58%)`). Not dark-mode token. Would require adding a CSS custom property — deferred to follow-up.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+          "line": 44
+        },
+        {
+          "severity": "high",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true,
+          "message": "FALLBACK_COLORS array uses hardcoded HSL literals. Would require design-token additions — deferred to follow-up.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+          "line": 47
+        },
+        {
+          "severity": "high",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true,
+          "message": "Component does not use ChartContainer from @/components/ui/chart.tsx (established shadcn pattern). Migration would require refactor — deferred to follow-up tech debt.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+          "line": 40
+        },
+        {
+          "severity": "medium",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true,
+          "message": "Module-level _fallbackIdx/_fallbackMap singletons may cause non-deterministic assignment in HMR. Same advisory as code-review finding.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+          "line": 89
+        },
+        {
+          "severity": "medium",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true,
+          "message": "No visible legend for multi-currency line chart. Screen readers cannot identify which line is which currency without tooltip interaction.",
+          "file": "src/components/analytics/advanced/RedemptionTrendChart.tsx",
+          "line": 281
+        }
+      ],
+      "note": "High-severity 'fixed=false' findings are advisory only for this story — they relate to ChartContainer migration and token additions that are out of scope for US-04. They do not block ship."
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "fed3a2f4cea73b4b2119f21e4be0136cb5566c0e",
+      "fixes": 0,
+      "checks": {
+        "noLocalStorage": "passed",
+        "noSessionStorage": "passed",
+        "noDangerouslySetInnerHTML": "passed",
+        "noAnyTypes": "passed",
+        "noSecretsInSource": "passed",
+        "usesConfiguredAxios": "passed — service imports from @/lib/axios",
+        "noSensitiveDataInUrl": "passed — only dateFrom/dateTo params"
+      }
+    },
+    "adversarial-review": {
+      "status": "awaiting-user-review",
+      "findings": []
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "fed3a2f4cea73b4b2119f21e4be0136cb5566c0e",
+      "fixes": 0,
+      "testsRun": [
+        {
+          "suite": "vitest",
+          "file": "src/components/analytics/advanced/__tests__/RedemptionTrendChart.test.tsx",
+          "passed": 11,
+          "failed": 0
+        }
+      ],
+      "e2eStatus": "deferred — no real BE available; E2E spec scaffolded at e2e/redemption-analytics-advanced/redemption-trend.spec.ts"
+    }
+  },
+  "overall": "awaiting-adversarial-review",
+  "lastCompletedStep": "tests",
+  "rcFixesTotal": 2,
+  "rcFixesList": [
+    "Hoisted YAxis tickFormatter to module-level formatYAxisTick constant (code-review)",
+    "Replaced dot fill 'white' with hsl(var(--card)) token (ui-ux-review)"
+  ]
+}

@@ -1,0 +1,171 @@
+openapi: 3.0.3
+info:
+  title: Recommendation Endpoints
+  description: AI-powered training and incentive recommendations
+  version: 1.0.0
+
+paths:
+  # ── User-facing ────────────────────────────────
+  /api/v1/recommendations/training:
+    get:
+      summary: Get training recommendations
+      tags: [Recommendations]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.view
+      responses:
+        "200":
+          description: Ranked list of training course recommendations
+
+  /api/v1/recommendations/incentives:
+    get:
+      summary: Get incentive recommendations
+      tags: [Recommendations]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.view
+      responses:
+        "200":
+          description: Ranked list of incentive program recommendations
+
+  /api/v1/recommendations/{type}/{targetId}/interactions:
+    post:
+      summary: Record interaction with a recommendation
+      tags: [Recommendations]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.interact
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [TRAINING, INCENTIVE]
+        - name: targetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                interactionType:
+                  type: string
+                  enum: [VIEWED, DISMISSED, COMPLETED]
+      responses:
+        "200":
+          description: Interaction recorded
+
+  /api/v1/recommendations/{type}/{targetId}/complete:
+    post:
+      summary: Complete a recommendation
+      tags: [Recommendations]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.interact
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [TRAINING, INCENTIVE]
+        - name: targetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Completion recorded (with optional reward)
+
+  /api/v1/recommendations/{type}/{targetId}/insight:
+    post:
+      summary: Stream AI insight for a recommendation (SSE)
+      tags: [Recommendations]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.interact
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [TRAINING, INCENTIVE]
+        - name: targetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: SSE stream of AI insight
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  # ── Admin ──────────────────────────────────────
+  /api/v1/admin/recommendations/config:
+    get:
+      summary: Get recommendation config
+      tags: [Recommendation Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.config
+      responses:
+        "200":
+          description: Recommendation engine configuration
+
+    put:
+      summary: Save recommendation config
+      tags: [Recommendation Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trainingEnabled:
+                  type: boolean
+                incentiveEnabled:
+                  type: boolean
+                maxTrainingRecommendations:
+                  type: integer
+                maxIncentiveRecommendations:
+                  type: integer
+                rewardCurrencyId:
+                  type: string
+                trainingCompletionReward:
+                  type: string
+                  description: Decimal string
+                incentiveCompletionReward:
+                  type: string
+                  description: Decimal string
+      responses:
+        "200":
+          description: Config saved
+
+  /api/v1/admin/recommendations/refresh:
+    post:
+      summary: Trigger recommendation refresh
+      tags: [Recommendation Admin]
+      security:
+        - bearerAuth: []
+      x-permission: action.recommendations.config
+      responses:
+        "200":
+          description: Refresh triggered
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

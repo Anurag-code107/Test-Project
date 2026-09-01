@@ -1,0 +1,175 @@
+openapi: 3.0.3
+info:
+  title: Fiscal Year Config Endpoints
+  description: Fiscal year and quarter configuration per tenant
+  version: 1.0.0
+
+paths:
+  /api/v1/fiscal-year-configs:
+    get:
+      summary: List fiscal year configs
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.view
+      responses:
+        "200":
+          description: List of fiscal year configurations
+
+    post:
+      summary: Create fiscal year config
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [label, startDate, endDate, quarterMethod]
+              properties:
+                label:
+                  type: string
+                  maxLength: 20
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                quarterMethod:
+                  type: string
+                  enum: [MONTHS, WEEKS, DAYS, CUSTOM]
+                quarterSize:
+                  type: integer
+                q1StartDate:
+                  type: string
+                  format: date
+                q1EndDate:
+                  type: string
+                  format: date
+                q2StartDate:
+                  type: string
+                  format: date
+                q2EndDate:
+                  type: string
+                  format: date
+                q3StartDate:
+                  type: string
+                  format: date
+                q3EndDate:
+                  type: string
+                  format: date
+                q4StartDate:
+                  type: string
+                  format: date
+                q4EndDate:
+                  type: string
+                  format: date
+      responses:
+        "201":
+          description: Fiscal year config created
+
+  /api/v1/fiscal-year-configs/labels:
+    get:
+      summary: List fiscal year labels
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.view
+      responses:
+        "200":
+          description: List of fiscal year labels (e.g. ["FY2025", "FY2026"])
+
+  /api/v1/fiscal-year-configs/current:
+    get:
+      summary: Get current fiscal year config
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.view
+      responses:
+        "200":
+          description: Fiscal year config containing today's date
+        "404":
+          description: No fiscal year configured for current date
+
+  /api/v1/fiscal-year-configs/by-label/{label}:
+    get:
+      summary: Get config by label
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.view
+      parameters:
+        - name: label
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Fiscal year config
+        "404":
+          description: Label not found
+
+  /api/v1/fiscal-year-configs/{id}:
+    get:
+      summary: Get config by ID
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.view
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Fiscal year config
+
+    put:
+      summary: Update fiscal year config
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Same schema as create
+      responses:
+        "200":
+          description: Config updated
+
+    delete:
+      summary: Delete fiscal year config
+      tags: [Fiscal Year]
+      security:
+        - bearerAuth: []
+      x-permission: action.fiscal_year.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Config deleted
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

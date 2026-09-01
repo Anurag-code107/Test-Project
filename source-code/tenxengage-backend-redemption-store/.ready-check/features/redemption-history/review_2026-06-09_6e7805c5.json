@@ -1,0 +1,104 @@
+{
+  "featureId": "redemption-history",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-history",
+  "headCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+  "startedAt": "2026-06-08T13:10:00Z",
+  "updatedAt": "2026-06-09T12:30:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-08T13:12:00Z",
+      "notes": "gradlew check BUILD SUCCESSFUL. spec.md exists."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-08T13:25:00Z",
+      "fixes": 1,
+      "filesReviewed": ["RedemptionHistoryService.java","RedemptionExportService.java","RedemptionHistoryController.java","RedemptionExportController.java","RedemptionExportJob.java","RedemptionHistoryRepository.java","ExportRateLimiter.java"],
+      "fixesApplied": ["RedemptionExportService.processExportJob: null-safe failureReason"],
+      "manualItems": ["CRITICAL: ExportRateLimiter global lock bottleneck","HIGH: @Async self-invocation (fixed in adversarial round)","HIGH: Integer.MAX_VALUE page size (fixed)","HIGH: COALESCE non-sargable queries"]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-08T13:25:00Z",
+      "fixes": 0,
+      "manualItems": ["HIGH: ExportRateLimiter in-memory only","MEDIUM: sortBy echoes raw input","MEDIUM: TriggerExportRequest no date range cap"]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-08T13:28:00Z",
+      "notes": "All 7 endpoints align with redemption-history.yaml."
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-09T12:30:00Z",
+      "source": "job-store",
+      "codexJobId": "review-mq6m0awl-44uv7l",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-history",
+      "codexCompletedAt": "2026-06-09T12:24:44.005Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "INSTANT redemptions reserve funds but have no dispatch path",
+          "details": "Pre-existing from redemption-flow. INSTANT dispatch commented out pending US-05 BE-1.",
+          "file": "src/main/java/com/tenxengage/app/service/RedemptionSubmissionService.java",
+          "lineStart": 158, "lineEnd": 215,
+          "severity": "critical", "confidence": 0.94,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — 6 explicit comments; design decision accepted; deferred to US-05",
+          "recommendation": "Enable INSTANT dispatch when XTRM account verification completes (US-05).",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "Batch recovery can duplicate vendor dispatch across scheduler instances",
+          "details": "Pre-existing from redemption-approval-queue. Documented trade-off; outbox deferred to US-06.",
+          "file": "src/main/java/com/tenxengage/app/service/BatchRedemptionProcessor.java",
+          "lineStart": 135, "lineEnd": 166,
+          "severity": "high", "confidence": 0.86,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — documented in code; outbox deferred to US-06",
+          "recommendation": "Implement outbox pattern in US-06.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "Webhook settlement path uses placeholder vendor contract fields",
+          "details": "Pre-existing from redemption-approval-queue. 6 PLACEHOLDER comments, US-07 BE-1.",
+          "file": "src/main/java/com/tenxengage/app/controller/RedemptionWebhookController.java",
+          "lineStart": 83, "lineEnd": 186,
+          "severity": "high", "confidence": 0.9,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — 6 PLACEHOLDER comments; safe fail-mode; deferred to US-07",
+          "recommendation": "Replace placeholders with confirmed vendor contracts in US-07.",
+          "alreadyHandled": true
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-08T13:34:00Z",
+      "testsRun": ["RedemptionHistoryServiceTest","RedemptionExportServiceTest","RedemptionHistoryControllerTest","RedemptionExportControllerTest","full suite"],
+      "fixes": 0
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "6e7805c57c1ed3a9200fa7718aa2ff1170398836",
+      "completedAt": "2026-06-08T13:36:00Z",
+      "gaps": []
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "coverage",
+  "updatedAt": "2026-06-09T12:30:00Z"
+}

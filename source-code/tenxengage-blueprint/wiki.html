@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tenXengage Developer & QA Wiki</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Smooth scrolling */
+    html { scroll-behavior: smooth; }
+
+    /* Sidebar active state */
+    .nav-link.active {
+      background-color: #f0f4ff;
+      color: #3b5bdb;
+      font-weight: 600;
+      border-left: 3px solid #3b5bdb;
+    }
+
+    /* Code block styling */
+    pre code { font-size: 0.825rem; }
+
+    /* Sidebar scrollbar */
+    #sidebar::-webkit-scrollbar { width: 4px; }
+    #sidebar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 9999px; }
+
+    /* Section fade-in */
+    section { scroll-margin-top: 24px; }
+
+    /* Badge variants */
+    .badge-be  { background:#dbeafe; color:#1d4ed8; }
+    .badge-fe  { background:#dcfce7; color:#15803d; }
+    .badge-all { background:#fef3c7; color:#92400e; }
+
+    /* Step number */
+    .step-num {
+      width: 32px; height: 32px;
+      background: #3b5bdb;
+      color: #fff;
+      border-radius: 9999px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    /* Table striping */
+    tbody tr:nth-child(even) { background: #f8fafc; }
+
+    /* Collapsible FAQ */
+    details summary { cursor: pointer; }
+    details[open] summary .chevron { transform: rotate(90deg); }
+    .chevron { transition: transform 0.2s; display: inline-block; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+<!-- ─── TOP NAV ─────────────────────────────────────────────────────────── -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-14 flex items-center px-6 gap-4">
+  <div class="flex items-center gap-2">
+    <div class="w-7 h-7 bg-indigo-600 rounded-md flex items-center justify-center">
+      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h10" />
+      </svg>
+    </div>
+    <span class="font-semibold text-gray-900 text-sm tracking-tight">tenXengage</span>
+    <span class="text-gray-300 text-sm">/</span>
+    <span class="text-gray-500 text-sm">Developer & QA Wiki</span>
+  </div>
+  <div class="ml-auto text-xs text-gray-400">Last updated: 2026-05-03</div>
+</header>
+
+<!-- ─── LAYOUT ───────────────────────────────────────────────────────────── -->
+<div class="flex pt-14 min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="fixed top-14 left-0 bottom-0 w-60 bg-white border-r border-gray-200 overflow-y-auto py-6">
+    <nav class="px-3 space-y-0.5 text-sm">
+
+      <p class="px-3 pt-1 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">Overview</p>
+      <a href="#how-it-works"      class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">How It Works</a>
+      <a href="#workspace"         class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Workspace Layout</a>
+      <a href="#standards"         class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Project Standards</a>
+
+      <p class="px-3 pt-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">Setup</p>
+      <a href="#local-config"       class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Local Configuration</a>
+      <!-- <a href="#codex-setup"        class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">Codex Setup</a> -->
+      <p class="px-3 pt-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">Feature Workflow</p>
+      <!-- <a href="#large-features"    class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Large Features</a> -->
+      <a href="#step0"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">0 · Decompose BRD</a>
+      <a href="#seed-clickup"      class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">Seed ClickUp</a>
+      <a href="#step1"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">1 · Create Spec</a>
+      <a href="#step2"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">2 · Create Stories</a>
+      <a href="#step2b"            class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">2b · Create Mockups</a>
+      <a href="#step3"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">3 · Generate Contracts</a>
+      <a href="#step4"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">4 · Implement</a>
+      <a href="#foundation"        class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">Foundation Tasks</a>
+      <a href="#stories"           class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">User Stories</a>
+      <a href="#step5"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">5 · Ready Check</a>
+      <a href="#step6"             class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">6 · Create PR</a>
+
+      <p class="px-3 pt-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">Bug Workflow</p>
+      <a href="#bug-reporting"     class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Bug Reporting</a>
+      <a href="#in-app-reporter"   class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">In-App Reporter</a>
+      <a href="#reporter-reference" class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">Reporter Reference</a>
+      <a href="#bug-fixing"        class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Bug Fixing</a>
+      <a href="#bug-surfaces"      class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Data Surfaces</a>
+
+      <p class="px-3 pt-5 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">Reference</p>
+      <a href="#commands"          class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">All Skills</a>
+      <a href="#branching"         class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Branching</a>
+      <a href="#base-branch"       class="nav-link flex items-center gap-2 px-3 pl-8 py-1.5 rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs">Base Branch Config</a>
+      <a href="#naming"            class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">Feature Naming</a>
+      <a href="#faq"               class="nav-link flex items-center gap-2 px-3 py-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">FAQ</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="ml-60 flex-1 px-10 py-10">
+
+    <!-- ── HERO ──────────────────────────────────────────────────────────── -->
+    <section id="how-it-works" class="mb-14">
+      <div class="mb-6">
+        <span class="inline-block text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full mb-3 tracking-wide uppercase">Overview</span>
+        <h1 class="text-3xl font-bold text-gray-900 mb-3">tenXengage Claude Development & QA Guide</h1>
+        <p class="text-gray-500 text-base leading-relaxed">
+          For a single feature, every feature starts as a spec — a single document that both frontend and backend teams use as their source of truth.
+          For initiative-scoped BRDs spanning multiple features, run <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm">/decompose-brd</code> first to slice the BRD into a feature roadmap, then run <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm">/create-spec {roadmap-slug} F-NN</code> for each slice.
+          The spec lives in <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm">tenxengage-blueprint</code>, shared across all teams.
+          API contracts are generated from the spec into <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm">tenxengage-contracts</code>, enabling parallel development.
+          Quality gates run before PRs to catch issues early.
+        </p>
+      </div>
+
+      <!-- Workflow pipeline -->
+      <div class="flex items-center justify-center gap-1 flex-wrap mt-14">
+        <!-- Roadmap (optional) — PRD/BRD floats above it as input -->
+        <div class="relative bg-white border border-dashed border-purple-300 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="absolute left-1/2 -translate-x-1/2 whitespace-nowrap bg-gray-50 border border-dashed border-gray-300 rounded-lg px-3 py-1.5" style="bottom:calc(100% + 20px)">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
+              <span class="text-xs font-medium text-gray-500">PRD / BRD / Description</span>
+            </div>
+          </div>
+          <svg class="absolute left-1/2 -translate-x-1/2 w-3.5 h-3.5 text-gray-500" style="bottom:calc(100% + 3px)" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14m-5-5l5 5 5-5" /></svg>
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-purple-400 rounded-full"></div>
+            <span class="text-sm font-medium text-gray-700">Roadmap</span>
+          </div>
+          <div class="text-xs text-purple-400 font-mono mt-0.5 ml-4">blueprint</div>
+          <div class="text-xs text-gray-400 mt-0.5 ml-4">F-01 · F-02 · …</div>
+        </div>
+        <!-- per-feature arrow (dashed) -->
+        <div class="flex flex-col items-center gap-0.5 flex-shrink-0">
+          <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          <span class="text-xs text-purple-400 whitespace-nowrap">per feature</span>
+        </div>
+        <!-- Spec -->
+        <div class="bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-indigo-500 rounded-full"></div>
+            <span class="text-sm font-medium text-gray-700">Spec</span>
+          </div>
+          <div class="text-xs text-indigo-400 font-mono mt-0.5 ml-4">blueprint</div>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <!-- Stories -->
+        <div class="bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-violet-500 rounded-full"></div>
+            <span class="text-sm font-medium text-gray-700">Stories</span>
+          </div>
+          <div class="text-xs text-indigo-400 font-mono mt-0.5 ml-4">blueprint</div>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <!-- Contracts -->
+        <div class="bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-cyan-500 rounded-full"></div>
+            <span class="text-sm font-medium text-gray-700">Contracts</span>
+          </div>
+          <div class="text-xs text-cyan-500 font-mono mt-0.5 ml-4">contracts</div>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <!-- Foundation -->
+        <div class="bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <span class="text-sm font-medium text-gray-700">Foundation</span>
+          </div>
+          <div class="text-xs text-blue-500 font-mono mt-0.5 ml-4">backend</div>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <!-- Implement — split into two parallel boxes -->
+        <div class="flex flex-col gap-5">
+          <div class="bg-white border border-blue-200 rounded-lg px-4 py-2 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-700">Implement</span>
+            </div>
+            <div class="text-xs text-blue-500 font-mono mt-0.5 ml-4">backend</div>
+          </div>
+          <div class="bg-white border border-green-200 rounded-lg px-4 py-2 shadow-sm">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 bg-amber-400 rounded-full"></div>
+              <span class="text-sm font-medium text-gray-700">Implement</span>
+            </div>
+            <div class="text-xs text-green-600 font-mono mt-0.5 ml-4">frontend</div>
+          </div>
+        </div>
+        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <!-- Ready Check + PR -->
+        <div class="bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-rose-500 rounded-full"></div>
+            <span class="text-sm font-medium text-gray-700">Ready Check → PR</span>
+          </div>
+          <div class="text-xs text-gray-400 font-mono mt-0.5 ml-4">backend/frontend</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── WORKSPACE ─────────────────────────────────────────────────────── -->
+    <section id="workspace" class="mb-14">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Workspace Layout</h2>
+      <p class="text-gray-500 text-sm mb-5">All repos sit as siblings in the same parent folder.</p>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono leading-relaxed mb-5">
+        <span class="text-gray-400">any-folder/</span><br>
+        &nbsp;&nbsp;<span class="text-indigo-400">tenxengage-blueprint/</span>&nbsp;&nbsp;&nbsp;<span class="text-gray-500"># Specs, stories, templates</span><br>
+        &nbsp;&nbsp;<span class="text-cyan-400">tenxengage-contracts/</span>&nbsp;&nbsp;<span class="text-gray-500"># OpenAPI contracts, models, enums</span><br>
+        &nbsp;&nbsp;<span class="text-emerald-400">tenxengage-backend/</span>&nbsp;&nbsp;&nbsp;<span class="text-gray-500"># Java 21 · Spring Boot 3.2.5</span><br>
+        &nbsp;&nbsp;<span class="text-amber-400">tenxengage-frontend/</span>&nbsp;&nbsp;&nbsp;<span class="text-gray-500"># React 18 · TypeScript · Tailwind</span><br>
+        &nbsp;&nbsp;<span class="text-purple-400">tenxengage-admin-backend/</span><br>
+        &nbsp;&nbsp;<span class="text-pink-400">tenxengage-admin-frontend/</span>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+        <strong>Note:</strong> The blueprint repo contains <em>no code</em> — only specs and test plans. The contracts repo is mounted as a git submodule at <code class="bg-blue-100 px-1 rounded">contracts/</code> inside both the backend and frontend repos.
+      </div>
+    </section>
+
+    <!-- ── PROJECT STANDARDS ─────────────────────────────────────────────── -->
+    <section id="standards" class="mb-14">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Project Standards</h2>
+      <p class="text-gray-500 text-sm mb-5">Every repo has a <code class="bg-gray-100 px-1 rounded">PROJECT-CONTEXT.md</code> documenting architecture, conventions, and coding rules. <code class="bg-gray-100 px-1 rounded">docs/patterns/</code> contains detailed reference files for complex areas.</p>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">File</th>
+              <th class="text-left px-5 py-3 font-semibold">Purpose</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">PROJECT-CONTEXT.md</td><td class="px-5 py-3 text-gray-600">Standards, conventions, anti-patterns for the repo</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">docs/patterns/builder-wizard.md</td><td class="px-5 py-3 text-gray-600">Builder/wizard layout, state, animations, file structure</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">docs/patterns/builder-config.md</td><td class="px-5 py-3 text-gray-600">Config-driven dynamic sections and fields</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">docs/patterns/ai-copilot.md</td><td class="px-5 py-3 text-gray-600">SSE streaming, tool-based actions, document pipeline</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">docs/patterns/permissions-and-feature-flags.md</td><td class="px-5 py-3 text-gray-600">5-layer permission resolution, <code class="bg-gray-100 px-1 rounded">@RequiresPermission</code>, <code class="bg-gray-100 px-1 rounded">usePermissions</code></td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">docs/patterns/tenant-isolation.md</td><td class="px-5 py-3 text-gray-600">TenantAware, <code class="bg-gray-100 px-1 rounded">@Filter</code>, <code class="bg-gray-100 px-1 rounded">TenantContext</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-sm text-gray-500">The blueprint repo has <code class="bg-gray-100 px-1 rounded">PROJECT-CONTEXT.md</code> — an aggregated view of all repo standards used when creating specs.</p>
+    </section>
+
+    <!-- ── LOCAL CONFIGURATION ──────────────────────────────────────────── -->
+    <section id="local-config" class="mb-14">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Local Configuration <span class="text-sm font-normal text-gray-400">(One-time Setup)</span></h2>
+      <p class="text-gray-500 text-sm mb-6">Each team member must complete these steps once before using the workflow skills and bug tools. The CLI skills (<code class="bg-gray-100 px-1 rounded">/bug-reporter</code>, <code class="bg-gray-100 px-1 rounded">/bug-fixer</code>) read credentials from Claude's environment; the in-app bug reporter reads them from the frontend <code class="bg-gray-100 px-1 rounded">.env.local</code> file.</p>
+
+      <!-- Step 0: Superpowers plugin -->
+      <div class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">0</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Install the Superpowers plugin</h3>
+          <p class="text-sm text-gray-600 mb-3">Run once per machine in any Claude Code session. This plugin provides the development workflow process skills — brainstorming, writing plans, test-driven development, systematic debugging, code review flows, and more. These power the <code class="bg-gray-100 px-1 rounded">--tdd</code> flag, the review steps in <code class="bg-gray-100 px-1 rounded">/ready-check</code>, and the spec-writing flow used by the project commands.</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            /plugin install superpowers@claude-plugins-official
+          </div>
+          <p class="text-xs text-gray-500">After the install completes, reload the VSCode window (<code class="bg-gray-100 px-1 rounded">Cmd+Shift+P → Reload Window</code> on Mac, <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+P → Reload Window</code> on Windows/Linux).</p>
+        </div>
+      </div>
+
+      <!-- Step 1: ClickUp token -->
+      <div class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">1</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Get your ClickUp API token</h3>
+          <p class="text-sm text-gray-600 mb-3">Open ClickUp → click your avatar (bottom-left) → <strong>Settings</strong> → <strong>Apps</strong>. Under <strong>API Token</strong>, click <strong>Generate</strong> (or copy your existing token). Keep it handy — you'll paste it in the next two steps.</p>
+        </div>
+      </div>
+
+      <!-- Step 2: Bugs list ID -->
+      <div class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">2</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Find the bugs list ID</h3>
+          <p class="text-sm text-gray-600 mb-3">Open the ClickUp list where bugs are tracked. The list ID is the numeric segment at the end of the URL. Ask your team lead if you're unsure which list to use.</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono">
+            https://app.clickup.com/12345678/v/li/<span class="bg-yellow-400 text-gray-900 px-1 rounded">90123456789</span><br>
+            <span class="text-gray-500 text-xs">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&uarr; this is CLICKUP_BUGS_LIST_ID</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Claude settings -->
+      <div class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">3</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Configure Claude Code <span class="text-xs font-normal text-gray-400 ml-1">for CLI skills: /bug-reporter, /bug-fixer</span></h3>
+          <p class="text-sm text-gray-600 mb-3">Add your credentials to <code class="bg-gray-100 px-1 rounded">~/.claude/settings.json</code>. If the file already exists, merge the <code class="bg-gray-100 px-1 rounded">env</code> block in — don't replace the whole file. After saving, reload the VSCode window (<code class="bg-gray-100 px-1 rounded">Cmd+Shift+P → Reload Window</code> on Mac, <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+P → Reload Window</code> on Windows/Linux).</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono">
+            {<br>
+            &nbsp;&nbsp;<span class="text-amber-300">"env"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"CLICKUP_API_TOKEN"</span>: <span class="text-emerald-400">"pk_xxxxxxxxxxxxxxxxxxxx"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"CLICKUP_BUGS_LIST_ID"</span>: <span class="text-emerald-400">"90123456789"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-gray-500">// optional — required for /seed-clickup</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"CLICKUP_BACKLOG_LIST_ID"</span>: <span class="text-emerald-400">"90123456790"</span><br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: .env.local -->
+      <div class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">4</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Configure the frontend dev server <span class="text-xs font-normal text-gray-400 ml-1">for the in-app 🐞 widget</span></h3>
+          <p class="text-sm text-gray-600 mb-3">Create or update <code class="bg-gray-100 px-1 rounded">tenxengage-frontend/.env.local</code>. This file is gitignored and never gets committed. Restart the dev server after editing.</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-4">
+            <span class="text-gray-400"># ClickUp integration — required for ticket creation from the 🐞 widget</span><br>
+            <span class="text-amber-300">CLICKUP_API_TOKEN</span>=pk_xxxxxxxxxxxxxxxxxxxx<br>
+            <span class="text-amber-300">CLICKUP_BUGS_LIST_ID</span>=90123456789<br><br>
+            <span class="text-gray-400"># Your name — pre-fills the "Reported by" field</span><br>
+            <span class="text-amber-300">BUG_REPORTER_NAME</span>=Your Name<br><br>
+            <span class="text-gray-400"># Enable ClickUp ticket toggle by default on every report</span><br>
+            <span class="text-amber-300">BUG_REPORTER_AUTO_TICKET</span>=true
+          </div>
+          <p class="text-sm font-medium text-gray-700 mb-2">Optional tuning variables:</p>
+          <div class="overflow-hidden border border-gray-200 rounded-xl">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-gray-400 uppercase tracking-wider">
+                <tr>
+                  <th class="text-left px-4 py-2 font-semibold">Variable</th>
+                  <th class="text-left px-4 py-2 font-semibold">Default</th>
+                  <th class="text-left px-4 py-2 font-semibold">Purpose</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr><td class="px-4 py-2 font-mono text-indigo-700 bg-white">VITE_BUG_REPORTER_NETWORK_WINDOW_MS</td><td class="px-4 py-2 text-gray-500">since last nav</td><td class="px-4 py-2 text-gray-600">How far back (ms) to include network entries in a regular capture</td></tr>
+                <tr><td class="px-4 py-2 font-mono text-indigo-700">VITE_BUG_REPORTER_NOISE_ENDPOINTS</td><td class="px-4 py-2 text-gray-500">/notifications/unread-count</td><td class="px-4 py-2 text-gray-600">Comma-separated URL substrings to suppress from network capture (failures always appear)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Chrome MCP -->
+      <div class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">5</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Set up Chrome MCP <span class="text-xs font-normal text-gray-400 ml-1">required only for /bug-reporter --capture</span></h3>
+          <p class="text-sm text-gray-600 mb-3">Skip this step if you'll use the in-app 🐞 widget exclusively. Chrome must be running on port 9222 <strong>before</strong> the Claude Code session starts.</p>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Mac</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            <span class="text-gray-400"># Launch Chrome with remote debugging (once per machine login)</span><br>
+            /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \<br>
+            &nbsp;&nbsp;--remote-debugging-port=9222 \<br>
+            &nbsp;&nbsp;--user-data-dir=/tmp/chrome-debug
+          </div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Windows (PowerShell)</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            <span class="text-gray-400"># Launch Chrome with remote debugging (once per machine login)</span><br>
+            &amp; <span class="text-emerald-300">"C:\Program Files\Google\Chrome\Application\chrome.exe"</span> `<br>
+            &nbsp;&nbsp;--remote-debugging-port=9222 `<br>
+            &nbsp;&nbsp;--user-data-dir=<span class="text-emerald-300">"$env:TEMP\chrome-debug"</span>
+          </div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Windows (CMD)</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            <span class="text-gray-400">REM Launch Chrome with remote debugging (once per machine login)</span><br>
+            <span class="text-emerald-300">"C:\Program Files\Google\Chrome\Application\chrome.exe"</span> ^<br>
+            &nbsp;&nbsp;--remote-debugging-port=9222 ^<br>
+            &nbsp;&nbsp;--user-data-dir=%TEMP%\chrome-debug
+          </div>
+          <p class="text-sm text-gray-600 mb-3">Then add the MCP server to <code class="bg-gray-100 px-1 rounded">~/.claude.json</code> and reload the VSCode window (<code class="bg-gray-100 px-1 rounded">Cmd+Shift+P</code> on Mac, <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+P</code> on Windows/Linux):</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono">
+            {<br>
+            &nbsp;&nbsp;<span class="text-amber-300">"mcpServers"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"chrome-devtools"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"command"</span>: <span class="text-emerald-400">"npx"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"args"</span>: [<span class="text-emerald-400">"chrome-devtools-mcp"</span>, <span class="text-emerald-400">"--browserUrl"</span>, <span class="text-emerald-400">"http://127.0.0.1:9222"</span>]<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Playwright MCP is a fallback when Chrome isn't available — it launches a fresh Chromium with no session, so user context won't be captured.</p>
+        </div>
+      </div>
+
+      <!-- Step 6: Codex -->
+      <div id="codex-setup" class="flex items-start gap-4 mb-6">
+        <div class="step-num flex-shrink-0">6</div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-gray-800 mb-1">Set up Codex <span class="text-xs font-normal text-gray-400 ml-1">required for adversarial review in /ready-check</span></h3>
+          <p class="text-sm text-gray-600 mb-3">The <code class="bg-gray-100 px-1 rounded">/ready-check</code> adversarial review step invokes <code class="bg-gray-100 px-1 rounded">codex:adversarial-review</code>, which requires Codex CLI to be authenticated. Choose one option:</p>
+
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Option A — <code class="bg-gray-100 px-1 rounded">codex login</code> <span class="text-gray-400 font-normal normal-case">(recommended for individuals — uses your ChatGPT / OpenAI account)</span></p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            <span class="text-gray-400"># Install Codex CLI globally if not already installed</span><br>
+            npm install -g @openai/codex<br><br>
+            <span class="text-gray-400"># Authenticate interactively (opens browser)</span><br>
+            codex login
+          </div>
+
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Option B — <code class="bg-gray-100 px-1 rounded">OPENAI_API_KEY</code> <span class="text-gray-400 font-normal normal-case">(for teams and CI — add to Claude's env block)</span></p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            {<br>
+            &nbsp;&nbsp;<span class="text-amber-300">"env"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"CLICKUP_API_TOKEN"</span>: <span class="text-emerald-400">"pk_xxxxxxxxxxxxxxxxxxxx"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"CLICKUP_BUGS_LIST_ID"</span>: <span class="text-emerald-400">"90123456789"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="text-amber-300">"OPENAI_API_KEY"</span>: <span class="text-emerald-400">"sk-proj-xxxxxxxxxxxxxxxxxxxx"</span><br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <p class="text-xs text-gray-500">After editing <code class="bg-gray-100 px-1 rounded">~/.claude/settings.json</code>, reload the VSCode window (<code class="bg-gray-100 px-1 rounded">Cmd+Shift+P → Reload Window</code> on Mac, <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+P → Reload Window</code> on Windows/Linux).</p>
+          <p class="text-sm text-gray-600 mt-3 mb-2">Verify the setup by running:</p>
+          <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-3">
+            /codex:setup
+          </div>
+          <p class="text-xs text-gray-500">If Codex is unavailable during <code class="bg-gray-100 px-1 rounded">/ready-check</code>, the adversarial review step will fail. See the FAQ for troubleshooting.</p>
+        </div>
+      </div>
+
+      <!-- Summary table -->
+      <div class="overflow-hidden border border-gray-200 rounded-xl mt-2">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">Where</th>
+              <th class="text-left px-5 py-3 font-semibold">File</th>
+              <th class="text-left px-5 py-3 font-semibold">What it enables</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-5 py-3 text-gray-700 bg-white">Global Claude settings</td><td class="px-5 py-3 font-mono text-indigo-700">~/.claude/settings.json</td><td class="px-5 py-3 text-gray-600"><code class="bg-gray-100 px-1 rounded">/bug-reporter</code> and <code class="bg-gray-100 px-1 rounded">/bug-fixer</code> ClickUp integration</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700">Frontend repo</td><td class="px-5 py-3 font-mono text-indigo-700">tenxengage-frontend/.env.local</td><td class="px-5 py-3 text-gray-600">In-app 🐞 bug reporter ClickUp integration</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700 bg-white">Global Claude settings</td><td class="px-5 py-3 font-mono text-indigo-700">~/.claude.json</td><td class="px-5 py-3 text-gray-600"><code class="bg-gray-100 px-1 rounded">/bug-reporter --capture</code> browser auto-capture</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700">Terminal (once)</td><td class="px-5 py-3 font-mono text-indigo-700">codex login</td><td class="px-5 py-3 text-gray-600">Codex CLI auth for adversarial review — option A (individuals)</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700 bg-white">Global Claude settings</td><td class="px-5 py-3 font-mono text-indigo-700">~/.claude/settings.json <code class="bg-gray-100 px-1 rounded">env.OPENAI_API_KEY</code></td><td class="px-5 py-3 text-gray-600">Codex CLI auth for adversarial review — option B (teams / CI)</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700">Global Claude settings</td><td class="px-5 py-3 font-mono text-indigo-700">~/.claude/settings.json <code class="bg-gray-100 px-1 rounded">env.CLICKUP_BACKLOG_LIST_ID</code></td><td class="px-5 py-3 text-gray-600"><code class="bg-gray-100 px-1 rounded">/seed-clickup</code> backlog list target (optional — prompted on first run)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- FEATURE WORKFLOW                                                     -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <div class="mb-4">
+      <span class="inline-block text-xs font-semibold bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full tracking-wide uppercase">Feature Workflow</span>
+    </div>
+
+
+    <!-- ── LARGE FEATURES ─────────────────────────────────────────────────── -->
+    <section id="large-features" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Large Features &amp; Progressive Development</h2>
+      <p class="text-sm text-gray-500 mb-5">Choose the right entry point based on the scope of your input.</p>
+
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-5">
+          <p class="font-semibold text-gray-700 mb-2">Initiative-scoped BRD <span class="text-xs font-normal text-purple-500 ml-1">(multi-feature)</span></p>
+          <p class="text-xs text-gray-500 mb-3">Use when the input covers multiple features, personas, or phases — e.g. a full platform initiative or a product area BRD.</p>
+          <ul class="space-y-1.5 text-xs text-gray-500">
+            <li>• Run <code class="bg-purple-100 px-1 rounded">/decompose-brd</code> first to slice into feature roadmap + digest</li>
+            <li>• Then run <code class="bg-purple-100 px-1 rounded">/create-spec {roadmap-slug} F-NN</code> for each slice</li>
+            <li>• Digest is auto-loaded — no copy-paste needed</li>
+            <li>• Feature branches inherit full BRD context from the roadmap branch</li>
+          </ul>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-5">
+          <p class="font-semibold text-gray-700 mb-2">Single Feature <span class="text-xs font-normal text-gray-400 ml-1">(standard path)</span></p>
+          <p class="text-xs text-gray-500 mb-3">Use when the input is already a well-scoped single feature — a prompt, a PRD, or a single-feature BRD.</p>
+          <ul class="space-y-1.5 text-xs text-gray-500">
+            <li>• Go straight to <code class="bg-gray-100 px-1 rounded">/create-spec "description"</code> or <code class="bg-gray-100 px-1 rounded">/create-spec /path/to/prd.md</code></li>
+            <li>• Skip <code class="bg-gray-100 px-1 rounded">/decompose-brd</code> entirely</li>
+            <li>• Each task is self-contained: implement, test, commit</li>
+            <li>• Labeled <span class="badge-be text-xs px-1 rounded">[BE]</span> or <span class="badge-fe text-xs px-1 rounded">[FE]</span> so each team knows their tasks</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STEP 0: DECOMPOSE BRD ─────────────────────────────────────────── -->
+    <section id="step0" class="mb-12">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num" style="background:#7c3aed">0</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Decompose BRD <span class="text-sm font-normal text-gray-400 ml-1">— skip for single-feature work</span></h2>
+          <p class="text-sm text-gray-500 mt-0.5">Run in <code class="bg-gray-100 px-1 rounded">tenxengage-blueprint/</code> · Initiative-scoped BRDs only</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># Slice an initiative BRD into a feature roadmap</span><br>
+        <span class="text-emerald-400">/decompose-brd</span> /path/to/initiative-brd.pdf<br>
+        <span class="text-emerald-400">/decompose-brd</span> /path/to/initiative-brd.md
+      </div>
+
+      <div class="space-y-3 text-sm text-gray-600 mb-5">
+        <p>Use this step when the input is an initiative BRD spanning multiple features, personas, or phases. <code class="bg-gray-100 px-1 rounded">/decompose-brd</code> slices it into a feature roadmap and writes a digest of cross-cutting context. Skip this step entirely for single-feature work — go straight to Step 1.</p>
+      </div>
+
+      <!-- Roadmap anatomy table -->
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-5">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">File</th>
+              <th class="text-left px-5 py-3 font-semibold">Purpose</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">roadmaps/{roadmap-slug}/digest.md</td><td class="px-5 py-3 text-gray-600">Business truth — personas, platform constraints, cross-cutting rules; auto-loaded by <code class="bg-gray-100 px-1 rounded">/create-spec {roadmap-slug} F-NN</code></td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">roadmaps/{roadmap-slug}/digest-annex.md</td><td class="px-5 py-3 text-gray-600">Advisory technical artifacts (auth flows, data model sketches, UI wireframe notes)</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">roadmaps/{roadmap-slug}/roadmap.md</td><td class="px-5 py-3 text-gray-600">Thin index: feature slices, dependencies, ADR blockers, recommended sequence</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">roadmaps/{roadmap-slug}/features/F-NN-{roadmap-slug}.md</td><td class="px-5 py-3 text-gray-600">Per-feature brief; read by <code class="bg-gray-100 px-1 rounded">/create-spec {roadmap-slug} F-NN</code> automatically</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">roadmaps/{roadmap-slug}/backlog-seeds.csv</td><td class="px-5 py-3 text-gray-600">Story candidates per feature — input to <code class="bg-gray-100 px-1 rounded">/seed-clickup</code> (optional)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-purple-50 border border-purple-100 rounded-lg p-4 text-sm text-purple-800">
+        <strong>Branch note:</strong> <code class="bg-purple-100 px-1 rounded">/decompose-brd</code> creates and commits to a dedicated <code class="bg-purple-100 px-1 rounded">roadmaps/{roadmap-slug}</code> branch. Each subsequent <code class="bg-purple-100 px-1 rounded">/create-spec {roadmap-slug} F-NN</code> run cuts the feature branch from that roadmap branch, inheriting the digest automatically.
+      </div>
+
+      <!-- Seed ClickUp sub-section -->
+      <div id="seed-clickup" class="mt-8">
+        <h3 class="text-base font-semibold text-gray-800 mb-1">Seed ClickUp <span class="text-sm font-normal text-gray-400 ml-1">— optional, run after /decompose-brd</span></h3>
+        <p class="text-sm text-gray-500 mb-4">Run in <code class="bg-gray-100 px-1 rounded">tenxengage-blueprint/</code></p>
+
+        <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-sm font-mono mb-4">
+          <span class="text-emerald-400">/seed-clickup</span>
+        </div>
+
+        <div class="space-y-2 text-sm text-gray-600 mb-4">
+          <p>Reads <code class="bg-gray-100 px-1 rounded">backlog-seeds.csv</code> and creates an <strong>Epic</strong> (the roadmap) → <strong>Milestone</strong> (per feature) → <strong>Task</strong> (per story candidate) hierarchy in ClickUp. Idempotent — already-created items are verified and skipped, so it is safe to re-run at any time.</p>
+          <p>Requires <code class="bg-gray-100 px-1 rounded">CLICKUP_API_TOKEN</code>. Prompts for <code class="bg-gray-100 px-1 rounded">CLICKUP_BACKLOG_LIST_ID</code> on first run and offers to save it to <code class="bg-gray-100 px-1 rounded">~/.claude/settings.json</code>.</p>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
+          <strong>Note:</strong> <code class="bg-blue-100 px-1 rounded">CLICKUP_BACKLOG_LIST_ID</code> is the ClickUp list for your project backlog — separate from <code class="bg-blue-100 px-1 rounded">CLICKUP_BUGS_LIST_ID</code> (the bugs list). See <a href="#local-config" class="underline">Local Configuration</a> to pre-configure it.
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STEP 1: CREATE SPEC ────────────────────────────────────────────── -->
+    <section id="step1" class="mb-12">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num">1</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Create the Spec</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Run in <code class="bg-gray-100 px-1 rounded">tenxengage-blueprint/</code> · Anyone on the team</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># From a roadmap slice (after /decompose-brd) — {roadmap-slug} is the BRD slug from /decompose-brd</span><br>
+        <span class="text-emerald-400">/create-spec</span> <span class="text-amber-300">{roadmap-slug} F-NN</span><br><br>
+        <span class="text-gray-400"># From a prompt</span><br>
+        <span class="text-emerald-400">/create-spec</span> <span class="text-amber-300">"Quiz engine with timed quizzes, scoring, and certificates"</span><br><br>
+        <span class="text-gray-400"># From a PRD or BRD file</span><br>
+        <span class="text-emerald-400">/create-spec</span> /path/to/prd.md<br>
+        <span class="text-emerald-400">/create-spec</span> /path/to/feature-brd.pdf
+      </div>
+      <div class="bg-purple-50 border border-purple-100 rounded-lg p-4 text-sm text-purple-800 mb-5">
+        When using the <code class="bg-purple-100 px-1 rounded">{roadmap-slug} F-NN</code> form, Claude reads <code class="bg-purple-100 px-1 rounded">roadmaps/{roadmap-slug}/digest.md</code> and <code class="bg-purple-100 px-1 rounded">roadmaps/{roadmap-slug}/features/F-NN-{roadmap-slug}.md</code> automatically — no copy-paste needed. The feature branch is cut from the <code class="bg-purple-100 px-1 rounded">roadmaps/{roadmap-slug}</code> branch so it inherits the full BRD context.
+      </div>
+
+      <div class="space-y-3 text-sm text-gray-600">
+        <p>Claude reads the requirements, then automatically reads <code class="bg-gray-100 px-1 rounded">PROJECT-CONTEXT.md</code>, <code class="bg-gray-100 px-1 rounded">PROJECT-CONTEXT.md</code> from every sibling repo, and relevant <code class="bg-gray-100 px-1 rounded">docs/patterns/</code> files to ground the spec in actual project standards.</p>
+
+        <div class="grid grid-cols-3 gap-3 mt-4">
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p class="font-medium text-gray-700 mb-1">Scope Analysis</p>
+            <p class="text-xs text-gray-500">If the requirement is large, Claude decomposes it into sub-requirements and asks whether to create one spec or separate specs per domain.</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p class="font-medium text-gray-700 mb-1">Plan Mode</p>
+            <p class="text-xs text-gray-500">Runs in plan mode. You review the outline, request changes, then approve. Claude asks clarifying questions interactively if ambiguities exist.</p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <p class="font-medium text-gray-700 mb-1">15-Check Review</p>
+            <p class="text-xs text-gray-500">After approval, Claude runs a 15-check architectural review covering consistency, security, edge cases, performance, compliance, and more.</p>
+          </div>
+        </div>
+
+        <p class="mt-3">The spec covers: data model, API endpoints, DTOs, service methods, frontend pages/components, workflow states, edge cases, test scenarios, and implementation tasks. Each section is labeled <span class="badge-be font-medium text-xs px-1.5 py-0.5 rounded">[BE]</span>, <span class="badge-fe font-medium text-xs px-1.5 py-0.5 rounded">[FE]</span>, or <span class="badge-all font-medium text-xs px-1.5 py-0.5 rounded">[BE + FE]</span>.</p>
+      </div>
+    </section>
+
+    <!-- ── STEP 2: CREATE STORIES ─────────────────────────────────────────── -->
+    <section id="step2" class="mb-12">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num">2</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Create Stories</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Run in <code class="bg-gray-100 px-1 rounded">tenxengage-blueprint/</code> · After spec is reviewed</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-emerald-400">/create-stories</span> quiz-engine
+      </div>
+
+      <p class="text-sm text-gray-600 mb-4">Decomposes the reviewed spec into executable work units. Aborts if the spec is still <code class="bg-gray-100 px-1 rounded">draft</code> — run <code class="bg-gray-100 px-1 rounded">/review-spec</code> first if needed.</p>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">File generated</th>
+              <th class="text-left px-5 py-3 font-semibold">Contents</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">stories.md</td><td class="px-5 py-3 text-gray-600">Story index with a dependency graph showing parallel vs. sequential stories</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">tasks/foundation.md</td><td class="px-5 py-3 text-gray-600">Sequential foundation tasks (F1–Fn, count varies per feature) with execution checklists</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">stories/US-NN-*.md</td><td class="px-5 py-3 text-gray-600">One self-contained file per user story, sized for a single BE or FE session</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">tracker.md</td><td class="px-5 py-3 text-gray-600">Session status tracker — single source of truth; all sessions update cells here</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">test-plan.md</td><td class="px-5 py-3 text-gray-600">Cross-story integration tests (Testcontainers, multi-entity workflows)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── STEP 2b: MOCKUPS ───────────────────────────────────────────────── -->
+    <section id="step2b" class="mb-12">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num bg-gray-400">2b</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Create Mockups <span class="text-sm font-normal text-gray-400">(Optional)</span></h2>
+          <p class="text-sm text-gray-500 mt-0.5">Run in <code class="bg-gray-100 px-1 rounded">tenxengage-frontend/</code> · Frontend developer</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># All stories for a feature</span><br>
+        <span class="text-emerald-400">/create-mockups</span> quiz-engine<br><br>
+        <span class="text-gray-400"># Specific stories only</span><br>
+        <span class="text-emerald-400">/create-mockups</span> quiz-engine US-01,US-03
+      </div>
+
+      <p class="text-sm text-gray-600 mb-4">Generates interactive TSX mockups before writing any production code. Useful when the UI is complex, novel, or needs stakeholder sign-off before implementation begins.</p>
+
+      <div class="grid grid-cols-2 gap-4 text-sm">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p class="font-medium text-gray-700 mb-2">What gets generated</p>
+          <ul class="space-y-1.5 text-xs text-gray-500">
+            <li>• One TSX file per screen in <code class="bg-gray-100 px-1 rounded">src/mockups/{feature-id}/</code></li>
+            <li>• <code class="bg-gray-100 px-1 rounded">FullFeatureMockup.tsx</code> — card-grid navigator with floating screen-switcher pill</li>
+            <li>• Auto-discovered by <code class="bg-gray-100 px-1 rounded">MockupRouter</code> via <code class="bg-gray-100 px-1 rounded">import.meta.glob</code> — no <code class="bg-gray-100 px-1 rounded">App.tsx</code> edits needed</li>
+            <li>• All UI states: empty, loading, populated, all status variants</li>
+            <li>• Floating MockupControls bar to switch views and states</li>
+            <li>• <code class="bg-gray-100 px-1 rounded">mockup_file</code> written back to story frontmatter</li>
+            <li>• Production-safe: tree-shaken out by Vite (<code class="bg-gray-100 px-1 rounded">import.meta.env.DEV</code>)</li>
+          </ul>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p class="font-medium text-gray-700 mb-2">Viewing &amp; iterating</p>
+          <ul class="space-y-1.5 text-xs text-gray-500">
+            <li>• Feature navigator: <code class="bg-gray-100 px-1 rounded">localhost:5173/mockup/<feature-slug></code></li>
+            <li>• Specific screen: <code class="bg-gray-100 px-1 rounded">localhost:5173/mockup/<feature-slug>/quiz-list</code></li>
+            <li>• All mockups index: <code class="bg-gray-100 px-1 rounded">localhost:5173/mockup/</code></li>
+            <li>• Open Claude browser extension (side panel) → describe changes</li>
+            <li>• Repeat until the mockup matches your vision</li>
+            <li>• <code class="bg-gray-100 px-1 rounded">/load-story</code> automatically picks up mockup path</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STEP 3: GENERATE CONTRACTS ────────────────────────────────────── -->
+    <section id="step3" class="mb-12">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num">3</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Generate API Contracts</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Run in <code class="bg-gray-100 px-1 rounded">tenxengage-contracts/</code> · Before any implementation begins</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-emerald-400">/generate-contracts</span> quiz-engine
+      </div>
+
+      <p class="text-sm text-gray-600 mb-4">Reads the reviewed spec from the blueprint repo, then generates:</p>
+
+      <div class="grid grid-cols-3 gap-3 text-sm mb-4">
+        <div class="border border-gray-200 rounded-lg p-3.5 bg-white">
+          <p class="font-mono text-xs text-indigo-700 mb-1">models/{model-name}.md</p>
+          <p class="text-xs text-gray-500">Model markdown files</p>
+        </div>
+        <div class="border border-gray-200 rounded-lg p-3.5 bg-white">
+          <p class="font-mono text-xs text-indigo-700 mb-1">endpoints/{resource}.yaml</p>
+          <p class="text-xs text-gray-500">Endpoint YAML files</p>
+        </div>
+        <div class="border border-gray-200 rounded-lg p-3.5 bg-white">
+          <p class="font-mono text-xs text-indigo-700 mb-1">enums.md</p>
+          <p class="text-xs text-gray-500">New enum sections appended (existing values never overwritten)</p>
+        </div>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-100 rounded-lg p-4 text-sm text-amber-800">
+        <strong>Prerequisite:</strong> The spec must have <code class="bg-amber-100 px-1 rounded">status: reviewed</code> before running this step. The skill aborts if it's still <code class="bg-amber-100 px-1 rounded">draft</code>. Run <code class="bg-amber-100 px-1 rounded">/review-spec</code> in the blueprint repo first if needed.
+      </div>
+    </section>
+
+    <!-- ── STEP 4: IMPLEMENT ──────────────────────────────────────────────── -->
+    <section id="step4" class="mb-6">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num">4</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Implement in Parallel</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Backend + Frontend developers, each in their own repo</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ── FOUNDATION TASKS ───────────────────────────────────────────────── -->
+    <section id="foundation" class="mb-12 ml-8">
+      <h3 class="text-base font-semibold text-gray-900 mb-1">Phase A: Foundation Tasks <span class="text-xs font-normal text-gray-400 ml-1">(Backend only · sequential)</span></h3>
+      <p class="text-sm text-gray-500 mb-4">Run one task per session. Each task must be approved and merged before the next begins.</p>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># Run one task at a time, specifying the task ID</span><br>
+        <span class="text-emerald-400">/execute-foundation</span> quiz-engine F1<br>
+        <span class="text-emerald-400">/execute-foundation</span> quiz-engine F2<br>
+        <span class="text-gray-400">...and so on through F5</span><br><br>
+        <span class="text-gray-400"># With TDD discipline enabled</span><br>
+        <span class="text-emerald-400">/execute-foundation</span> quiz-engine F1 <span class="text-cyan-300">--tdd</span>
+      </div>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-5">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold w-12">Task</th>
+              <th class="text-left px-5 py-3 font-semibold">What it does</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-5 py-3 font-mono font-bold text-indigo-700 bg-white">F1</td><td class="px-5 py-3 text-gray-600">Enums (Java enum classes + DB enum types)</td></tr>
+            <tr><td class="px-5 py-3 font-mono font-bold text-indigo-700">F2</td><td class="px-5 py-3 text-gray-600">Database migration (Flyway schema DDL)</td></tr>
+            <tr><td class="px-5 py-3 font-mono font-bold text-indigo-700 bg-white">F3</td><td class="px-5 py-3 text-gray-600">JPA entities, repositories, and test fixtures (with tenant isolation)</td></tr>
+            <tr><td class="px-5 py-3 font-mono font-bold text-indigo-700">F4</td><td class="px-5 py-3 text-gray-600">Permission + feature flag seeds (Flyway seed SQL migration)</td></tr>
+            <tr><td class="px-5 py-3 font-mono font-bold text-indigo-700 bg-white">F5</td><td class="px-5 py-3 text-gray-600">BE-only infrastructure plumbing (Kafka consumers/producers, etc.) — omitted if not applicable</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-4 text-sm text-indigo-800 mb-4">
+        <strong>How it works:</strong> The skill claims the tracker row, creates a local-only sub-branch, implements the task, runs tests, then <strong>pauses for your approval</strong>. On approval, it squash-merges into the feature branch and flips the tracker to <code class="bg-indigo-100 px-1 rounded">done</code>. No GitHub PR for individual foundation tasks.
+      </div>
+
+      <div class="bg-violet-50 border border-violet-100 rounded-lg p-4 text-sm text-violet-800">
+        <strong><code>--tdd</code> flag:</strong> Activates four superpowers skills — <code class="bg-violet-100 px-1 rounded">superpowers:test-driven-development</code> before implementation, <code class="bg-violet-100 px-1 rounded">superpowers:systematic-debugging</code> when tests fail, <code class="bg-violet-100 px-1 rounded">superpowers:verification-before-completion</code> before the approval pause, and <code class="bg-violet-100 px-1 rounded">superpowers:requesting-code-review</code> at the approval pause. Without the flag, no TDD discipline is imposed — neither Red → Green → Refactor nor the skill invocations apply.
+      </div>
+    </section>
+
+    <!-- ── USER STORIES ───────────────────────────────────────────────────── -->
+    <section id="stories" class="mb-12 ml-8">
+      <h3 class="text-base font-semibold text-gray-900 mb-1">Phase B: User Stories <span class="text-xs font-normal text-gray-400 ml-1">(BE + FE · parallel where independent)</span></h3>
+      <p class="text-sm text-gray-500 mb-4">Check what's eligible, then implement one story per session.</p>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># Check what's ready to pick up (read-only, run from blueprint repo)</span><br>
+        <span class="text-emerald-400">/next-eligible</span> quiz-engine<br><br>
+        <span class="text-gray-400"># Implement one story (lean mode)</span><br>
+        <span class="text-emerald-400">/load-story</span> quiz-engine US-01<br><br>
+        <span class="text-gray-400"># With TDD discipline enabled</span><br>
+        <span class="text-emerald-400">/load-story</span> quiz-engine US-01 <span class="text-cyan-300">--tdd</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 text-sm mb-5">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p class="font-medium text-gray-700 mb-2">What <code>/load-story</code> does</p>
+          <ol class="space-y-1.5 text-xs text-gray-500 list-none">
+            <li>1. Claims the tracker BE or FE cell</li>
+            <li>2. Creates a local-only sub-branch</li>
+            <li>3. Implements all tasks in the story</li>
+            <li>4. Runs tests (Vitest + Playwright for FE; Gradle for BE)</li>
+            <li>5. Pauses for your approval</li>
+            <li>6. Squash-merges into the feature branch</li>
+            <li>7. Flips the tracker cell to <code class="bg-gray-100 px-1 rounded">done</code></li>
+          </ol>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p class="font-medium text-gray-700 mb-2">FE scaffold-and-wait model</p>
+          <p class="text-xs text-gray-500 mb-2">If the BE cell for a story isn't <code class="bg-gray-100 px-1 rounded">done</code> yet:</p>
+          <ul class="space-y-1.5 text-xs text-gray-500">
+            <li>• FE scaffolds components + Vitest tests against contract mocks</li>
+            <li>• Sub-branch stays local (not merged)</li>
+            <li>• Re-invoke <code class="bg-gray-100 px-1 rounded">/load-story</code> after BE is done to run Playwright against the real BE and finish the merge</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-800">
+        <strong>Parallelism:</strong> Stories that touch disjoint entities can run concurrently in separate sessions. The <code class="bg-emerald-100 px-1 rounded">stories.md</code> dependency graph and <code class="bg-emerald-100 px-1 rounded">/next-eligible</code> output show which stories are safe to parallelize. FE sessions can start immediately after contracts are generated — no need to wait for foundation.
+      </div>
+    </section>
+
+    <!-- ── STEP 5: READY CHECK ────────────────────────────────────────────── -->
+    <section id="step5" class="mb-12">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num">5</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Ready Check</h2>
+          <p class="text-sm text-gray-500 mt-0.5">Each developer, in their own repo, before raising a PR</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># Full check</span><br>
+        <span class="text-emerald-400">/ready-check</span><br><br>
+        <span class="text-gray-400"># Single step by slug or number</span><br>
+        <span class="text-emerald-400">/ready-check</span> code-review<br>
+        <span class="text-emerald-400">/ready-check</span> step:3<br>
+        <span class="text-emerald-400">/ready-check</span> quiz-engine adversarial-review
+      </div>
+
+      <div class="grid grid-cols-2 gap-5 mb-5">
+        <!-- Backend -->
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Backend</p>
+          <div class="overflow-hidden border border-gray-200 rounded-xl">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-gray-400 uppercase tracking-wider">
+                <tr>
+                  <th class="text-left px-4 py-2 font-semibold">#</th>
+                  <th class="text-left px-4 py-2 font-semibold">Stage</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">1</td><td class="px-4 py-2 text-gray-600">Prerequisites</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">2</td><td class="px-4 py-2 text-gray-600">Code Review</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">3</td><td class="px-4 py-2 text-gray-600">Security Review</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">4</td><td class="px-4 py-2 text-gray-600">Contract Compliance</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">5</td><td class="px-4 py-2 text-gray-600">Adversarial Review <span class="text-rose-500 font-medium">Blocks</span></td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">6</td><td class="px-4 py-2 text-gray-600">Tests</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">7</td><td class="px-4 py-2 text-gray-600">Coverage</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Frontend -->
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Frontend</p>
+          <div class="overflow-hidden border border-gray-200 rounded-xl">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 text-gray-400 uppercase tracking-wider">
+                <tr>
+                  <th class="text-left px-4 py-2 font-semibold">#</th>
+                  <th class="text-left px-4 py-2 font-semibold">Stage</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">1</td><td class="px-4 py-2 text-gray-600">Prerequisites</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">2</td><td class="px-4 py-2 text-gray-600">Code Review</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">3</td><td class="px-4 py-2 text-gray-600">UI/UX Review</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">4</td><td class="px-4 py-2 text-gray-600">Security Review</td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">5</td><td class="px-4 py-2 text-gray-600">Adversarial Review <span class="text-rose-500 font-medium">Blocks</span></td></tr>
+                <tr><td class="px-4 py-2 text-gray-400 font-mono">6</td><td class="px-4 py-2 text-gray-600">Tests</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-sm text-gray-600 space-y-2">
+        <p>Stages that don't apply are automatically marked <code class="bg-gray-100 px-1 rounded">NOT_APPLICABLE</code>. The adversarial review <strong>blocks</strong> on <code class="bg-rose-50 text-rose-700 px-1 rounded">critical</code> or <code class="bg-rose-50 text-rose-700 px-1 rounded">high</code> severity findings with confidence ≥ 0.70. Advisory findings pass through.</p>
+        <p>If interrupted, running <code class="bg-gray-100 px-1 rounded">/ready-check</code> again resumes from where it left off. New commits only invalidate affected stages.</p>
+      </div>
+    </section>
+
+    <!-- ── STEP 6: CREATE PR ──────────────────────────────────────────────── -->
+    <section id="step6" class="mb-14">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="step-num">6</div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Create PR</h2>
+          <p class="text-sm text-gray-500 mt-0.5">After ready-check passes, in each respective repo</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-4">
+        <span class="text-emerald-400">/create-pr</span>
+      </div>
+
+      <p class="text-sm text-gray-600">Validates the ready-check report (all stages must be passed or not-applicable at the current commit), pushes the branch, and creates a PR/MR. Works with GitHub, GitLab, Bitbucket, or any git platform.</p>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- BUG WORKFLOW                                                         -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <div class="mb-4 mt-2">
+      <span class="inline-block text-xs font-semibold bg-rose-50 text-rose-600 px-3 py-1 rounded-full tracking-wide uppercase">Bug Workflow</span>
+      <p class="text-sm text-gray-500 mt-2">Fully independent of feature development. Use at any time, on any branch, without a spec.</p>
+    </div>
+
+    <!-- Bug Workflow pipeline -->
+    <div class="flex items-start gap-3 flex-wrap mb-10">
+      <!-- Sources column -->
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-gray-400 uppercase tracking-widest font-medium mb-0.5">Bug Sources</span>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+          <span class="text-sm font-medium text-gray-700">In-App Reporter</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <svg class="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          <span class="text-sm font-medium text-gray-700">/bug-reporter --capture</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+          <span class="text-sm font-medium text-gray-700">Google Chat</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <svg class="w-4 h-4 text-violet-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+          <span class="text-sm font-medium text-gray-700">ClickUp ticket</span>
+        </div>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+          <span class="text-sm font-medium text-gray-700">Inline / --standalone</span>
+        </div>
+      </div>
+
+      <svg class="w-4 h-4 text-gray-300 self-center mt-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+
+      <!-- Pipeline nodes -->
+      <div class="flex items-center gap-2 self-center mt-5 flex-wrap">
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="w-2 h-2 bg-orange-400 rounded-full"></div>
+          <span class="text-sm font-medium text-gray-700">Evidence Folder</span>
+        </div>
+        <svg class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="w-2 h-2 bg-amber-500 rounded-full"></div>
+          <span class="text-sm font-medium text-gray-700">/bug-fixer</span>
+        </div>
+        <svg class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+          <span class="text-sm font-medium text-gray-700">Ready Check</span>
+        </div>
+        <svg class="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+        <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-4 py-2.5 shadow-sm">
+          <div class="w-2 h-2 bg-rose-500 rounded-full"></div>
+          <span class="text-sm font-medium text-gray-700">PR / Merged</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BUG REPORTING ──────────────────────────────────────────────────── -->
+    <section id="bug-reporting" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Bug Reporting</h2>
+      <p class="text-sm text-gray-500 mb-5">Run from <code class="bg-gray-100 px-1 rounded">tenxengage-blueprint/</code> · Never touches code.</p>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># Interactive — prompts for description</span><br>
+        <span class="text-emerald-400">/bug-reporter</span><br><br>
+        <span class="text-gray-400"># One-shot — files a ClickUp ticket immediately</span><br>
+        <span class="text-emerald-400">/bug-reporter</span> <span class="text-amber-300">"Login button unresponsive after token expiry"</span><br><br>
+        <span class="text-gray-400"># Auto-capture from open browser → evidence folder named bug-&lt;id&gt;</span><br>
+        <span class="text-emerald-400">/bug-reporter</span> --capture<br><br>
+        <span class="text-gray-400"># Escalate evidence folder → ClickUp ticket</span><br>
+        <span class="text-emerald-400">/bug-reporter</span> --from-evidence &lt;id&gt;
+      </div>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-5">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">Mode</th>
+              <th class="text-left px-5 py-3 font-semibold">What you do</th>
+              <th class="text-left px-5 py-3 font-semibold">What you get</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">Inline text</td><td class="px-5 py-3 text-gray-600">Describe the bug in plain text</td><td class="px-5 py-3 text-gray-600">ClickUp ticket filed immediately</td></tr>
+            <tr><td class="px-5 py-3 font-medium text-gray-700"><code>--capture</code></td><td class="px-5 py-3 text-gray-600">Run while bug is visible in Chrome</td><td class="px-5 py-3 text-gray-600">Evidence folder with screenshots, console errors, network calls</td></tr>
+            <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white"><code>--from-evidence &lt;id&gt;</code></td><td class="px-5 py-3 text-gray-600">Escalate a previously captured folder by its <code class="bg-gray-100 px-1 rounded">bug-&lt;id&gt;</code></td><td class="px-5 py-3 text-gray-600">ClickUp ticket + evidence folder updated with ticket reference</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm mb-5">
+        <p class="font-medium text-gray-700 mb-3">What gets captured automatically with <code class="bg-gray-100 px-1 rounded">--capture</code></p>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-gray-500">
+          <div>• Full-page and viewport screenshots</div>
+          <div>• Current URL, page title, React Router route</div>
+          <div>• Last 100 <code class="bg-gray-100 px-1 rounded">console.error / warn</code> entries</div>
+          <div>• Logged-in user (email, ID, roles, tenant)</div>
+          <div>• Last 50 network requests (method, URL, status)</div>
+          <div>• Active feature flags, app build SHA, browser info</div>
+        </div>
+      </div>
+
+      <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800">
+        <strong>MCP setup required for <code class="bg-blue-100 px-1 rounded">--capture</code>:</strong> See <a href="#local-config" class="underline font-medium">Local Configuration → Step 5</a> for the full Chrome MCP setup. Chrome must be running on port 9222 before the Claude Code session starts. Playwright MCP is a fallback with no logged-in session.
+      </div>
+
+      <div class="bg-amber-50 border border-amber-100 rounded-lg p-4 text-sm text-amber-800 mt-4">
+        <strong>Evidence folder naming:</strong> Folders are named <code class="bg-amber-100 px-1 rounded">bug-&lt;8hexchars&gt;</code> (e.g., <code class="bg-amber-100 px-1 rounded">bug-a3f2b1c2</code>) — a random ID, never derived from the description. Open <code class="bg-amber-100 px-1 rounded">bugs-evidence/index.html</code> to browse all captured bugs. Use the <code class="bg-amber-100 px-1 rounded">&lt;id&gt;</code> (e.g., <code class="bg-amber-100 px-1 rounded">a3f2b1c2</code>) when passing <code class="bg-amber-100 px-1 rounded">--from-evidence</code> or <code class="bg-amber-100 px-1 rounded">--evidence</code>.
+      </div>
+    </section>
+
+    <!-- ── IN-APP BUG REPORTER ──────────────────────────────────────────────── -->
+    <section id="in-app-reporter" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">In-App Bug Reporter <span class="text-sm font-normal text-gray-400">(Frontend Dev Mode)</span></h2>
+      <p class="text-sm text-gray-500 mb-5">A floating widget embedded directly in the frontend dev server. Always available during <code class="bg-gray-100 px-1 rounded">npm run dev</code> — no MCP setup, no Chrome flags, no separate tool.</p>
+
+      <div class="grid grid-cols-2 gap-4 text-sm mb-5">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <p class="font-medium text-gray-700 mb-2">How to open</p>
+          <ul class="space-y-1.5 text-xs text-gray-500">
+            <li>• Click the 🐞 button fixed to the bottom-right of the app</li>
+            <li>• Keyboard: <code class="bg-gray-100 px-1 rounded">Cmd+Shift+B</code> (Mac) / <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+B</code> (Win/Linux)</li>
+            <li>• <code class="bg-gray-100 px-1 rounded">Esc</code> to close · <code class="bg-gray-100 px-1 rounded">Cmd+Enter</code> (Mac) / <code class="bg-gray-100 px-1 rounded">Ctrl+Enter</code> (Win/Linux) to submit</li>
+          </ul>
+        </div>
+        <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-4">
+          <p class="font-medium text-indigo-800 mb-2">Session recording mode</p>
+          <p class="text-xs text-indigo-700">Open modal → <strong>Start session recording</strong> → modal closes, 🐞 shows a red pulsing dot. Navigate and reproduce the bug. Click 🐞 again → describe → <strong>Stop &amp; Capture Bug</strong>. Network and console entries are scoped from the recording start — clean signal, no pre-existing noise.</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm mb-5">
+        <p class="font-medium text-gray-700 mb-3">What gets captured automatically before the modal opens</p>
+        <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-gray-500">
+          <div>• Full-page and viewport screenshots</div>
+          <div>• Current URL, page title, React Router route pattern</div>
+          <div>• Last 50 network requests (method, URL, status, response snippet)</div>
+          <div>• Logged-in user — email, ID, name, roles, tenant, feature flags</div>
+          <div>• Console <code class="bg-gray-100 px-1 rounded">error</code> and <code class="bg-gray-100 px-1 rounded">warn</code> entries from current session</div>
+          <div>• Build SHA, app version, environment, browser, viewport size</div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2 italic">High-frequency polling endpoints (e.g. <code class="bg-gray-100 px-1 rounded">/notifications/unread-count</code>) are suppressed from network capture unless they fail.</p>
+      </div>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-5">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">Form field</th>
+              <th class="text-left px-5 py-3 font-semibold">Notes</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 text-xs">
+            <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">What went wrong</td><td class="px-5 py-3 text-gray-600">Required — plain text description of the bug</td></tr>
+            <tr><td class="px-5 py-3 font-medium text-gray-700">What should have happened</td><td class="px-5 py-3 text-gray-600">Optional</td></tr>
+            <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">Attachments</td><td class="px-5 py-3 text-gray-600">Drag or pick up to 5 extra files (screenshots, recordings, logs)</td></tr>
+            <tr><td class="px-5 py-3 font-medium text-gray-700">Reported by</td><td class="px-5 py-3 text-gray-600">Pre-filled from <code class="bg-gray-100 px-1 rounded">BUG_REPORTER_NAME</code> env var; editable per report</td></tr>
+            <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">ClickUp ticket toggle</td><td class="px-5 py-3 text-gray-600">On by default if <code class="bg-gray-100 px-1 rounded">BUG_REPORTER_AUTO_TICKET=true</code>; toggleable per report</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4 text-sm text-emerald-800 mb-5">
+        <strong>After capture:</strong> The Vite dev server writes an evidence folder to <code class="bg-emerald-100 px-1 rounded">bugs-evidence/bug-&lt;id&gt;/</code> — same schema as all other capture methods. The success screen shows the folder path, ClickUp ticket link (if created), and the <code class="bg-emerald-100 px-1 rounded">/bug-fixer --evidence &lt;id&gt;</code> command to fix it immediately. When ClickUp is configured, screenshots and network HAR are attached automatically.
+      </div>
+
+      <div class="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800 mb-5">
+        <strong>Configuration:</strong> See <a href="#local-config" class="underline font-medium">Local Configuration → Step 4</a> for the full <code class="bg-blue-100 px-1 rounded">.env.local</code> setup. All variables are server-side only and never included in the browser bundle.
+      </div>
+
+    </section>
+
+    <!-- ── REPORTER REFERENCE ───────────────────────────────────────────── -->
+    <section id="reporter-reference" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Bug Reporter Reference</h2>
+      <p class="text-sm text-gray-500 mb-5">Full details from <code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm">tenxengage-frontend/docs/dev/bug-reporter.md</code> — evidence folder layout, page wiring, and troubleshooting.</p>
+
+      <!-- Evidence folder structure -->
+      <div class="mb-6">
+        <h3 class="font-semibold text-gray-800 mb-2">Evidence folder structure</h3>
+        <p class="text-sm text-gray-500 mb-3">All capture methods write the same folder schema. The whole <code class="bg-gray-100 px-1 rounded">bugs-evidence/</code> tree is gitignored — nothing here gets committed.</p>
+        <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-3">
+          <span class="text-gray-400">tenxengage-blueprint/bugs-evidence/</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;index.html</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-gray-500">← auto-regenerated browse UI (open in browser)</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;2026-04-23-login-typo/</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;&nbsp;&nbsp;meta.md</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-gray-500">← frontmatter: status, user, screen, env, ticket</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;&nbsp;&nbsp;screenshots/</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;01-viewport.png</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;02-full-page.png</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;&nbsp;&nbsp;console.log</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-gray-500">← if any errors/warnings were captured</span><br>
+          <span class="text-gray-400">&nbsp;&nbsp;&nbsp;&nbsp;network.har</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-gray-500">← if any failed requests were captured</span>
+        </div>
+        <p class="text-xs text-gray-400 mb-2">Browse all captured bugs:</p>
+        <div class="bg-gray-900 text-gray-100 rounded-xl px-5 py-3 text-sm font-mono">
+          open tenxengage-blueprint/bugs-evidence/index.html
+        </div>
+      </div>
+
+      <!-- Screen name wiring -->
+      <div class="mb-6">
+        <h3 class="font-semibold text-gray-800 mb-2">Screen name &amp; route pattern <span class="text-xs font-normal text-gray-400 ml-1">(optional wiring)</span></h3>
+        <p class="text-sm text-gray-500 mb-3">Page components can advertise themselves so the captured <code class="bg-gray-100 px-1 rounded">meta.md</code> includes a human-readable screen name and route pattern. Without them, the URL and <code class="bg-gray-100 px-1 rounded">document.title</code> are still captured.</p>
+        <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono">
+          <span class="text-gray-400">// In a page or layout component root element</span><br>
+          &lt;<span class="text-emerald-400">div</span><br>
+          &nbsp;&nbsp;<span class="text-amber-300">data-screen-name</span>=<span class="text-sky-300">"Course Detail / Edit"</span><br>
+          &nbsp;&nbsp;<span class="text-amber-300">data-route-pattern</span>=<span class="text-sky-300">"/courses/:id/edit"</span><br>
+          &gt;
+        </div>
+      </div>
+
+      <!-- Troubleshooting -->
+      <div class="mb-2">
+        <h3 class="font-semibold text-gray-800 mb-3">Troubleshooting</h3>
+        <div class="overflow-hidden border border-gray-200 rounded-xl">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left px-5 py-3 font-semibold">Symptom</th>
+                <th class="text-left px-5 py-3 font-semibold">Fix</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-xs">
+              <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">Bug button not visible</td><td class="px-5 py-3 text-gray-600">Only shown in dev mode (<code class="bg-gray-100 px-1 rounded">npm run dev</code>). Not visible in <code class="bg-gray-100 px-1 rounded">npm run build</code> previews.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700">"Capture failed" error</td><td class="px-5 py-3 text-gray-600">Check the Vite dev server terminal for the actual error. Common causes: blueprint path not found, screenshot timeout.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">ClickUp ticket not created</td><td class="px-5 py-3 text-gray-600">Check <code class="bg-gray-100 px-1 rounded">.env.local</code> has <code class="bg-gray-100 px-1 rounded">BUG_REPORTER_AUTO_TICKET=true</code> and valid token/list ID. Restart the dev server after changes. Check Vite terminal for <code class="bg-gray-100 px-1 rounded">[vite-plugin-bug-capture]</code> error logs.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700">Screenshots blank or black</td><td class="px-5 py-3 text-gray-600">Some pages with complex CSS or WebGL content may not render correctly in <code class="bg-gray-100 px-1 rounded">html2canvas</code>. The evidence folder is still created without screenshots.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">User context empty in meta.md</td><td class="px-5 py-3 text-gray-600">The app must be logged in when capture happens. The reporter reads from TanStack Query cache — if the <code class="bg-gray-100 px-1 rounded">['auth','me']</code> query hasn't resolved, user fields are omitted.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700">Evidence folder missing</td><td class="px-5 py-3 text-gray-600">Check <code class="bg-gray-100 px-1 rounded">tenxengage-blueprint/bugs-evidence/</code> exists. Run: <code class="bg-gray-100 px-1 rounded">mkdir -p ../tenxengage-blueprint/bugs-evidence</code> from the frontend root.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white"><code class="bg-gray-100 px-1 rounded">/bug-reporter --capture</code> falls back to interactive mode</td><td class="px-5 py-3 text-gray-600">MCP server isn't connected. Most common cause: Chrome wasn't running on port 9222 when the Claude Code session started. Start Chrome with <code class="bg-gray-100 px-1 rounded">--remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug</code>, then reload the VSCode window.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700">MCP config changed but capture still not working</td><td class="px-5 py-3 text-gray-600">MCP servers connect at session start only — reload the VSCode window (<code class="bg-gray-100 px-1 rounded">Cmd+Shift+P → Reload Window</code>) after any <code class="bg-gray-100 px-1 rounded">~/.claude.json</code> change.</td></tr>
+              <tr><td class="px-5 py-3 font-medium text-gray-700 bg-white">MCP capture works but <code class="bg-gray-100 px-1 rounded">user:</code> fields are empty in meta.md</td><td class="px-5 py-3 text-gray-600">Using Playwright MCP (fresh session). Log in to the app in the Playwright browser window before triggering capture, or switch to Chrome DevTools MCP (Option 1) which uses your existing logged-in session.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BUG FIXING ─────────────────────────────────────────────────────── -->
+    <section id="bug-fixing" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Bug Fixing</h2>
+      <p class="text-sm text-gray-500 mb-5">Full end-to-end loop: reproduce → failing test → fix → ready-check → MRs → learnings.</p>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono mb-5">
+        <span class="text-gray-400"># Scan pending evidence folders, then oldest ClickUp bug</span><br>
+        <span class="text-emerald-400">/bug-fixer</span><br><br>
+        <span class="text-gray-400"># Fix a specific ClickUp task (M3 tracked)</span><br>
+        <span class="text-emerald-400">/bug-fixer</span> &lt;clickup-task-id&gt;<br><br>
+        <span class="text-gray-400"># Fix from a captured evidence folder</span><br>
+        <span class="text-emerald-400">/bug-fixer</span> --evidence &lt;slug&gt;<br><br>
+        <span class="text-gray-400"># Quick inline fix on current branch, no MR (M1)</span><br>
+        <span class="text-emerald-400">/bug-fixer</span> --inline <span class="text-amber-300">"description"</span><br><br>
+        <span class="text-gray-400"># Fix on dedicated branch, no ClickUp ticket (M2)</span><br>
+        <span class="text-emerald-400">/bug-fixer</span> --standalone <span class="text-amber-300">"description"</span><br><br>
+        <span class="text-gray-400"># Close without fixing</span><br>
+        <span class="text-emerald-400">/bug-fixer</span> --wont-fix &lt;slug-or-id&gt; <span class="text-amber-300">"reason"</span>
+      </div>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-5">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Mode</th>
+              <th class="text-left px-4 py-3 font-semibold">When to use</th>
+              <th class="text-left px-4 py-3 font-semibold">Branch</th>
+              <th class="text-left px-4 py-3 font-semibold">MRs</th>
+              <th class="text-left px-4 py-3 font-semibold">ClickUp</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 text-xs">
+            <tr><td class="px-4 py-3 font-medium text-gray-700 bg-white">M1 Inline</td><td class="px-4 py-3 text-gray-600">Quick fix on current feature branch</td><td class="px-4 py-3 text-gray-500">No new branch</td><td class="px-4 py-3 text-gray-500">No</td><td class="px-4 py-3 text-gray-500">No</td></tr>
+            <tr><td class="px-4 py-3 font-medium text-gray-700">M2 Standalone</td><td class="px-4 py-3 text-gray-600">Fix without a ClickUp ticket</td><td class="px-4 py-3 font-mono text-gray-600">bug/&lt;id&gt;</td><td class="px-4 py-3 text-gray-500">Yes</td><td class="px-4 py-3 text-gray-500">No</td></tr>
+            <tr><td class="px-4 py-3 font-medium text-gray-700 bg-white">M3 Tracked</td><td class="px-4 py-3 text-gray-600">Fix a filed ClickUp ticket</td><td class="px-4 py-3 font-mono text-gray-600">bug/clickup-&lt;clickup-id&gt;-&lt;id&gt;</td><td class="px-4 py-3 text-gray-500">Yes</td><td class="px-4 py-3 text-gray-500">Yes</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-sm">
+        <p class="font-medium text-gray-700 mb-3">Fix loop — step by step</p>
+        <ol class="space-y-2 text-xs text-gray-600">
+          <li><span class="font-semibold text-gray-700">1. Normalize</span> — reads ticket / evidence / inline text; prints a starting hypothesis and data path; waits for your <code class="bg-gray-100 px-1 rounded">go</code></li>
+          <li><span class="font-semibold text-gray-700">2. Duplicate detection</span> — searches evidence folders, bugs-index, and ClickUp for similar bugs</li>
+          <li><span class="font-semibold text-gray-700">3. Reproduce</span> — explores the critical path; forms explicit hypotheses before reading each file</li>
+          <li><span class="font-semibold text-gray-700">4. Write failing test</span> — JUnit (BE), Vitest (FE), or Playwright E2E; confirms the test fails at an assertion (not a typo / setup error) and matches the reported symptom</li>
+          <li><span class="font-semibold text-gray-700">5. Implement fix</span> — cause is already pinned by the critical path (Step 1) and the failing test (Step 4); no workarounds; if 3+ fix attempts fail, stops and re-examines the path/hypothesis instead of attempting fix #4</li>
+          <li><span class="font-semibold text-gray-700">6. Ready-check</span> — runs <code class="bg-gray-100 px-1 rounded">/ready-check</code> in each affected repo; no MR until green</li>
+          <li><span class="font-semibold text-gray-700">7. Verification gate</span> — runs <code class="bg-gray-100 px-1 rounded">superpowers:verification-before-completion</code></li>
+          <li><span class="font-semibold text-gray-700">8. Visual re-confirmation</span> — Playwright captures before/after if screenshots were in evidence</li>
+          <li><span class="font-semibold text-gray-700">9. Create MRs</span> — one per affected repo; ClickUp status → <code class="bg-gray-100 px-1 rounded">needs-review</code></li>
+          <li><span class="font-semibold text-gray-700">10. Learnings</span> — promotes cross-cutting lessons to <code class="bg-gray-100 px-1 rounded">docs/patterns/</code> or <code class="bg-gray-100 px-1 rounded">docs/learnings.md</code></li>
+          <li><span class="font-semibold text-gray-700">11. bugs-index.md</span> — appends one line to the append-only corpus</li>
+          <li><span class="font-semibold text-gray-700">12. Final report</span> — printed to screen; evidence folder updated</li>
+        </ol>
+        <p class="mt-3 text-xs text-gray-400 italic">Dev's current checkout is never touched — all work happens in /tmp/ worktrees (except M1).</p>
+      </div>
+    </section>
+
+    <!-- ── BUG DATA SURFACES ──────────────────────────────────────────────── -->
+    <section id="bug-surfaces" class="mb-14">
+      <h2 class="text-xl font-semibold text-gray-900 mb-4">Bug Workflow Data Surfaces</h2>
+      <div class="overflow-hidden border border-gray-200 rounded-xl">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">Surface</th>
+              <th class="text-left px-5 py-3 font-semibold">Location</th>
+              <th class="text-left px-5 py-3 font-semibold">Purpose</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 text-xs">
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">bugs-evidence/</td><td class="px-5 py-3 text-gray-600">Blueprint repo (gitignored)</td><td class="px-5 py-3 text-gray-600">Staging area for captured bugs; one subfolder per bug</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">bugs-evidence/index.html</td><td class="px-5 py-3 text-gray-600">Auto-generated</td><td class="px-5 py-3 text-gray-600">Browse all captured bugs in the browser</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">docs/bugs-index.md</td><td class="px-5 py-3 text-gray-600">Blueprint repo (committed)</td><td class="px-5 py-3 text-gray-600">Append-only historical corpus of all completed fix runs</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700">docs/learnings.md</td><td class="px-5 py-3 text-gray-600">Blueprint repo (committed)</td><td class="px-5 py-3 text-gray-600">Cross-repo learnings promoted from bug fixes (Tier 3)</td></tr>
+            <tr><td class="px-5 py-3 font-mono text-indigo-700 bg-white">ClickUp list</td><td class="px-5 py-3 text-gray-600">External</td><td class="px-5 py-3 text-gray-600">Source of truth for tracked bugs (M3 flow)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- COMMAND REFERENCE                                                    -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <section id="commands" class="mb-14">
+      <div class="mb-4">
+        <span class="inline-block text-xs font-semibold bg-gray-100 text-gray-600 px-3 py-1 rounded-full tracking-wide uppercase">Reference</span>
+      </div>
+      <h2 class="text-xl font-semibold text-gray-900 mb-5">All Skills</h2>
+
+      <p class="text-sm font-semibold text-gray-600 mb-2">Feature Development</p>
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-7">
+        <table class="w-full text-xs">
+          <thead class="bg-gray-50 text-gray-400 uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Skill Command</th>
+              <th class="text-left px-4 py-3 font-semibold">Repo</th>
+              <th class="text-left px-4 py-3 font-semibold">What it does</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/decompose-brd /path/to/brd.pdf</td><td class="px-4 py-2.5 text-gray-500">blueprint repo</td><td class="px-4 py-2.5 text-gray-600">Slice an initiative BRD into a feature roadmap + digest; produces <code class="bg-gray-100 px-1 rounded">roadmaps/{roadmap-slug}/</code> on a dedicated branch</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/seed-clickup</td><td class="px-4 py-2.5 text-gray-500">blueprint repo</td><td class="px-4 py-2.5 text-gray-600">Seed ClickUp Epic → Milestone → Task hierarchy from a roadmap's <code class="bg-gray-100 px-1 rounded">backlog-seeds.csv</code>; idempotent, safe to re-run</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/create-spec {roadmap-slug} F-NN</td><td class="px-4 py-2.5 text-gray-500">blueprint repo</td><td class="px-4 py-2.5 text-gray-600">Generate a feature spec from a roadmap slice; reads digest + feature brief automatically; branch cut from <code class="bg-gray-100 px-1 rounded">roadmaps/{roadmap-slug}</code></td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/create-spec "description"</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Generate a feature spec; creates feature branch in blueprint + contracts</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/create-spec /path/to/file</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Generate a spec from a PRD/BRD file (.md, .txt, .pdf)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/review-spec <feature-slug></td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Re-validate a spec across 15 architectural dimensions (standalone)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/create-stories <feature-slug></td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Decompose reviewed spec into stories, foundation tasks, tracker, and test plan</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/next-eligible <feature-slug></td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Print which foundation tasks and story layers are unblocked (read-only)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/create-mockups <feature-slug></td><td class="px-4 py-2.5 text-gray-500">frontend</td><td class="px-4 py-2.5 text-gray-600">Create interactive TSX mockups for FE stories grouped by screen</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/create-mockups <feature-slug> US-01,US-03</td><td class="px-4 py-2.5 text-gray-500">frontend</td><td class="px-4 py-2.5 text-gray-600">Same but scoped to specific story IDs</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/generate-contracts <feature-slug></td><td class="px-4 py-2.5 text-gray-500">contracts</td><td class="px-4 py-2.5 text-gray-600">Generate API contracts from reviewed spec; write + commit into contracts repo</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/load-spec</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Load spec and contracts into context; auto-detects feature ID from the current branch name so you don't need to specify it repeatedly</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/execute-foundation <feature-slug> F1</td><td class="px-4 py-2.5 text-gray-500">backend</td><td class="px-4 py-2.5 text-gray-600">Implement one foundation task (run once per task, in sequential order)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/execute-foundation <feature-slug> F1 --tdd</td><td class="px-4 py-2.5 text-gray-500">backend</td><td class="px-4 py-2.5 text-gray-600">Same, with TDD + debugging + verification + code-review skill invocations</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/load-story <feature-slug> US-NN</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Implement one user story: claims tracker cell, implements, marks done</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/load-story <feature-slug> US-NN --tdd</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Same, with TDD + debugging + verification + code-review skill invocations</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/ready-check</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Run all quality gates on your changes</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/ready-check &lt;step&gt;</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Run a single step (e.g., <code class="bg-gray-50 px-1 rounded">code-review</code>, <code class="bg-gray-50 px-1 rounded">tests</code>, <code class="bg-gray-50 px-1 rounded">step:3</code>)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/run-tests</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Run tests for changed files (standalone)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700 bg-white">/ui-ux-review</td><td class="px-4 py-2.5 text-gray-500">frontend</td><td class="px-4 py-2.5 text-gray-600">Review UI/UX quality against design standards (standalone)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-indigo-700">/create-pr</td><td class="px-4 py-2.5 text-gray-500">BE or FE</td><td class="px-4 py-2.5 text-gray-600">Validate report and create PR/MR</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-sm font-semibold text-gray-600 mb-2">Bug Workflow</p>
+      <div class="overflow-hidden border border-gray-200 rounded-xl">
+        <table class="w-full text-xs">
+          <thead class="bg-gray-50 text-gray-400 uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-4 py-3 font-semibold">Skill Command</th>
+              <th class="text-left px-4 py-3 font-semibold">Repo</th>
+              <th class="text-left px-4 py-3 font-semibold">What it does</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700 bg-white">/bug-reporter</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Interactive — prompts for description, files a ClickUp ticket</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700">/bug-reporter "&lt;text&gt;"</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">One-shot — description → ClickUp ticket immediately</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700 bg-white">/bug-reporter --capture</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Auto-capture from open browser → evidence folder named <code class="bg-gray-50 px-1 rounded">bug-&lt;id&gt;</code> (no ClickUp)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700">/bug-reporter --from-evidence &lt;id&gt;</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Escalate a captured evidence folder → ClickUp ticket</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700">/bug-fixer</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Scan pending evidence folders, then oldest ClickUp bug → full fix loop</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700 bg-white">/bug-fixer &lt;clickup-id&gt;</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Fix a specific ClickUp task (M3 tracked)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700">/bug-fixer --evidence &lt;slug&gt;</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Fix from an evidence folder (M2 or M3)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700 bg-white">/bug-fixer --inline "&lt;text&gt;"</td><td class="px-4 py-2.5 text-gray-500">any repo</td><td class="px-4 py-2.5 text-gray-600">Quick inline fix on current branch, no MR (M1)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700">/bug-fixer --standalone "&lt;text&gt;"</td><td class="px-4 py-2.5 text-gray-500">any repo</td><td class="px-4 py-2.5 text-gray-600">Fix on a dedicated branch, no ClickUp ticket (M2)</td></tr>
+            <tr><td class="px-4 py-2.5 font-mono text-rose-700 bg-white">/bug-fixer --wont-fix &lt;slug-or-id&gt; "reason"</td><td class="px-4 py-2.5 text-gray-500">blueprint</td><td class="px-4 py-2.5 text-gray-600">Close bug without fixing; updates evidence folder + ClickUp</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── BRANCHING ──────────────────────────────────────────────────────── -->
+    <section id="branching" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Branching</h2>
+      <p class="text-sm text-gray-500 mb-5">All repos use the same branch name for a feature: <code class="bg-gray-100 px-1.5 py-0.5 rounded">features/{feature-id}</code></p>
+
+      <div class="overflow-hidden border border-gray-200 rounded-xl mb-4">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left px-5 py-3 font-semibold">Repo</th>
+              <th class="text-left px-5 py-3 font-semibold">Branch created by</th>
+              <th class="text-left px-5 py-3 font-semibold">When</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 text-sm">
+            <tr><td class="px-5 py-3 text-gray-700 bg-white">Blueprint + Contracts</td><td class="px-5 py-3 font-mono text-indigo-700">/create-spec</td><td class="px-5 py-3 text-gray-600">Before spec files are written</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700">Blueprint</td><td class="px-5 py-3 font-mono text-indigo-700">/create-stories</td><td class="px-5 py-3 text-gray-600">Before story files are written (ensures branch exists)</td></tr>
+            <tr><td class="px-5 py-3 text-gray-700 bg-white">Backend + Frontend</td><td class="px-5 py-3 font-mono text-indigo-700">/execute-foundation or /load-story</td><td class="px-5 py-3 text-gray-600">On first run in each repo</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Base Branch Config -->
+      <div id="base-branch" class="mt-8">
+        <h3 class="text-base font-semibold text-gray-800 mb-1">Configuring the Base Branch</h3>
+        <p class="text-sm text-gray-500 mb-4">By default, every feature branch is cut from <code class="bg-gray-100 px-1 rounded">main</code>. Set <code class="bg-gray-100 px-1 rounded">FEATURE_BASE_BRANCH</code> in your Claude settings to change this — globally or per-repo.</p>
+
+        <div class="grid grid-cols-2 gap-4 mb-5 text-sm">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Global (all repos) — <code class="normal-case font-mono">~/.claude/settings.json</code></p>
+            <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-xs font-mono leading-relaxed">
+              {<br>
+              &nbsp;&nbsp;"env": {<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;"FEATURE_BASE_BRANCH": "develop"<br>
+              &nbsp;&nbsp;}<br>
+              }
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Per-repo override — <code class="normal-case font-mono">{repo}/.claude/settings.json</code></p>
+            <div class="bg-gray-900 text-gray-100 rounded-xl p-4 text-xs font-mono leading-relaxed">
+              {<br>
+              &nbsp;&nbsp;"env": {<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;"FEATURE_BASE_BRANCH": "release/2.0"<br>
+              &nbsp;&nbsp;}<br>
+              }
+            </div>
+          </div>
+        </div>
+
+        <p class="text-sm text-gray-500 mb-3">The variable is read at runtime by every skill that creates a feature branch. If unset, skills fall back to <code class="bg-gray-100 px-1 rounded">main</code>.</p>
+
+        <div class="overflow-hidden border border-gray-200 rounded-xl">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <tr>
+                <th class="text-left px-5 py-3 font-semibold">Skill</th>
+                <th class="text-left px-5 py-3 font-semibold">Repo</th>
+                <th class="text-left px-5 py-3 font-semibold">Where it's used</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm">
+              <tr class="bg-white"><td class="px-5 py-3 font-mono text-indigo-700">/create-spec</td><td class="px-5 py-3 text-gray-600">blueprint</td><td class="px-5 py-3 text-gray-500">Feature branch in blueprint + contracts repo</td></tr>
+              <tr><td class="px-5 py-3 font-mono text-indigo-700">/create-stories</td><td class="px-5 py-3 text-gray-600">blueprint</td><td class="px-5 py-3 text-gray-500">Feature branch in blueprint repo</td></tr>
+              <tr class="bg-white"><td class="px-5 py-3 font-mono text-indigo-700">/generate-contracts</td><td class="px-5 py-3 text-gray-600">contracts</td><td class="px-5 py-3 text-gray-500">Feature branch in contracts repo</td></tr>
+              <tr class="bg-white"><td class="px-5 py-3 font-mono text-indigo-700">/execute-foundation</td><td class="px-5 py-3 text-gray-600">backend</td><td class="px-5 py-3 text-gray-500">Feature branch creation + contracts submodule fallback</td></tr>
+              <tr class="bg-white"><td class="px-5 py-3 font-mono text-indigo-700">/load-story</td><td class="px-5 py-3 text-gray-600">backend, frontend</td><td class="px-5 py-3 text-gray-500">Feature branch creation + contracts submodule fallback</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FEATURE NAMING ─────────────────────────────────────────────────── -->
+    <section id="naming" class="mb-12">
+      <h2 class="text-xl font-semibold text-gray-900 mb-1">Feature Naming</h2>
+      <p class="text-sm text-gray-500 mb-4">Slug-only kebab-case folder names. <code class="bg-gray-100 px-1 rounded">/create-spec</code> checks for slug collisions before creating the folder.</p>
+
+      <div class="bg-gray-900 text-gray-100 rounded-xl p-5 text-sm font-mono">
+        quiz-engine<br>
+        bulk-import<br>
+        partner-onboarding
+      </div>
+    </section>
+
+    <!-- ── FAQ ───────────────────────────────────────────────────────────── -->
+    <section id="faq" class="mb-16">
+      <h2 class="text-xl font-semibold text-gray-900 mb-5">FAQ</h2>
+
+      <div class="space-y-2">
+
+        <details class="border-b border-gray-100 py-3">
+          <summary class="flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+            <span>I have a large initiative BRD covering multiple features</span>
+            <svg class="chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </summary>
+          <p class="mt-3 text-sm text-gray-600">Run <code class="bg-gray-100 px-1 rounded">/decompose-brd /path/to/brd.pdf</code> in the blueprint repo. It slices the BRD into a feature roadmap (<code class="bg-gray-100 px-1 rounded">roadmaps/{roadmap-slug}/roadmap.md</code>) and writes a digest of cross-cutting context. Each feature slice is listed with a <code class="bg-gray-100 px-1 rounded">/create-spec {roadmap-slug} F-NN</code> invocation you can run directly — no copy-paste needed.</p>
+        </details>
+        <details class="border-b border-gray-100 py-3">
+          <summary class="flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+            <span>The adversarial review step fails saying Codex is unavailable</span>
+            <svg class="chevron w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </summary>
+          <p class="mt-3 text-sm text-gray-600">Codex CLI is not authenticated. Run <code class="bg-gray-100 px-1 rounded">codex login</code> in your terminal (uses your ChatGPT/OpenAI account) or add <code class="bg-gray-100 px-1 rounded">OPENAI_API_KEY</code> to the <code class="bg-gray-100 px-1 rounded">env</code> block in <code class="bg-gray-100 px-1 rounded">~/.claude/settings.json</code>. See <a href="#codex-setup" class="text-indigo-600 hover:underline">Step 6 — Set up Codex</a> in the Local Configuration section for full instructions.</p>
+        </details>
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I'm doing a bug fix with no spec. How do I run ready-check?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Provide <code class="bg-gray-100 px-1 rounded">none</code> as the feature ID when prompted. Stages like Contract Compliance will be marked <code class="bg-gray-100 px-1 rounded">NOT_APPLICABLE</code>.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I need to change the spec after implementation started. What do I do?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Edit the spec in the blueprint repo, run <code class="bg-gray-100 px-1 rounded">/review-spec</code> to re-validate, and re-generate contracts if the API changed.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I want maximum TDD discipline. How do I enable it?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Pass <code class="bg-gray-100 px-1 rounded">--tdd</code> to <code class="bg-gray-100 px-1 rounded">/execute-foundation</code> or <code class="bg-gray-100 px-1 rounded">/load-story</code>. This enables four superpowers skills: <code class="bg-gray-100 px-1 rounded">superpowers:test-driven-development</code> before implementation, <code class="bg-gray-100 px-1 rounded">superpowers:systematic-debugging</code> when tests fail, <code class="bg-gray-100 px-1 rounded">superpowers:verification-before-completion</code> before the approval pause, and <code class="bg-gray-100 px-1 rounded">superpowers:requesting-code-review</code> at the approval pause. Without the flag, no TDD discipline is imposed — neither Red → Green → Refactor nor the skill invocations apply.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            My team branches features from <code class="bg-gray-100 px-1 rounded">develop</code> instead of <code class="bg-gray-100 px-1 rounded">main</code>. How do I configure that?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Set <code class="bg-gray-100 px-1 rounded">FEATURE_BASE_BRANCH</code> in your Claude settings. Add <code class="bg-gray-100 px-1 rounded">"FEATURE_BASE_BRANCH": "develop"</code> to the <code class="bg-gray-100 px-1 rounded">env</code> section of <code class="bg-gray-100 px-1 rounded">~/.claude/settings.json</code> to apply it globally across all repos, or to a specific repo's <code class="bg-gray-100 px-1 rounded">.claude/settings.json</code> to override just that repo. All feature-branching skills read this variable at runtime and fall back to <code class="bg-gray-100 px-1 rounded">main</code> if it is not set. See the <a href="#base-branch" class="text-indigo-600 hover:underline">Configuring the Base Branch</a> section for full details.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            The foundation tasks aren't done but I want to start FE work. Is that OK?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Yes. FE story sessions can start immediately after contracts are generated. Scaffold against the generated types and mock the API; wire to real BE endpoints as foundation completes. Foundation must finish before any <em>BE</em> story session starts (BE stories depend on the entities and permissions foundation creates).
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            What story should I work on next?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Run <code class="bg-gray-100 px-1 rounded">/next-eligible <feature-slug></code> in the blueprint repo. It reads the tracker and prints a punch list — foundation tasks and story layers that are unblocked, plus what's still blocked and why. Read-only; never modifies anything.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            The adversarial review failed. What now?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            The step blocks on <code class="bg-rose-50 text-rose-700 px-1 rounded">critical</code> or <code class="bg-rose-50 text-rose-700 px-1 rounded">high</code> severity findings with confidence ≥ 0.70. The output lists each blocking issue with its file, line range, risk, and recommended fix. Fix the issues, then re-run just that step: <code class="bg-gray-100 px-1 rounded">/ready-check adversarial-review</code>.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I want to run just the tests, not the full ready-check.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Use <code class="bg-gray-100 px-1 rounded">/run-tests</code> — it runs tests scoped to your changes and updates the ready-check report. Or use <code class="bg-gray-100 px-1 rounded">/ready-check tests</code> to target just the test stage.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I have a PRD or BRD document instead of typing out the requirement.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Pass the file path directly: <code class="bg-gray-100 px-1 rounded">/create-spec /path/to/document.pdf</code>. Claude reads it, summarizes the requirements, and confirms with you before generating the spec.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I want to capture a bug visually before filing a ticket.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Run <code class="bg-gray-100 px-1 rounded">/bug-reporter --capture</code> while the bug is visible in your browser. This creates an evidence folder in <code class="bg-gray-100 px-1 rounded">bugs-evidence/bug-&lt;id&gt;/</code> (e.g., <code class="bg-gray-100 px-1 rounded">bug-a3f2b1c2</code>) with screenshots, console logs, and network data. Open <code class="bg-gray-100 px-1 rounded">bugs-evidence/index.html</code> to browse. File the ClickUp ticket later with <code class="bg-gray-100 px-1 rounded">--from-evidence &lt;id&gt;</code>.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            <code>--capture</code> says MCP is unavailable.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Chrome must be running with <code class="bg-gray-100 px-1 rounded">--remote-debugging-port=9222</code> before the Claude Code session starts. Start Chrome with that flag, then reload the VSCode window (<code class="bg-gray-100 px-1 rounded">Cmd+Shift+P → Reload Window</code> on Mac, <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+P → Reload Window</code> on Windows/Linux). See the Bug Reporting section for the full setup.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            A bug fix touches both backend and frontend. Does bug-fixer handle that?
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Yes. <code class="bg-gray-100 px-1 rounded">/bug-fixer</code> creates one branch and one worktree per affected repo (<code class="bg-gray-100 px-1 rounded">/tmp/bugfix-&lt;slug&gt;-backend/</code>, <code class="bg-gray-100 px-1 rounded">/tmp/bugfix-&lt;slug&gt;-frontend/</code>), runs <code class="bg-gray-100 px-1 rounded">/ready-check</code> in each, and creates one MR per repo on the same shared branch name. Your current checkout in either repo is never touched.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I want to create mockups for FE stories before implementing them.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Run <code class="bg-gray-100 px-1 rounded">/create-mockups <feature-slug></code> from the frontend repo after <code class="bg-gray-100 px-1 rounded">/create-stories</code> has been run. The skill proposes a screen grouping, waits for your confirmation, then generates per-screen TSX mockups plus a <code class="bg-gray-100 px-1 rounded">FullFeatureMockup.tsx</code> feature navigator. Routes are auto-served by <code class="bg-gray-100 px-1 rounded">MockupRouter</code> — no <code class="bg-gray-100 px-1 rounded">App.tsx</code> edits needed. Open <code class="bg-gray-100 px-1 rounded">localhost:5173/mockup/<feature-slug></code> to see the feature navigator with a floating pill to switch between all screens, or go directly to <code class="bg-gray-100 px-1 rounded">localhost:5173/mockup/<feature-slug>/{screen-slug}</code> for a specific screen. Mockup routes are <strong>dev-only and excluded from production builds</strong> — guarded by <code class="bg-gray-100 px-1 rounded">import.meta.env.DEV</code> and tree-shaken by Vite. Review mockups in Chrome using the Claude extension, iterate until satisfied, then proceed to implementation — <code class="bg-gray-100 px-1 rounded">/load-story</code> will automatically pick up the mockup paths. Mockups are always optional.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I want to report a bug quickly without setting up MCP or Chrome flags.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            Use the In-App Bug Reporter — click the 🐞 button in the bottom-right of the app while <code class="bg-gray-100 px-1 rounded">npm run dev</code> is running, or press <code class="bg-gray-100 px-1 rounded">Cmd+Shift+B</code> (Mac) / <code class="bg-gray-100 px-1 rounded">Ctrl+Shift+B</code> (Win/Linux). It captures screenshots, console errors, and network calls automatically before the modal opens. No MCP, no Chrome flags, no separate tool required.
+          </div>
+        </details>
+
+        <details class="border border-gray-200 rounded-xl overflow-hidden">
+          <summary class="flex items-center justify-between px-5 py-4 bg-white cursor-pointer hover:bg-gray-50 text-sm font-medium text-gray-700">
+            I forgot to create a spec and already started coding.
+            <span class="chevron text-gray-400">›</span>
+          </summary>
+          <div class="px-5 py-4 text-sm text-gray-600 bg-white border-t border-gray-100">
+            That's fine. You can create the spec retroactively, or run <code class="bg-gray-100 px-1 rounded">/ready-check</code> with feature ID <code class="bg-gray-100 px-1 rounded">none</code>.
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <div class="border-t border-gray-200 pt-6 pb-10 text-xs text-gray-400 flex items-center justify-between">
+      <span>tenXengage Developer & QA Wiki</span>      
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── ACTIVE NAV SCRIPT ─────────────────────────────────────────────────── -->
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  function setActive(id) {
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + id) {
+        link.classList.add('active');
+      }
+    });
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) setActive(entry.target.id);
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude Lombok-generated code -->
+    <Match>
+        <Class name="~.*\.entity\..*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Exclude DTO records (immutable) -->
+    <Match>
+        <Package name="~com\.tenxengage\.app\.dto\..*"/>
+    </Match>
+
+    <!-- Exclude enum classes -->
+    <Match>
+        <Package name="com.tenxengage.app.entity.enums"/>
+    </Match>
+
+    <!-- Exclude test classes -->
+    <Match>
+        <Class name="~.*Test"/>
+    </Match>
+    <Match>
+        <Class name="~.*Tests"/>
+    </Match>
+</FindBugsFilter>

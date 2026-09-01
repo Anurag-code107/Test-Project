@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: Activity Category Endpoints
+  description: CRUD for tenant-scoped activity categories
+  version: 1.0.0
+
+paths:
+  /api/v1/activity-categories:
+    get:
+      summary: List activity categories
+      tags: [Activity Categories]
+      security:
+        - bearerAuth: []
+      x-permission: action.incentive.view
+      responses:
+        "200":
+          description: List of activity categories
+
+    post:
+      summary: Create activity category
+      tags: [Activity Categories]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                sortOrder:
+                  type: integer
+                  default: 0
+      responses:
+        "201":
+          description: Category created
+
+  /api/v1/activity-categories/{id}:
+    put:
+      summary: Update activity category
+      tags: [Activity Categories]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 100
+                description:
+                  type: string
+                  maxLength: 500
+                sortOrder:
+                  type: integer
+      responses:
+        "200":
+          description: Category updated
+
+    delete:
+      summary: Delete activity category
+      tags: [Activity Categories]
+      security:
+        - bearerAuth: []
+      x-permission: action.builder.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Category deleted
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,43 @@
+feature_id,feature_name,feature_phase,seed_id,title,business_outcome,type,depends_on
+F-01,Wallet & Ledger Foundation,1,S-01,Set up individual reward wallets,Partners have a per-currency wallet that reflects earned balances in real-time,data,
+F-01,Wallet & Ledger Foundation,1,S-02,Set up company reward wallets,Partner Admins can access a company-level wallet separate from individual balances,data,F-01.S-01
+F-01,Wallet & Ledger Foundation,1,S-03,Record balance movements as ledger entries,Every earn and redemption event produces an immutable audit-ready ledger record,workflow,F-01.S-01
+F-01,Wallet & Ledger Foundation,1,S-04,Display persistent balance in nav,Partners see their available balance on every page without visiting the redemption store,UI,F-01.S-01
+F-01,Wallet & Ledger Foundation,1,S-05,Credit wallets from program earning events,Platform earning events automatically credit the partner's wallet for the correct currency type,integration,F-01.S-01
+F-02,Redemption Catalog,1,S-01,Manage global catalog items,Platform Admin can create and maintain the master set of redeemable items across both vendors,admin,
+F-02,Redemption Catalog,1,S-02,Configure tenant catalog,Client Admin enables/disables items and sets thresholds for their partner program,admin,F-02.S-01
+F-02,Redemption Catalog,1,S-03,Configure regional catalog,Client Admin controls which items are available to partners by region within their tenant,admin,F-02.S-02
+F-02,Redemption Catalog,1,S-04,Browse currency-aware catalog,Partners see only items they can redeem with their current balances organized by currency type with payout timelines shown,UI,F-01.S-01
+F-02,Redemption Catalog,1,S-05,Sync Xoxoday catalog,Platform keeps the non-cash catalog current with Xoxoday's item inventory and geographic availability,integration,F-02.S-01
+F-03,Redemption Flow,1,S-01,Submit personal wallet redemption,Partner Seller selects a catalog item and submits a redemption with immediate balance reservation,workflow,F-02.S-04
+F-03,Redemption Flow,1,S-02,Submit company wallet redemption,Partner Admin redeems from the company wallet with the same flow as personal wallet,workflow,F-03.S-01
+F-03,Redemption Flow,1,S-03,Route cash redemptions to XTRM,Cash redemption requests are submitted to XTRM with partner identity and ledger finalized on webhook,integration,F-03.S-01
+F-03,Redemption Flow,1,S-04,Route non-cash redemptions to Xoxoday,Non-cash orders are placed with Xoxoday and ledger finalized on fulfillment webhook,integration,F-03.S-01
+F-03,Redemption Flow,1,S-05,Queue and process batch redemptions,Redemptions in batch mode are queued and processed on the client-configured cadence,workflow,F-03.S-01
+F-03,Redemption Flow,1,S-06,Process vendor webhooks idempotently,XTRM and Xoxoday status updates authenticate and apply to ledger and transaction state without double-processing,integration,F-03.S-03
+F-03,Redemption Flow,1,S-07,Notify partners of redemption lifecycle,Partners receive timely notifications at submission completion and failure,workflow,F-03.S-01
+F-04,Redemption Approval Queue,1,S-01,View pending approval queue,Approvers see a filterable list of redemptions and returns awaiting review with full context,UI,F-03.S-01
+F-04,Redemption Approval Queue,1,S-02,Approve pending redemption,Approver approves a request triggering vendor handoff and partner notification,workflow,F-04.S-01
+F-04,Redemption Approval Queue,1,S-03,Reject pending redemption,Approver rejects a request releasing the reserved balance and notifying the partner,workflow,F-04.S-01
+F-05,Transaction History & Export,1,S-01,View personal redemption history,Partner sees a filterable status-tracked list of all their redemptions with full detail,UI,F-03.S-01
+F-05,Transaction History & Export,1,S-02,View company redemption history,Partner Admin sees redemption activity for the company wallet separately,UI,F-03.S-02
+F-05,Transaction History & Export,1,S-03,Export personal transaction data,Partner downloads their own redemption history as CSV or XLSX,reporting,F-05.S-01
+F-05,Transaction History & Export,1,S-04,View and export tenant-wide history,Client Admin sees and exports redemption activity across all users and companies,reporting,F-05.S-01
+F-06,Non-Cash Returns,1,S-01,Submit a return request,Partner initiates a return from their transaction history for an eligible completed non-cash redemption,workflow,F-05.S-01
+F-06,Non-Cash Returns,1,S-02,Review and decide on return requests,Client Admin and Approver reviews pending returns and approves or rejects from the approval queue,admin,F-06.S-01
+F-06,Non-Cash Returns,1,S-03,Notify Xoxoday of approved return,Platform sends the return notification to Xoxoday after admin approval and waits for vendor confirmation,integration,F-06.S-02
+F-06,Non-Cash Returns,1,S-04,Credit wallet on Xoxoday confirmation,When Xoxoday confirms the partner's balance is restored and they receive notification,workflow,F-06.S-03
+F-06,Non-Cash Returns,1,S-05,Handle return rejection paths,Both admin and vendor rejections close the return without wallet credit with appropriate notification,workflow,F-06.S-02
+F-07,Basic Redemption Analytics,1,S-01,View redemption rate by currency,Client Admin sees the percentage of earned balances that have been redeemed per currency type,reporting,F-03.S-06
+F-07,Basic Redemption Analytics,1,S-02,View unredeemed balance liability,Client Admin sees and exports the total outstanding unredeemed balance across all tenant wallets by currency type,reporting,F-01.S-01
+F-07,Basic Redemption Analytics,1,S-03,View failed and cancelled redemption rates,Client Admin identifies fulfillment friction by monitoring failure and cancellation rates,reporting,F-07.S-01
+F-07,Basic Redemption Analytics,1,S-04,Filter analytics by date range,Client Admin analyzes redemption health across specific time windows,UI,F-07.S-01
+F-08,Advanced Redemption Analytics,2,S-01,View redemption rate by catalog item,Client Admin identifies most and least redeemed items to optimize catalog curation,reporting,F-07.S-01
+F-08,Advanced Redemption Analytics,2,S-02,View redemption by partner segment,Client Admin sees breakdowns by tier region and role to identify engagement gaps,reporting,F-08.S-01
+F-08,Advanced Redemption Analytics,2,S-03,View time-to-first-redemption,Client Admin understands how quickly new partners convert earned rewards,reporting,F-08.S-01
+F-08,Advanced Redemption Analytics,2,S-04,View redemption rate trends over time,Client Admin tracks engagement trends across configurable time windows,reporting,F-08.S-01
+F-08,Advanced Redemption Analytics,2,S-05,Filter analytics by tier region and date,Client Admin combines multiple filters for targeted program diagnosis,UI,F-08.S-02
+F-09,Balance Expiration,2,S-01,Configure balance expiration policy,Client Admin enables and configures per-currency expiration rules for their tenant,admin,
+F-09,Balance Expiration,2,S-02,Notify partners of approaching expiry,Partners receive advance warning before their balance expires so they can act,workflow,F-09.S-01
+F-09,Balance Expiration,2,S-03,Execute balance expiration,System applies expiry debits and records immutable ledger entries at the configured expiry point,rules,F-09.S-01
+F-09,Balance Expiration,2,S-04,Report on breakage,Client Admin views and exports expired balance totals by currency type and period,reporting,F-09.S-03

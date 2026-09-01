@@ -1,0 +1,18 @@
+{
+  "featureId": "redemption-analytics-advanced",
+  "repo": "tenxengage-frontend",
+  "branch": "work/redemption-analytics-advanced-US-05-fe",
+  "headCommit": "ca8cace9ecc9539fa3756fa4cf074621cf8b6c5c",
+  "startedAt": "2026-06-22T12:00:00Z",
+  "updatedAt": "2026-06-22T12:00:00Z",
+  "steps": {
+    "prerequisites": { "status": "pending" },
+    "code-review": { "status": "pending" },
+    "ui-ux-review": { "status": "pending" },
+    "security-review": { "status": "pending" },
+    "adversarial-review": { "status": "pending" },
+    "tests": { "status": "pending" }
+  },
+  "overall": "in-progress",
+  "lastCompletedStep": null
+}

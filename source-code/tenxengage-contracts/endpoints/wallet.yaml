@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  title: Wallet Endpoints
+  description: Reward wallet balance reads. Wallet mutations (reserve, debit, release, returnCredit) are internal service calls — no API endpoints in F-01.
+  version: 1.0.0
+
+paths:
+  /api/v1/wallets/me:
+    get:
+      summary: Get my wallets
+      description: Returns all per-currency individual wallets for the authenticated user. Approved deviation from conventions.md — uses isAuthenticated() rather than @RequiresPermission because balance data is the user's own financial record.
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of individual wallets for the authenticated user (one per currency)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardWalletResponse'
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/wallets/company/{companyId}:
+    get:
+      summary: Get company wallets
+      description: |
+        Returns all per-currency wallets for a partner company.
+        - PARTNER_ADMIN: server validates `companyId` matches the caller's JWT `partnerCompanyId` claim; returns 403 if mismatch or if caller has no company claim
+        - CLIENT_ADMIN: any company within their tenant; returns 404 if not found
+        - PARTNER_SELLER: always 403 (role check before wallet lookup)
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      x-permission: module.redemption_store
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of company wallets (one per currency)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardWalletResponse'
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: PARTNER_ADMIN companyId mismatch, no company claim, or caller is PARTNER_SELLER
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Company not found in tenant (CLIENT_ADMIN only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/wallets/users/{userId}:
+    get:
+      summary: Get wallets for a user (admin)
+      description: CLIENT_ADMIN view of any individual user's wallets within their tenant. Cross-tenant userId returns 404, not 403, to prevent enumeration.
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_all_history
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of individual wallets for the specified user (one per currency)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RewardWalletResponse'
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "403":
+          description: Caller is not CLIENT_ADMIN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: User not found in tenant (prevents cross-tenant enumeration)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/wallets/company/{companyId}/fund:
+    post:
+      summary: Fund a company wallet
+      description: >
+        Credits a partner company's wallet, creating it on first funding. This is the API replacement for
+        inserting into reward_wallets by hand, and the only endpoint in the system that creates balance
+        from nothing — so it is audited and strictly idempotent.
+
+        `reference` is REQUIRED, not optional: it IS the idempotency key. Re-submitting the same
+        reference credits the wallet once, so a double-click cannot double-fund. Scoped per client and
+        company, so two companies can both use "PO-1".
+
+        CLIENT_ADMIN / PLATFORM_ADMIN only, and deliberately NOT PARTNER_ADMIN: they spend this wallet,
+        so letting them top it up would remove the only control on how much a company can distribute.
+      tags: [Wallet]
+      security:
+        - bearerAuth: []
+      x-permission: action.wallet.fund_company
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FundCompanyWalletRequest'
+      responses:
+        "200":
+          description: >
+            Wallet balances after funding. A repeated `reference` returns the current balances unchanged
+            rather than erroring — the credit already happened.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RewardWalletResponse'
+        "403":
+          description: Caller lacks action.wallet.fund_company (a PARTNER_ADMIN always does)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: Partner company not found in this tenant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    FundCompanyWalletRequest:
+      type: object
+      required: [currencyId, amount, reference]
+      properties:
+        currencyId:
+          type: string
+          maxLength: 50
+          description: Always "cash" in v1 — the only currency distributions support.
+          example: cash
+        amount:
+          type: string
+          description: Positive, up to 2 decimal places.
+          example: "10000.00"
+        reference:
+          type: string
+          maxLength: 255
+          description: >
+            Your identifier for this funding (a PO number, a transfer id). Idempotency is enforced on it,
+            so re-submitting the same reference credits the wallet once. Required for exactly that reason.
+          example: PO-4471
+        note:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Free text recorded on the ledger entry. Defaults to the reference when omitted.
+
+    RewardWalletResponse:
+      type: object
+      required: [id, walletType, currencyId, availableBalance, reservedBalance]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Wallet ID — referenced by F-03 redemption submission
+        walletType:
+          type: string
+          enum: [INDIVIDUAL, COMPANY]
+        currencyId:
+          type: string
+          description: Currency code (e.g. "cash", "points", "credits", "tickets")
+        availableBalance:
+          type: string
+          description: Spendable balance as decimal string (e.g. "150.00")
+        reservedBalance:
+          type: string
+          description: Locked in-flight balance as decimal string (e.g. "30.00")
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

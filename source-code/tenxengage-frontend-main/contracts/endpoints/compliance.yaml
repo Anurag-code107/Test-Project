@@ -1,0 +1,397 @@
+openapi: 3.0.3
+info:
+  title: Compliance Endpoints
+  description: Data retention policies, sub-processor registry, and breach incident management
+  version: 1.0.0
+
+paths:
+  /api/v1/compliance/retention-policies:
+    get:
+      summary: List retention policies
+      description: Returns all data retention policies configured for the current client tenant
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of retention policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RetentionPolicyResponse"
+        "403":
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+  /api/v1/compliance/retention-policies/{category}:
+    put:
+      summary: Update retention policy
+      description: Updates the retention policy for a specific data category. Restricted to CLIENT_ADMIN. Values must fall within platform bounds.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              [
+                INACTIVE_USERS,
+                AUDIT_LOGS,
+                NOTIFICATIONS,
+                REWARD_TRANSACTIONS,
+                PURCHASE_ORDERS,
+                CONNECTOR_CREDENTIALS,
+              ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRetentionPolicyRequest"
+      responses:
+        "200":
+          description: Retention policy updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetentionPolicyResponse"
+        "400":
+          description: Validation error (value outside allowed bounds)
+        "403":
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+  /api/v1/compliance/retention-policies/defaults:
+    get:
+      summary: Get platform default retention policies
+      description: Returns the platform-wide default retention policies. Restricted to TENX_ADMIN.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Default retention policies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RetentionPolicyResponse"
+        "403":
+          description: Insufficient permissions (TENX_ADMIN required)
+
+  /api/v1/compliance/retention-policies/bounds:
+    get:
+      summary: Get retention policy bounds
+      description: Returns the minimum and maximum allowed values for each retention category. Available to all authenticated users.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Retention policy bounds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    category:
+                      type: string
+                      enum:
+                        [
+                          INACTIVE_USERS,
+                          AUDIT_LOGS,
+                          NOTIFICATIONS,
+                          REWARD_TRANSACTIONS,
+                          PURCHASE_ORDERS,
+                          CONNECTOR_CREDENTIALS,
+                        ]
+                    minDays:
+                      type: integer
+                    maxDays:
+                      type: integer
+                    actionType:
+                      type: string
+                      enum: [ANONYMIZE, DELETE]
+        "401":
+          description: Not authenticated
+
+  /api/v1/compliance/sub-processors:
+    get:
+      summary: List sub-processors
+      description: Returns the registry of third-party sub-processors. Restricted to CLIENT_ADMIN.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of sub-processors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubProcessorResponse"
+        "403":
+          description: Insufficient permissions (CLIENT_ADMIN required)
+
+    post:
+      summary: Register sub-processor
+      description: Adds a new sub-processor to the registry. Restricted to TENX_ADMIN.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubProcessorRequest"
+      responses:
+        "201":
+          description: Sub-processor registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubProcessorResponse"
+        "400":
+          description: Validation error
+        "403":
+          description: Insufficient permissions (TENX_ADMIN required)
+        "409":
+          description: Sub-processor with this name already exists
+
+  /api/v1/compliance/sub-processors/{id}:
+    put:
+      summary: Update sub-processor
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.compliance.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubProcessorRequest"
+      responses:
+        "200":
+          description: Sub-processor updated
+
+    delete:
+      summary: Delete sub-processor
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      x-permission: action.tenx.compliance.manage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Sub-processor deleted
+
+  /api/v1/compliance/breach-incidents:
+    get:
+      summary: List breach incidents
+      description: Returns all recorded breach incidents. Restricted to TENX_ADMIN.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of breach incidents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BreachIncidentResponse"
+        "403":
+          description: Insufficient permissions (TENX_ADMIN required)
+
+    post:
+      summary: Record breach incident
+      description: Records a new data breach incident. Restricted to TENX_ADMIN.
+      tags: [Compliance]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBreachIncidentRequest"
+      responses:
+        "201":
+          description: Breach incident recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BreachIncidentResponse"
+        "400":
+          description: Validation error
+        "403":
+          description: Insufficient permissions (TENX_ADMIN required)
+
+components:
+  schemas:
+    RetentionPolicyResponse:
+      type: object
+      description: See models/retention-policy.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum:
+            [
+              INACTIVE_USERS,
+              AUDIT_LOGS,
+              NOTIFICATIONS,
+              REWARD_TRANSACTIONS,
+              PURCHASE_ORDERS,
+              CONNECTOR_CREDENTIALS,
+            ]
+        retentionDays:
+          type: integer
+        actionType:
+          type: string
+          enum: [ANONYMIZE, DELETE]
+        lastExecutedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateRetentionPolicyRequest:
+      type: object
+      required: [retentionDays, actionType]
+      properties:
+        retentionDays:
+          type: integer
+          minimum: 1
+        actionType:
+          type: string
+          enum: [ANONYMIZE, DELETE]
+
+    SubProcessorResponse:
+      type: object
+      description: See models/sub-processor.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        purpose:
+          type: string
+        dataCategories:
+          type: array
+          items:
+            type: string
+        country:
+          type: string
+        dpaUrl:
+          type: string
+          format: uri
+        addedAt:
+          type: string
+          format: date-time
+
+    CreateSubProcessorRequest:
+      type: object
+      required: [name, purpose, dataCategories, country]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        purpose:
+          type: string
+          maxLength: 1000
+        dataCategories:
+          type: array
+          items:
+            type: string
+        country:
+          type: string
+          maxLength: 100
+        dpaUrl:
+          type: string
+          format: uri
+          maxLength: 500
+
+    BreachIncidentResponse:
+      type: object
+      description: See models/breach-incident.md for full field definitions
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        status:
+          type: string
+          enum: [DETECTED, INVESTIGATING, REPORTED, RESOLVED, CLOSED]
+        affectedRecordCount:
+          type: integer
+        detectedAt:
+          type: string
+          format: date-time
+        reportedToAuthorityAt:
+          type: string
+          format: date-time
+          nullable: true
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateBreachIncidentRequest:
+      type: object
+      required: [title, description, severity, affectedRecordCount, detectedAt]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 5000
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, CRITICAL]
+        affectedRecordCount:
+          type: integer
+          minimum: 0
+        detectedAt:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

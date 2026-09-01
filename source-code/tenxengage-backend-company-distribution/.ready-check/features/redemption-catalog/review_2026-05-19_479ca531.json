@@ -1,0 +1,63 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "7fd864e7fd8bd3c34be286d5400e5ad3fd287a10",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T06:45:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "failed",
+      "validatedAtCommit": "479ca531ba009c147df4f77b12842cc76af9e75c",
+      "completedAt": "2026-05-19T08:47:18.464Z",
+      "source": "job-store",
+      "codexJobId": "review-mpcdupcu-poyk7g",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T08:47:18.464Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Company wallet balances are gated only by module access",
+          "details": "`GET /api/v1/wallets/company/{companyId}` requires only `module.redemption_store`, but the service path allows any non-partner-seller/non-partner-admin caller through after only checking that the company belongs to the tenant. In a permission model with configurable roles, an internal user granted module access without all-history/admin authority can read any company wallet in the tenant, despite the endpoint contract saying CLIENT_ADMIN only. This exposes financial balance data across partner companies.",
+          "file": "src/main/java/com/tenxengage/app/controller/WalletController.java",
+          "lineStart": 35,
+          "lineEnd": 39,
+          "severity": "high",
+          "confidence": 0.82,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.82 (>=0.70), alreadyHandled=false",
+          "recommendation": "Require `action.redemption.view_all_history` or an explicit CLIENT_ADMIN/platform role check for company-wallet reads, while keeping the partner-admin own-company exception separate and tested.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Xoxoday sync can mass-deactivate valid catalog items on partial provider results",
+          "details": "The sync treats one provider response as the complete source of truth and deactivates every active NON_CASH item whose provider id is absent. The only guard allows responses as small as 20% of the current active catalog, so a paginated, truncated, stale, or partially failed provider response containing just over that threshold can deactivate most redeemable items in one run. This is an irreversible user-visible availability failure until an admin detects and repairs the catalog.",
+          "file": "src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java",
+          "lineStart": 68,
+          "lineEnd": 129,
+          "severity": "high",
+          "confidence": 0.78,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.78 (>=0.70), alreadyHandled=false",
+          "recommendation": "Only deactivate after a verified full-catalog sync: implement provider pagination/total validation, stage results before applying, and require consecutive successful full syncs or explicit admin confirmation before deactivating missing provider items.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nDo not ship yet: the diff leaves a wallet authorization gap and a sync path that can deactivate catalog inventory from partial provider data.\n\nFindings:\n- [high] Company wallet balances are gated only by module access (src/main/java/com/tenxengage/app/controller/WalletController.java:35-39)\n- [high] Xoxoday sync can mass-deactivate valid catalog items on partial provider results (src/main/java/com/tenxengage/app/service/XoxodaySyncJobService.java:68-129)"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "failed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T08:27:11.039Z"
+}

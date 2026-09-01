@@ -1,0 +1,65 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tenxengage?stringtype=unspecified
+    username: tenxengage
+    password: localdev
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: public
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    validate-on-migrate: false
+  batch:
+    jdbc:
+      initialize-schema: always
+  kafka:
+    bootstrap-servers: localhost:9092
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+app:
+  auth:
+    strategy: jwt
+  jwt:
+    secret: test-secret-key-for-unit-tests-must-be-at-least-256-bits-long-for-hmac-sha
+    access-token-expiration-ms: 3600000
+    refresh-token-expiration-ms: 604800000
+  approval:
+    token-secret: test-approval-secret-key-for-local-integration-tests-256-bits-long
+  mail:
+    from: test@tenxengage.com
+    enabled: false
+  connector:
+    encryption-key: 0123456789abcdef0123456789abcdef
+  storage:
+    provider: local
+    local:
+      base-dir: /tmp/tenx-test-storage
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:3001
+
+redemption:
+  webhook:
+    xtrm:
+      signing-secret: test-xtrm-secret
+    xoxoday:
+      signing-secret: test-xoxoday-secret
+  xtrm:
+    base-url: https://xapisandbox.xtrm.com
+    auth-token: test-token
+    issuer-account-number: TEST-ACCOUNT
+    payment-method-id: TEST-METHOD
+    wallet-id: "000000"
+    program-id: "0000"
+
+logging:
+  level:
+    com.tenxengage: DEBUG
+  config: classpath:logback-test.xml

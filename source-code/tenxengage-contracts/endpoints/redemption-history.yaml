@@ -1,0 +1,860 @@
+openapi: 3.0.3
+info:
+  title: Redemption History & Export Endpoints
+  description: >
+    Transaction history reads and CSV/XLSX export for partner users and CLIENT_ADMIN.
+    PARTNER_SELLER and PARTNER_ADMIN can browse and export their own personal and company
+    wallet redemption history. CLIENT_ADMIN gets a full tenant-wide view with additional
+    user and company filters. Exports ≤ 1,000 rows stream synchronously; larger exports
+    create an async RedemptionExportJob that callers poll until ready for download.
+    Export files expire 24 hours after completion and are deleted from object storage.
+  version: 1.0.0
+
+paths:
+  /api/v1/redemption/requests/all:
+    get:
+      summary: List all-tenant redemption history (CLIENT_ADMIN, paginated)
+      description: >
+        CLIENT_ADMIN views all redemption requests across all partner users and companies
+        within the tenant. Supports the same base filters as personal/company history plus
+        optional userId and companyId filters for targeted reporting. userId and companyId
+        are ignored for non-CLIENT_ADMIN callers. Response includes requestingUserDisplayName
+        and partnerCompanyName for admin context. Rate limited to 30 req/min per tenant.
+      tags: [Redemption History]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_all_history
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+          description: Page size — max 50; returns 400 if exceeded
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt >= dateFrom (ISO-8601 date). Applied as 00:00:00 UTC.
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt <= dateTo (ISO-8601 date). Applied as 23:59:59.999 UTC.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CASH, NON_CASH]
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by requesting user UUID. Ignored for non-CLIENT_ADMIN callers.
+        - name: companyId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by partner company UUID. Ignored for non-CLIENT_ADMIN callers.
+        - name: userName
+          in: query
+          schema:
+            type: string
+          description: >
+            Case-insensitive partial match on the requesting user's full name
+            (firstName + lastName). Preferred over userId for the client-side view.
+        - name: companyName
+          in: query
+          schema:
+            type: string
+          description: Case-insensitive partial match on the partner company name.
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [submittedAt, amount, status]
+            default: submittedAt
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        "200":
+          description: Paginated all-tenant redemption history with user and company context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedAdminHistoryResponse"
+        "400":
+          description: >
+            Validation error — pageSize > 50; invalid status or category enum; unknown sortBy;
+            invalid date format; malformed userId or companyId UUID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.view_all_history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: dateFrom > dateTo — invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (30 req/min per tenant)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Export ───────────────────────────────────────────────────────────────────
+
+  /api/v1/redemption/requests/export:
+    post:
+      summary: Trigger redemption history export (sync or async)
+      description: >
+        Triggers a CSV or XLSX export of redemption history. Applies a COUNT query first:
+        if ≤ 1,000 rows, the file is generated synchronously and returned directly as an
+        attachment (HTTP 200). If > 1,000 rows, an async RedemptionExportJob is created
+        and HTTP 202 is returned with the job details for polling. Returns 422 if the
+        filtered result set is empty ("No records match the selected filters").
+        userId and companyId filters are only applied for CLIENT_ADMIN callers; ignored
+        for PARTNER_SELLER / PARTNER_ADMIN. Rate limited to 5 requests per user per hour.
+        Admin-scope exports include vendorName (XTRM / Xoxoday) as an internal label.
+        Emits audit record with action=DATA_EXPORTED, resourceType=REDEMPTION_EXPORT_JOB
+        (async path) or REDEMPTION_REQUEST (sync path).
+      tags: [Redemption History]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.export
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriggerExportRequest"
+      responses:
+        "200":
+          description: >
+            Sync export — ≤ 1,000 rows. File returned as binary attachment.
+            Content-Disposition: attachment; filename="redemption-history-{timestamp}.csv" (or .xlsx).
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="redemption-history-2026-06-03.csv"
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "202":
+          description: >
+            Async export — > 1,000 rows. RedemptionExportJob created and queued for background
+            processing. Poll GET /export/{jobId} until status=COMPLETED, then call
+            GET /export/{jobId}/download for the presigned download URL.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionExportJobResponse"
+        "400":
+          description: Validation error — format missing or unknown; invalid date format; unknown status/category value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: >
+            dateFrom > dateTo, OR no records match the selected filters ("No records match
+            the selected filters")
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded (5 requests per user per hour)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/requests/export/{jobId}:
+    get:
+      summary: Poll export job status
+      description: >
+        Returns the current status of an async export job. Callers should poll every 3
+        seconds while status is PENDING or PROCESSING, then stop on COMPLETED or FAILED.
+        Access is restricted to the job owner (requested_by == caller) OR a user with
+        action.redemption.view_all_history. Cross-owner / cross-tenant access returns 404,
+        never 403.
+      tags: [Redemption History]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.export
+      parameters:
+        - $ref: "#/components/parameters/jobId"
+      responses:
+        "200":
+          description: Export job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionExportJobResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Export job not found, expired, or belongs to a different user / tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/requests/export/{jobId}/download:
+    get:
+      summary: Get export job download URL
+      description: >
+        Returns export job details including a presigned download URL valid for 15 minutes
+        (generated fresh on each call). downloadUrl is null when status is PENDING or
+        PROCESSING — callers should remain in polling state. When status=FAILED, downloadUrl
+        is null and failureReason is set. Access is restricted to the job owner OR a user
+        with action.redemption.view_all_history; cross-owner access returns 404.
+      tags: [Redemption History]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.export
+      parameters:
+        - $ref: "#/components/parameters/jobId"
+      responses:
+        "200":
+          description: >
+            Export job detail. downloadUrl is present only when status=COMPLETED; null
+            otherwise. Presigned URL expires 15 minutes from this response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionExportJobDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Caller lacks action.redemption.export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Export job not found, expired, or belongs to a different user / tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ─── Modified Existing Endpoints ─────────────────────────────────────────────
+
+  /api/v1/redemption/requests:
+    get:
+      x-modified: true
+      summary: List personal redemption history (paginated)
+      description: >
+        PARTNER_SELLER / PARTNER_ADMIN: returns their own personal wallet redemption requests
+        only. Filterable by dateFrom, dateTo, status, currencyId, and category. Sort allowlist
+        enforced server-side. All filters are optional and combinable. Response extended by
+        F-05 with catalogItemName and completedAt fields. For all-tenant admin view use
+        GET /api/v1/redemption/requests/all.
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      x-permission: action.redemption.view_history
+      parameters:
+        - $ref: "#/components/parameters/page"
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt >= dateFrom (ISO-8601 date). Applied as 00:00:00 UTC.
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter submittedAt <= dateTo (ISO-8601 date). Applied as 23:59:59.999 UTC.
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        - name: currencyId
+          in: query
+          schema:
+            type: string
+            description: Filter by currency ID — "cash", "points", "credits", "tickets"
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [CASH, NON_CASH]
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [submittedAt, amount, status]
+            default: submittedAt
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            enum: [ASC, DESC]
+            default: DESC
+      responses:
+        "200":
+          description: Paginated personal redemption history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedRedemptionRequestResponse"
+        "400":
+          description: >
+            Validation error — pageSize > 50; invalid status/category enum; unknown sortBy;
+            invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: dateFrom > dateTo — invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/redemption/requests/{id}:
+    get:
+      x-modified: true
+      summary: Get redemption request detail
+      description: >
+        Full detail for a single redemption request. Extended by F-05 with linkedReturnId
+        (nullable UUID) — null until F-06 is deployed and the redemption has an associated
+        return request. Cross-tenant id returns 404, not 403. vendorReferenceId only included
+        when status=COMPLETED. failureReason is a generic user-friendly message — raw vendor
+        text is never returned.
+
+        Authorization (ANY): a caller with action.redemption.view_history may read their OWN
+        requests; a caller with action.redemption.view_all_history may read ANY request within
+        the tenant (tenant-admin audit drill-in). Non-admin cross-owner access returns 404.
+        Mirrors RedemptionRequestController#getRedemption
+        (@RequiresPermission(value={view_history, view_all_history}, logic=ANY)).
+      tags: [Redemption Flow]
+      security:
+        - bearerAuth: []
+      # ANY-of (see PermissionAspect): holding either permission authorizes the call;
+      # owner-scoping in RedemptionHistoryService.getRedemptionDetail branches on view_all_history.
+      x-permission:
+        - action.redemption.view_history
+        - action.redemption.view_all_history
+      x-permission-logic: ANY
+      parameters:
+        - $ref: "#/components/parameters/redemptionRequestId"
+      responses:
+        "200":
+          description: Redemption request detail (includes F-05 linkedReturnId field)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RedemptionRequestDetailResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Redemption request not found or belongs to a different tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    # ─── Request Schemas ─────────────────────────────────────────────────────────
+
+    TriggerExportRequest:
+      type: object
+      required: [format]
+      properties:
+        format:
+          type: string
+          enum: [CSV, XLSX]
+          description: Required. Format of the generated export file.
+        scope:
+          type: string
+          enum: [PERSONAL, ALL_TENANT]
+          description: >
+            Optional. Which tab the export was triggered from. The server honors it only up to the
+            caller's permissions (ALL_TENANT requires view_all_history) — an unauthorized scope is
+            narrowed, never widened. When omitted, the server uses the widest scope the caller is
+            permitted. COMPANY was removed with company-wallet redemption; sending it now fails
+            validation.
+        dateFrom:
+          type: string
+          format: date
+          description: Optional start date filter (ISO-8601). Applied as 00:00:00 UTC.
+        dateTo:
+          type: string
+          format: date
+          description: Optional end date filter (ISO-8601). Applied as 23:59:59.999 UTC.
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+          description: Optional status filter.
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+          description: Optional category filter.
+        userId:
+          type: string
+          format: uuid
+          description: Optional. Filter by requesting user UUID. Applied only for CLIENT_ADMIN callers; ignored otherwise.
+        companyId:
+          type: string
+          format: uuid
+          description: Optional. Filter by partner company UUID. Applied only for CLIENT_ADMIN callers; ignored otherwise.
+        userName:
+          type: string
+          description: >
+            Optional. Case-insensitive partial match on the requesting user's full name.
+            Applied only to ALL_TENANT scope exports (mirrors the All-Redemptions list search);
+            ignored for PERSONAL scope.
+        companyName:
+          type: string
+          description: >
+            Optional. Case-insensitive partial match on the partner company name.
+            Applied only to ALL_TENANT scope exports; ignored for PERSONAL scope.
+
+    # ─── Response Schemas ─────────────────────────────────────────────────────────
+
+    RedemptionRequestResponse:
+      type: object
+      description: >
+        Summary list item for personal and company history. Extended by F-05 with
+        catalogItemName and completedAt. Never includes clientId, deleted, or version.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string (e.g. "150.00")
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the redeemed catalog item. Joined at query time.
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+          description: >
+            Redemption category. Additive (2026-07, redemption-store-feedback). Drives the history
+            Actions column: CASH → "N/A"; NON_CASH → "Request Return" when return-eligible.
+        submittedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          description: Null until vendor confirms or failure occurs. Present when status=COMPLETED or FAILED.
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH and status=RESERVED
+        estimatedDelivery:
+          type: string
+          description: Human-readable payout timeline
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionRequestDetailResponse:
+      type: object
+      description: >
+        Full detail view for a single redemption request. Extended by F-05 with linkedReturnId
+        (nullable UUID — null until F-06 deployed). Never includes clientId, deleted, or version.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the selected catalog item
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        category:
+          type: string
+          enum: [CASH, NON_CASH]
+        walletType:
+          type: string
+          enum: [INDIVIDUAL, COMPANY]
+        vendorReferenceId:
+          type: string
+          description: Vendor transaction ID. Only included when status=COMPLETED.
+        submittedAt:
+          type: string
+          format: date-time
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH
+        completedAt:
+          type: string
+          format: date-time
+          description: Present when status=COMPLETED or FAILED
+        failureReason:
+          type: string
+          description: Generic user-friendly failure message. Raw vendor text never returned. Present when status=FAILED.
+        reviewedByName:
+          type: string
+          description: >
+            Display name of the approver/reviewer, resolved server-side from reviewedBy. Additive
+            (2026-07, redemption-store-feedback). Present for COMPLETED and CANCELLED (rejected)
+            requests; null when the reviewer user can no longer be resolved.
+        estimatedDelivery:
+          type: string
+          description: Human-readable payout timeline
+        linkedReturnId:
+          type: string
+          format: uuid
+          description: UUID of the associated RedemptionReturn (F-06). Null until F-06 is deployed and a return exists for this redemption.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionAdminHistoryResponse:
+      type: object
+      description: >
+        All-tenant list item for CLIENT_ADMIN history view. Extends RedemptionRequestResponse
+        with requestingUser and partnerCompany context fields. Never includes clientId.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_APPROVAL, RESERVED, PROCESSING, COMPLETED, FAILED, CANCELLED]
+        amount:
+          type: string
+          description: Decimal string
+        currencyId:
+          type: string
+        catalogItemId:
+          type: string
+          format: uuid
+        catalogItemName:
+          type: string
+          description: Display name of the redeemed catalog item
+        processingMode:
+          type: string
+          enum: [INSTANT, BATCH, APPROVAL_REQUIRED]
+        userId:
+          type: string
+          format: uuid
+          description: UUID of the partner user who submitted the redemption
+        userDisplayName:
+          type: string
+          description: Display name of the requesting user. Joined at query time.
+        partnerCompanyId:
+          type: string
+          format: uuid
+          description: UUID of the partner company. Null for INDIVIDUAL wallet redemptions with no company affiliation.
+        partnerCompanyName:
+          type: string
+          description: Partner company name. Null when partnerCompanyId is null.
+        submittedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          description: Null until vendor confirms or failure occurs
+        scheduledBatchDate:
+          type: string
+          format: date
+          description: Only present when processingMode=BATCH and status=RESERVED
+        estimatedDelivery:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionExportJobResponse:
+      type: object
+      description: >
+        Export job poll response. rowCount and expiresAt are null until status=COMPLETED.
+        failureReason is null unless status=FAILED. Never includes fileKey (internal storage
+        reference) or clientId.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        format:
+          type: string
+          enum: [CSV, XLSX]
+        scope:
+          type: string
+          enum: [PERSONAL, COMPANY, ALL_TENANT]
+          description: >
+            Query scope captured at trigger time — determines which records are included.
+            COMPANY is read-only legacy: it can no longer be requested, but jobs created before
+            company-wallet redemption was retired still carry it.
+        rowCount:
+          type: integer
+          description: Number of rows in the exported file. Null until status=COMPLETED.
+        expiresAt:
+          type: string
+          format: date-time
+          description: Timestamp when the export file will be deleted from object storage (NOW() + 24h on COMPLETED). Null until COMPLETED.
+        failureReason:
+          type: string
+          description: Generic failure description. Null unless status=FAILED.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    RedemptionExportJobDetailResponse:
+      type: object
+      description: >
+        Export job detail with presigned download URL. downloadUrl is present only when
+        status=COMPLETED; null when PENDING, PROCESSING, or FAILED. Presigned URL is
+        generated fresh on each call and is valid for 15 minutes from response time.
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        format:
+          type: string
+          enum: [CSV, XLSX]
+        scope:
+          type: string
+          enum: [PERSONAL, COMPANY, ALL_TENANT]
+          description: COMPANY is read-only legacy — see the job-detail schema.
+        rowCount:
+          type: integer
+          description: Null until status=COMPLETED.
+        expiresAt:
+          type: string
+          format: date-time
+          description: File storage expiry (NOW() + 24h on COMPLETED). Null until COMPLETED.
+        failureReason:
+          type: string
+          description: Null unless status=FAILED.
+        downloadUrl:
+          type: string
+          description: Presigned object storage URL valid 15 minutes from this response. Null unless status=COMPLETED.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ─── Paginated Response Wrappers ─────────────────────────────────────────────
+
+    PaginatedRedemptionRequestResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedemptionRequestResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    PaginatedAdminHistoryResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/RedemptionAdminHistoryResponse"
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required: [errorCode, errorMessage, status, timestamp, path]
+      properties:
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        status:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+  parameters:
+    redemptionRequestId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    jobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 0
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

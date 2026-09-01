@@ -1,0 +1,31 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: true
+  batch:
+    jdbc:
+      initialize-schema: always
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+app:
+  auth:
+    strategy: jwt
+  jwt:
+    secret: test-secret-key-for-unit-tests-must-be-at-least-256-bits-long-for-hmac-sha
+    access-token-expiration-ms: 3600000
+    refresh-token-expiration-ms: 604800000
+
+logging:
+  level:
+    com.tenxengage: DEBUG

@@ -1,0 +1,3 @@
+{"commit":"31bbdc5ba7c46b34842b1528fa5f2e0a66afb277","timestamp":"2026-06-08T13:36:02Z","trigger":"ready-check","steps":{"prerequisites":"passed","code-review":"passed","security-review":"passed","contract-compliance":"passed","adversarial-review":"awaiting-user-review","tests":"passed","coverage":"passed"},"overall":"in-progress","fixes":1}
+{"commit":"31bbdc5ba7c46b34842b1528fa5f2e0a66afb277","timestamp":"2026-06-08T13:50:00Z","trigger":"ready-check:adversarial-review","steps":{"adversarial-review":"failed"},"overall":"failed","fixes":0}
+{"commit":"6e7805c57c1ed3a9200fa7718aa2ff1170398836","timestamp":"2026-06-09T12:30:00Z","trigger":"ready-check:adversarial-review","steps":{"adversarial-review":"passed"},"overall":"passed","fixes":0}

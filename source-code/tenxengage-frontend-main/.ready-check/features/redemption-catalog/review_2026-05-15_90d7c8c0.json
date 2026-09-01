@@ -1,0 +1,123 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-frontend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+  "startedAt": "2026-05-15T00:00:00.000Z",
+  "updatedAt": "2026-05-15T12:10:00.000Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+      "completedAt": "2026-05-15T00:01:00.000Z"
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+      "completedAt": "2026-05-15T00:03:00.000Z",
+      "fixes": 6,
+      "filesReviewed": [
+        "src/types/redemption-catalog.types.ts",
+        "src/hooks/useRedemptionCatalog.ts",
+        "src/services/redemption-catalog.service.ts",
+        "src/services/redemption-catalog-admin.service.ts",
+        "src/components/redemption-catalog/GlobalCatalogItemForm.tsx",
+        "src/components/redemption-catalog/TenantCatalogConfigTable.tsx",
+        "src/components/redemption-catalog/ItemConfigPanel.tsx",
+        "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+        "src/components/redemption-catalog/CatalogBrowseGrid.tsx",
+        "src/components/redemption-catalog/CatalogItemCard.tsx",
+        "src/components/redemption-catalog/CatalogItemDetailSheet.tsx",
+        "src/components/redemption-catalog/ShortfallBadge.tsx",
+        "src/components/redemption-catalog/SyncStatusBanner.tsx",
+        "src/components/redemption-catalog/TenantRedemptionSettingsForm.tsx",
+        "src/pages/tenx-admin/GlobalCatalogAdminPage.tsx",
+        "src/pages/client-admin/CatalogConfigPage.tsx",
+        "src/pages/RedemptionStorePage.tsx"
+      ],
+      "findings": [
+        { "severity": "medium", "file": "src/components/redemption-catalog/TenantRedemptionSettingsForm.tsx", "line": 30, "message": "useEffect used to sync server data into form via setValue (advisory)" },
+        { "severity": "medium", "file": "src/components/redemption-catalog/ItemConfigPanel.tsx", "line": 58, "message": "useEffect syncs config into form via reset() (advisory)" },
+        { "severity": "medium", "file": "src/components/redemption-catalog/GlobalCatalogItemForm.tsx", "line": 86, "message": "useEffect watches category and clears isReturnable (advisory)" },
+        { "severity": "low", "file": "src/components/redemption-catalog/CatalogBrowseGrid.tsx", "line": 54, "message": "Inline arrow in map prevents CatalogItemCard memoization (advisory)" }
+      ]
+    },
+    "ui-ux-review": {
+      "status": "passed",
+      "validatedAtCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+      "completedAt": "2026-05-15T00:04:00.000Z",
+      "fixes": 10,
+      "findings": [
+        { "severity": "medium", "file": "src/components/redemption-catalog/TenantCatalogConfigTable.tsx", "line": 22, "message": "Hardcoded pageSize: 20 with no pagination UI (advisory)" }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+      "completedAt": "2026-05-15T00:05:00.000Z",
+      "fixes": 0
+    },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+      "completedAt": "2026-05-15T12:00:00.000Z",
+      "source": "job-store",
+      "codexJobId": "review-mp6v4652-hlboea",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-15T11:59:46.324Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Blank return-window override saved as 0 instead of inherited",
+          "details": "z.coerce.number() coerces empty string to 0. Fixed: z.preprocess to treat empty/null as undefined + spread-omit pattern in request construction.",
+          "file": "src/components/redemption-catalog/ItemConfigPanel.tsx",
+          "lineStart": 23,
+          "lineEnd": 75,
+          "severity": "high",
+          "confidence": 0.86,
+          "tier": "blocking",
+          "tierReason": "severity=high, confidence=0.86 (>=0.70), alreadyHandled=false",
+          "recommendation": "Preprocess empty string/null to undefined before numeric coercion.",
+          "alreadyHandled": false
+        },
+        {
+          "summary": "Regional fallback rows cannot represent an enabled tenant default",
+          "details": "Rows without an explicit config always show as off. Advisory — tenantEnabled prop not yet threaded through.",
+          "file": "src/components/redemption-catalog/RegionalConfigMatrix.tsx",
+          "lineStart": 80,
+          "lineEnd": 108,
+          "severity": "medium",
+          "confidence": 0.78,
+          "tier": "advisory",
+          "tierReason": "severity=medium",
+          "recommendation": "Accept tenantEnabled prop; derive isEnabled as config?.enabled ?? tenantEnabled.",
+          "alreadyHandled": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      }
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "90d7c8c06a230695fac36474784fac662b894b44",
+      "completedAt": "2026-05-15T12:10:00.000Z",
+      "fixes": 0,
+      "testsRun": [
+        "src/components/redemption-catalog/__tests__/CatalogItemCard.test.tsx",
+        "src/components/redemption-catalog/__tests__/GlobalCatalogAdminPage.test.tsx",
+        "src/components/redemption-catalog/__tests__/GlobalCatalogItemForm.test.tsx",
+        "src/components/redemption-catalog/__tests__/ItemConfigPanel.test.tsx",
+        "src/components/redemption-catalog/__tests__/RegionalConfigMatrix.test.tsx",
+        "src/components/redemption-catalog/__tests__/ShortfallBadge.test.tsx",
+        "src/components/redemption-catalog/__tests__/SyncStatusBanner.test.tsx",
+        "src/components/redemption-catalog/__tests__/TenantCatalogConfigTable.test.tsx"
+      ],
+      "testPlanCoverage": { "planned": 0, "implemented": 8, "generated": 1, "passing": 23 }
+    }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "tests"
+}

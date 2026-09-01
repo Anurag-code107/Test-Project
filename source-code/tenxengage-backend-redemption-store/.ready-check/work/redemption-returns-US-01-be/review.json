@@ -1,0 +1,328 @@
+{
+  "featureId": "redemption-returns",
+  "storyId": "US-01",
+  "repo": "tenxengage-backend",
+  "branch": "work/redemption-returns-US-01-be",
+  "baseBranch": "features/redemption-returns",
+  "headCommit": "34c92d3c192144288719bc9d16a28ff42ebc39f1",
+  "softStages": ["adversarial-review"],
+  "startedAt": "2026-06-12T15:53:00Z",
+  "updatedAt": "2026-06-13T06:00:00Z",
+  "steps": {
+    "prerequisites": {
+      "status": "passed",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "notes": "Compilation clean. Spec exists at ../tenxengage-blueprint/features/redemption-returns/spec.md. 6 pre-existing test failures on base branch (XtrmVendorServiceTest x3, RedemptionSubmissionServiceTest x3) — not regressions from this branch."
+    },
+    "code-review": {
+      "status": "passed",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "fixes": 2,
+      "filesReviewed": [
+        "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java"
+      ],
+      "findings": [
+        {
+          "id": "CR-01",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "size parameter missing @Min(1) @Max(50) Bean Validation constraints",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-02",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/repository/RedemptionReturnRepository.java",
+          "summary": "findRedemptionIdsWithActiveReturns JPQL missing DISTINCT — provider may return duplicates",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-03",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/RedemptionRequestResponse.java",
+          "summary": "Legacy two-arg from() factory Javadoc did not warn callers it always sets isReturnEligible=false",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-04",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/RedemptionHistoryService.java",
+          "summary": "@Lazy circular-dependency comment missing on ReturnService field",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-05",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+          "summary": "kafkaTemplate.send() future silently discarded — send failures invisible",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-06",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+          "summary": "JsonProcessingException swallowed after logging — caller unaware event was never published",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-07",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "summary": "cancelReturn uses non-locking read — concurrent cancels protected by @Version optimistic lock but exception maps to 500 not 409",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-08",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "summary": "resolveCatalogName issues 2 sequential DB queries per getReturnById call",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-09",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "Inline fully-qualified constraint annotations (@jakarta.validation.constraints.Min, @Max) instead of imported short form — inconsistent with @Valid import style",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-10",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "With @Validated active, sortBy/sortDirection still validated imperatively — mixed declarative/imperative validation pattern",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-11",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "Caught IllegalArgumentException from Sort.Direction.fromString() not chained into ResponseStatusException — cause swallowed",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "CR-12",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "response.id() called without null guard before URI construction",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "CR-13",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "All 4 endpoints share same permission string 'action.redemption.return.request' including DELETE — cancel could have finer-grained permission",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        }
+      ]
+    },
+    "security-review": {
+      "status": "passed",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "fixes": 3,
+      "findings": [
+        {
+          "id": "SEC-01",
+          "severity": "high",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "summary": "submitReturn returned ReturnDetailResponse.from() instead of buildPartnerDetailResponse() — latent admin field leak for partner callers",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "SEC-02",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "Redundant size > 50 runtime check removed; @Validated added to controller class; @Max(50) now enforced via Bean Validation",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "SEC-03",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnSummaryResponse.java",
+          "summary": "@JsonInclude(NON_NULL) added — resolvedAt: null no longer emitted for pending returns",
+          "autoFixable": true,
+          "fixed": true
+        },
+        {
+          "id": "SEC-04",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/dto/request/redemption/SubmitReturnRequest.java",
+          "summary": "reason field has no @Pattern constraint — free-text allows log/event injection",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-05",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "DELETE used for state transition (cancel) — not idempotent; second DELETE returns different error",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-06",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "sortBy/sortDirection validation errors use ResponseStatusException (REQUEST_ERROR) inconsistently with rest of API (VALIDATION_ERROR)",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-07",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/controller/redemption/ReturnController.java",
+          "summary": "ServletUriComponentsBuilder.fromCurrentRequest() uses Host header for Location URI — host header injection risk if ForwardedHeaderFilter not configured in strict mode",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-08",
+          "severity": "medium",
+          "file": "src/main/java/com/tenxengage/app/dto/request/redemption/SubmitReturnRequest.java",
+          "summary": "reason field accepts empty string — @Size(max=500) does not imply non-blank; a blank reason passes @Valid and reaches service",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        },
+        {
+          "id": "SEC-09",
+          "severity": "low",
+          "file": "src/main/java/com/tenxengage/app/dto/response/redemption/ReturnDetailResponse.java",
+          "summary": "Admin-only fields (reviewNotes, vendorReturnReference) suppressed by convention only — no structural guarantee at controller layer",
+          "autoFixable": false,
+          "fixed": false,
+          "advisory": true
+        }
+      ]
+    },
+    "contract-compliance": {
+      "status": "passed",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "notes": "All 4 partner endpoints verified: POST /returns (201+Location), GET /returns (200+paginated), GET /returns/{id} (200), DELETE /returns/{id} (204). HTTP methods, paths, params, status codes, and DTO shapes all match contracts/endpoints/redemption-returns.yaml. No drift."
+    },
+    "adversarial-review": {
+      "status": "advisory",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "source": "codex",
+      "parseError": null,
+      "fixes": 0,
+      "findings": [
+        {
+          "summary": "Committed return state can lose its Kafka lifecycle event permanently",
+          "details": "doPublish writes the DB state in the surrounding transaction, then after commit calls kafkaTemplate.send(...) and immediately logs success without observing the returned future. If the broker rejects the send, metadata lookup fails, or the producer errors asynchronously, the return remains submitted/cancelled/timed-out in the database with no retry, no surfaced failure, and no downstream lifecycle event.",
+          "file": "src/main/java/com/tenxengage/app/service/ReturnEventProducer.java",
+          "lineStart": 88,
+          "lineEnd": 92,
+          "severity": "high",
+          "confidence": 0.90,
+          "tier": "advisory",
+          "tierReason": "severity=high, confidence=0.90 (>=0.70), alreadyHandled=false — stage is in $SOFT_STAGES so outcome is advisory",
+          "recommendation": "Handle the CompletableFuture from kafkaTemplate.send() with failure logging/alerting and retry, or move return events to a transactional outbox persisted in the same DB transaction and relayed with retry semantics.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        },
+        {
+          "summary": "Return eligibility ignores tenant return-window overrides",
+          "details": "The submission path computes expiry from catalogItem.getDefaultReturnWindowDays() only. ClientCatalogItemConfig.returnWindowDaysOverride exists and is configurable by tenant admins, but ReturnService neither loads that config nor uses the override in submitReturn or isReturnEligibleInner. A tenant with a shorter override can still accept returns through the global default; a tenant with a longer override can be incorrectly blocked.",
+          "file": "src/main/java/com/tenxengage/app/service/redemption/ReturnService.java",
+          "lineStart": 118,
+          "lineEnd": 123,
+          "severity": "medium",
+          "confidence": 0.85,
+          "tier": "advisory",
+          "tierReason": "severity=medium — advisory by severity regardless",
+          "recommendation": "Load the ClientCatalogItemConfig for (clientId, catalogItemId) and compute the effective return window from returnWindowDaysOverride when present; use the same effective value for both history eligibility (isReturnEligibleInner) and submit validation.",
+          "alreadyHandled": false,
+          "autoFixable": false,
+          "autoFixed": false
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "Verdict: needs-attention. No-ship: the change still has an event-loss hole on committed return state, and return-window enforcement bypasses tenant configuration."
+    },
+    "tests": {
+      "status": "passed",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "testsRun": [
+        "ReturnServiceTest",
+        "ReturnControllerTest",
+        "RedemptionHistoryServiceTest",
+        "RedemptionHistoryControllerTest",
+        "RedemptionRequestControllerTest"
+      ],
+      "fixes": 0,
+      "notes": "All 5 test classes green. 6 new tests in ReturnServiceTest cover COV-01 gaps. Pre-existing base-branch failures (XtrmVendorServiceTest x3, RedemptionSubmissionServiceTest x3) not re-run — not regressions.",
+      "testPlanCoverage": { "planned": 25, "implemented": 25, "generated": 0, "passing": 25 },
+      "testQualityFindings": [
+        { "id": "TQ-01", "severity": "medium", "rule": "coverage", "summary": "isReturnEligible_singleItem_returnsTrueWhenNoActiveReturn missing verify() for existsBy DB call" },
+        { "id": "TQ-02", "severity": "medium", "rule": "coverage", "summary": "isReturnEligible_singleItem_returnsFalseWhenActiveReturnExists missing verify() for existsBy DB call" },
+        { "id": "TQ-03", "severity": "low", "rule": "coverage", "summary": "batchOverload tests don't cover isReturnable/window short-circuit edge cases" },
+        { "id": "TQ-04", "severity": "low", "rule": "aaa-pattern", "summary": "getRedemptionIdsWithActiveReturns_delegatesToRepository has redundant assertThat + loose anyList() verify" },
+        { "id": "TQ-05", "severity": "low", "rule": "assertj", "summary": "emptyListGuard test uses .isEmpty() without .isNotNull() — NPE on null return vs clean failure" },
+        { "id": "TQ-06", "severity": "low", "rule": "anti-pattern", "summary": "Class-level LENIENT strictness may silently suppress unused stubs in new tests" }
+      ]
+    },
+    "coverage": {
+      "status": "passed",
+      "validatedAtCommit": "34c92d3c",
+      "completedAt": "2026-06-13T06:00:00Z",
+      "gaps": [],
+      "notes": "COV-01 gaps resolved: isReturnEligible(single) covered by 2 tests; isReturnEligible(batch Set) covered by 2 tests; getRedemptionIdsWithActiveReturns covered by 2 tests. No new methods or endpoints added in this run."
+    }
+  },
+  "advisory_findings": [
+    {
+      "stage": "adversarial-review",
+      "id": "ADV-01",
+      "severity": "high",
+      "confidence": 0.90,
+      "summary": "Kafka send future unhandled + no outbox: committed returns can permanently lose lifecycle events",
+      "recommendation": "Persist return events to outbox table in same transaction; retry from outbox with DLQ. Handle send() future failure. This is F5 Foundation scope — ReturnEventProducer is shared infrastructure."
+    },
+    {
+      "stage": "adversarial-review",
+      "id": "ADV-02",
+      "severity": "medium",
+      "confidence": 0.85,
+      "summary": "Return eligibility ignores ClientCatalogItemConfig.returnWindowDaysOverride — tenant-configured window not respected",
+      "recommendation": "Load ClientCatalogItemConfig for (clientId, catalogItemId) and compute effective return window from returnWindowDaysOverride when present; apply consistently in isReturnEligibleInner and submitReturn."
+    }
+  ],
+  "overall": "passed",
+  "lastCompletedStep": "coverage"
+}

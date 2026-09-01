@@ -1,0 +1,180 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.5'
+    id 'jacoco'
+}
+
+group = 'com.tenxengage'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://build.shibboleth.net/maven/releases/' }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.security:spring-security-saml2-service-provider'
+    implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    runtimeOnly 'org.postgresql:postgresql'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    implementation 'io.minio:minio:8.5.11'
+    implementation 'com.google.cloud:google-cloud-storage:2.36.1'
+    implementation 'com.anthropic:anthropic-java:2.16.0'
+    implementation 'org.apache.pdfbox:pdfbox:2.0.31'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    implementation 'net.snowflake:snowflake-jdbc:3.16.1'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:testcontainers:1.21.0'
+    testImplementation 'org.testcontainers:junit-jupiter:1.21.0'
+    testImplementation 'org.testcontainers:postgresql:1.21.0'
+    testImplementation 'org.testcontainers:kafka:1.21.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+}
+
+tasks.named('bootRun') {
+    // Load .env file into environment variables so you don't have to pass them on the command line
+    def envFile = file('.env')
+    if (envFile.exists()) {
+        envFile.readLines().each { line ->
+            line = line.trim()
+            if (line && !line.startsWith('#') && line.contains('=')) {
+                def idx = line.indexOf('=')
+                def key = line.substring(0, idx).trim()
+                def val = line.substring(idx + 1).trim()
+                environment key, val
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Test configuration
+// ---------------------------------------------------------------------------
+
+jacoco {
+    toolVersion = '0.8.12'
+}
+
+tasks.named('test') {
+    useJUnitPlatform {
+        excludeTags 'integration', 'performance'
+    }
+    // Docker Desktop 29.x requires API version >= 1.40; docker-java defaults to 1.32
+    jvmArgs '-Dcom.github.dockerjava.api.model.RemoteApiVersion=1.44'
+    // Asia/Calcutta (Windows system TZ) is not recognized by PostgreSQL; use UTC
+    jvmArgs '-Duser.timezone=UTC'
+    environment 'DOCKER_HOST', 'unix:///var/run/docker.sock'
+    finalizedBy jacocoTestReport
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests (requires docker compose up -d)'
+    group = 'verification'
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    jvmArgs '-Dcom.github.dockerjava.api.model.RemoteApiVersion=1.44'
+    jvmArgs '-Duser.timezone=UTC'
+    environment 'DOCKER_HOST', 'unix:///var/run/docker.sock'
+    shouldRunAfter tasks.named('test')
+    finalizedBy jacocoTestReport
+}
+
+tasks.register('performanceTest', Test) {
+    description = 'Runs performance tests (requires docker compose up -d)'
+    group = 'verification'
+    useJUnitPlatform {
+        includeTags 'performance'
+    }
+    jvmArgs '-Dcom.github.dockerjava.api.model.RemoteApiVersion=1.44'
+    environment 'DOCKER_HOST', 'unix:///var/run/docker.sock'
+    shouldRunAfter tasks.named('integrationTest')
+}
+
+jacocoTestReport {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/dto/request/**',
+                '**/dto/response/**',
+                '**/entity/**',
+                '**/entity/enums/**',
+                '**/config/OpenApiConfig*',
+                '**/TenxengageApplication*'
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'LINE'
+                minimum = 0.60
+            }
+        }
+        rule {
+            limit {
+                counter = 'BRANCH'
+                minimum = 0.50
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                '**/dto/request/**',
+                '**/dto/response/**',
+                '**/entity/**',
+                '**/entity/enums/**',
+                '**/config/OpenApiConfig*',
+                '**/TenxengageApplication*'
+            ])
+        }))
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestCoverageVerification
+}

@@ -1,0 +1,14 @@
+openapi: 3.0.3
+info:
+  title: Reward Transaction Reference
+  description: >
+    Reward transactions are created automatically when deals are claimed
+    and reversed when deals are unclaimed. There is no direct CRUD API
+    for transactions — they are managed through the claims workflow.
+    See claims.yaml for operational endpoints.
+    See models/transaction.md for the RewardTransaction entity definition.
+  version: 2.0.0
+
+# RewardTransactions are embedded in ClaimDetailResponse and created/reversed
+# through POST /api/v1/claims/{id}/claim and POST /api/v1/claims/{id}/unclaim.
+# No standalone transaction endpoints exist in the backend.

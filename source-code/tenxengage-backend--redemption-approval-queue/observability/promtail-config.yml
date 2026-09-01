@@ -1,0 +1,44 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      # Only scrape containers with tenxengage in the name
+      - source_labels: ['__meta_docker_container_name']
+        regex: '.*tenxengage.*'
+        action: keep
+      # Use container name as label
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: container
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: job
+    pipeline_stages:
+      # Try to parse JSON log lines (from logstash-logback-encoder)
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
+            message: message
+            requestId: requestId
+            userId: userId
+            clientId: clientId
+            subdomain: subdomain
+            userEmail: userEmail
+      - labels:
+          level:
+          requestId:
+          userId:
+          clientId:

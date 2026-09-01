@@ -1,0 +1,63 @@
+{
+  "featureId": "redemption-catalog",
+  "repo": "tenxengage-backend",
+  "branch": "features/redemption-catalog",
+  "headCommit": "97a174c1d51191b5d57c6e3686ada57675fefd20",
+  "startedAt": "2026-05-19T04:00:00Z",
+  "updatedAt": "2026-05-19T10:00:00Z",
+  "steps": {
+    "prerequisites": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:05:00Z" },
+    "code-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:15:00Z", "fixes": 0, "findings": [] },
+    "security-review": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:25:00Z", "fixes": 5, "findings": [] },
+    "contract-compliance": { "status": "not_applicable", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:26:00Z" },
+    "adversarial-review": {
+      "status": "passed",
+      "validatedAtCommit": "97a174c1d51191b5d57c6e3686ada57675fefd20",
+      "completedAt": "2026-05-19T09:35:54.555Z",
+      "source": "job-store",
+      "codexJobId": "review-mpcfmynb-wju6pq",
+      "codexBaseRef": "main",
+      "codexBranch": "features/redemption-catalog",
+      "codexCompletedAt": "2026-05-19T09:35:54.555Z",
+      "parseError": null,
+      "findings": [
+        {
+          "summary": "Completion rewards are not idempotent across grant retries",
+          "details": "grantReward always creates a new RewardTransaction, then credits the wallet using that new transaction id as the ledger reference. If the same completion reward is replayed with the same completionId and currency, the wallet idempotency check cannot recognize it because the reference id changes every call. The likely impact is duplicate wallet credits and duplicate reward history for retried completion processing.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 178,
+          "lineEnd": 195,
+          "severity": "high",
+          "confidence": 0.82,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — early-return idempotency guard added at lines 96-113 before lock acquire; DB unique index on (completion_id, currency_id) added in V15 migration",
+          "recommendation": "Make the idempotency key the business event, not the generated transaction id: enforce a unique key on claimActionId/completionId + currency + user/incentive, return the existing transaction on replay, and pass that stable business id to the ledger credit.",
+          "alreadyHandled": true
+        },
+        {
+          "summary": "Non-positive reward amounts can corrupt budget and transaction totals",
+          "details": "grantReward accepts request.amount without a positive check, and applyBudgetCap will add the resulting awarded value to BudgetUtilization. For a negative configured reward, this writes a negative RewardTransaction and reduces utilized budget, while the wallet credit is skipped because awarded is not > 0, so the ledger amount check never catches it. That can make caps and budget remaining calculations wrong and enable later over-awards.",
+          "file": "src/main/java/com/tenxengage/app/service/RewardGrantService.java",
+          "lineStart": 95,
+          "lineEnd": 195,
+          "severity": "high",
+          "confidence": 0.78,
+          "tier": "advisory",
+          "tierReason": "alreadyHandled=true — IllegalArgumentException guard added at lines 92-94; <= 0 skip guards added in ActivityCompletionService and JourneyCompletionService (matching existing TrainingCompletionService guard)",
+          "recommendation": "Reject amount <= 0 at the grantReward boundary and when parsing reward amount maps; add database checks preventing negative amount_potential/amount_awarded and negative budget utilization.",
+          "alreadyHandled": true
+        }
+      ],
+      "classificationRules": {
+        "blockingThreshold": "severity critical/high AND confidence >= 0.70 AND not alreadyHandled",
+        "advisoryThreshold": "severity medium/low OR confidence < 0.70 OR alreadyHandled"
+      },
+      "codexOutput": "# Codex Adversarial Review\n\nTarget: branch diff against main\nVerdict: needs-attention\n\nNo-ship: the reward ledger path still permits duplicate or corrupt award state under retry/bad configuration.\n\nFindings:\n- [high] Completion rewards are not idempotent across grant retries (src/main/java/com/tenxengage/app/service/RewardGrantService.java:178-195)\n- [high] Non-positive reward amounts can corrupt budget and transaction totals (src/main/java/com/tenxengage/app/service/RewardGrantService.java:95-195)"
+    },
+    "tests": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:50:00Z", "testsRun": [], "fixes": 0 },
+    "coverage": { "status": "passed", "validatedAtCommit": "b03f8e8b0f9e63112fd47421f89f15378a67cf1d", "completedAt": "2026-05-19T04:52:00Z", "gaps": [] }
+  },
+  "overall": "passed",
+  "lastCompletedStep": "adversarial-review",
+  "updatedAt": "2026-05-19T10:00:00Z"
+}

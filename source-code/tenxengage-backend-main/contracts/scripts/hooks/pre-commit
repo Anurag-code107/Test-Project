@@ -1,0 +1,36 @@
+#!/bin/bash
+# Blocks a commit where enums.md is staged but enums-index.md is not.
+# If both are staged (or neither), the commit proceeds normally.
+
+enums_staged=$(git diff --cached --name-only | grep -c "^enums\.md$")
+index_staged=$(git diff --cached --name-only | grep -c "^enums-index\.md$")
+
+if [ "$enums_staged" -gt 0 ] && [ "$index_staged" -eq 0 ]; then
+  echo ""
+  echo "❌ enums.md changed but enums-index.md was not staged."
+  echo ""
+  echo "   Regenerate the index, then stage it:"
+  echo ""
+  echo "     claude -p \"Read enums.md in full. Regenerate enums-index.md with this exact"
+  echo "     4-column table format: | Enum name | Description | Value count | Section in enums.md |"
+  echo "     Rules:"
+  echo "     1. Section column must use the format 'enums.md §EnumName' (direct heading anchor,"
+  echo "        not the group section name)."
+  echo "     2. Value count: count ONLY the data rows in the enum's table (exclude the header"
+  echo "        row and the separator row)."
+  echo "     3. Description: 1 short sentence capturing what the enum discriminates — include"
+  echo "        representative values in parentheses where helpful, and note 'stored as string,"
+  echo "        not Java enum' for enums explicitly marked as such in enums.md."
+  echo "     4. Include every enum with a ## heading followed by a value table. Skip group"
+  echo "        header sections with no table immediately below."
+  echo "     5. Preserve existing descriptions verbatim for any enum whose name and value count"
+  echo "        are unchanged."
+  echo "     Write the file.\" --allowedTools 'Read,Write'"
+  echo ""
+  echo "     git add enums-index.md"
+  echo "     git commit ..."
+  echo ""
+  exit 1
+fi
+
+exit 0
