@@ -1,0 +1,280 @@
+2026-04-30 10:28:00.061 [-] [-] DEBUG o.s.security.web.FilterChainProxy - Securing POST /api/v1/auth/logout
+2026-04-30 10:28:01.989 [-] [-] DEBUG org.hibernate.SQL - 
+    select
+        c1_0.id,
+        c1_0.created_at,
+        c1_0.data_region,
+        c1_0.dpa_signed_at,
+        c1_0.dpa_signed_by,
+        c1_0.dpa_version,
+        c1_0.logo_url,
+        c1_0.name,
+        c1_0.notification_retention_days,
+        c1_0.status,
+        c1_0.subdomain,
+        c1_0.subscription_tier,
+        c1_0.updated_at 
+    from
+        clients c1_0 
+    where
+        c1_0.subdomain=?
+2026-04-30 10:28:02.027 [-] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:VARCHAR) <- [acme]
+2026-04-30 10:28:02.601 [fb60ddcf-eb01-495d-bc27-4d0d6b9ae953] [-] INFO  c.t.a.security.RequestLoggingFilter - Request started: POST /api/v1/auth/logout from 0:0:0:0:0:0:0:1
+2026-04-30 10:28:02.623 [fb60ddcf-eb01-495d-bc27-4d0d6b9ae953] [-] DEBUG o.s.s.w.a.AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-04-30 10:28:02.869 [fb60ddcf-eb01-495d-bc27-4d0d6b9ae953] [-] INFO  c.t.a.security.RequestLoggingFilter - Request completed: POST /api/v1/auth/logout status=401 duration=269ms
+2026-04-30 10:28:03.024 [-] [-] DEBUG o.s.security.web.FilterChainProxy - Securing POST /error
+2026-04-30 10:28:03.026 [-] [-] DEBUG o.s.security.web.FilterChainProxy - Secured POST /error
+2026-04-30 10:28:03.226 [-] [-] DEBUG o.s.s.w.a.AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-04-30 10:28:03.289 [-] [-] DEBUG o.s.security.web.FilterChainProxy - Securing POST /api/v1/auth/refresh
+2026-04-30 10:28:03.292 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] INFO  c.t.a.security.RequestLoggingFilter - Request started: POST /api/v1/auth/refresh from 0:0:0:0:0:0:0:1
+2026-04-30 10:28:03.293 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG o.s.s.w.a.AnonymousAuthenticationFilter - Set SecurityContextHolder to anonymous SecurityContext
+2026-04-30 10:28:03.294 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG o.s.security.web.FilterChainProxy - Secured POST /api/v1/auth/refresh
+2026-04-30 10:28:03.383 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        u1_0.id,
+        u1_0.avatar,
+        u1_0.client_id,
+        u1_0.client_role_id,
+        u1_0.country_code,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.external_user_id,
+        u1_0.first_name,
+        u1_0.last_name,
+        u1_0.metadata,
+        u1_0.onboarding_completed_at,
+        u1_0.organization_id,
+        u1_0.partner_company_id,
+        u1_0.password_hash,
+        u1_0.phone,
+        u1_0.status,
+        u1_0.updated_at 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+2026-04-30 10:28:03.384 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a4f0169e-a731-46f3-83d4-1e715092b4e0]
+2026-04-30 10:28:03.455 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        c1_0.id,
+        c1_0.created_at,
+        c1_0.data_region,
+        c1_0.dpa_signed_at,
+        c1_0.dpa_signed_by,
+        c1_0.dpa_version,
+        c1_0.logo_url,
+        c1_0.name,
+        c1_0.notification_retention_days,
+        c1_0.status,
+        c1_0.subdomain,
+        c1_0.subscription_tier,
+        c1_0.updated_at 
+    from
+        clients c1_0 
+    where
+        c1_0.id=?
+2026-04-30 10:28:03.455 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a0000000-0000-0000-0000-000000000001]
+2026-04-30 10:28:03.473 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        ff1_0.id,
+        ff1_0.category,
+        ff1_0.created_at,
+        ff1_0.description,
+        ff1_0.enterprise_enabled,
+        ff1_0.feature_key,
+        ff1_0.professional_enabled,
+        ff1_0.starter_enabled,
+        ff1_0.updated_at 
+    from
+        feature_flags ff1_0
+2026-04-30 10:28:03.511 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        cfo1_0.id,
+        cfo1_0.client_id,
+        cfo1_0.created_at,
+        cfo1_0.enabled,
+        cfo1_0.feature_flag_id,
+        cfo1_0.updated_at 
+    from
+        client_feature_overrides cfo1_0 
+    where
+        cfo1_0.client_id=?
+2026-04-30 10:28:03.512 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a0000000-0000-0000-0000-000000000001]
+2026-04-30 10:28:03.570 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        u1_0.id,
+        u1_0.avatar,
+        u1_0.client_id,
+        cr1_0.id,
+        cr1_0.base_role_name,
+        cr1_0.client_id,
+        cr1_0.created_at,
+        cr1_0.is_default,
+        cr1_0.description,
+        cr1_0.name,
+        cr1_0.role_type,
+        cr1_0.is_system,
+        cr1_0.updated_at,
+        u1_0.client_role_id,
+        u1_0.country_code,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.external_user_id,
+        u1_0.first_name,
+        u1_0.last_name,
+        u1_0.metadata,
+        u1_0.onboarding_completed_at,
+        u1_0.organization_id,
+        u1_0.partner_company_id,
+        u1_0.password_hash,
+        u1_0.phone,
+        u1_0.status,
+        u1_0.updated_at 
+    from
+        users u1_0 
+    left join
+        client_roles cr1_0 
+            on cr1_0.id=u1_0.client_role_id 
+    where
+        u1_0.id=?
+2026-04-30 10:28:03.572 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a4f0169e-a731-46f3-83d4-1e715092b4e0]
+2026-04-30 10:28:03.618 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        cpg1_0.id,
+        cpg1_0.client_id,
+        cpg1_0.created_at,
+        cpg1_0.granted,
+        cpg1_0.permission_key,
+        cpg1_0.updated_at 
+    from
+        client_permission_grants cpg1_0 
+    where
+        cpg1_0.client_id=?
+2026-04-30 10:28:03.619 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a0000000-0000-0000-0000-000000000001]
+2026-04-30 10:28:03.662 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        crp1_0.id,
+        crp1_0.client_role_id,
+        crp1_0.created_at,
+        crp1_0.granted,
+        crp1_0.permission_key,
+        crp1_0.updated_at 
+    from
+        client_role_permissions crp1_0 
+    where
+        crp1_0.client_role_id=?
+2026-04-30 10:28:03.664 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [13710c8a-51e4-4822-9919-58f433690093]
+2026-04-30 10:28:03.706 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] DEBUG org.hibernate.SQL - 
+    select
+        upo1_0.id,
+        upo1_0.client_id,
+        upo1_0.created_at,
+        upo1_0.granted,
+        upo1_0.permission_key,
+        upo1_0.updated_at,
+        upo1_0.user_id 
+    from
+        user_permission_overrides upo1_0 
+    where
+        upo1_0.client_id=? 
+        and upo1_0.user_id=?
+2026-04-30 10:28:03.709 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a0000000-0000-0000-0000-000000000001]
+2026-04-30 10:28:03.712 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (2:UUID) <- [a4f0169e-a731-46f3-83d4-1e715092b4e0]
+2026-04-30 10:28:03.784 [86945afb-78bd-4910-a4d6-99bf47d7b6a6] [-] INFO  c.t.a.security.RequestLoggingFilter - Request completed: POST /api/v1/auth/refresh status=200 duration=492ms
+2026-04-30 10:28:04.188 [-] [-] DEBUG o.s.security.web.FilterChainProxy - Securing POST /api/v1/auth/logout
+2026-04-30 10:28:04.223 [-] [-] DEBUG org.hibernate.SQL - 
+    select
+        u1_0.id,
+        u1_0.avatar,
+        u1_0.client_id,
+        u1_0.client_role_id,
+        u1_0.country_code,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.external_user_id,
+        u1_0.first_name,
+        u1_0.last_name,
+        u1_0.metadata,
+        u1_0.onboarding_completed_at,
+        u1_0.organization_id,
+        u1_0.partner_company_id,
+        u1_0.password_hash,
+        u1_0.phone,
+        u1_0.status,
+        u1_0.updated_at 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+2026-04-30 10:28:04.223 [-] [-] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a4f0169e-a731-46f3-83d4-1e715092b4e0]
+2026-04-30 10:28:04.244 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] INFO  c.t.a.security.RequestLoggingFilter - Request started: POST /api/v1/auth/logout from 0:0:0:0:0:0:0:1
+2026-04-30 10:28:04.248 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] DEBUG o.s.security.web.FilterChainProxy - Secured POST /api/v1/auth/logout
+2026-04-30 10:28:04.269 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] DEBUG o.s.s.a.m.AuthorizationManagerBeforeMethodInterceptor - Authorizing method invocation ReflectiveMethodInvocation: public org.springframework.http.ResponseEntity com.tenxengage.app.controller.AuthController.logout(jakarta.servlet.http.HttpServletResponse); target is of class [com.tenxengage.app.controller.AuthController]
+2026-04-30 10:28:04.611 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] DEBUG o.s.s.a.m.AuthorizationManagerBeforeMethodInterceptor - Authorized method invocation ReflectiveMethodInvocation: public org.springframework.http.ResponseEntity com.tenxengage.app.controller.AuthController.logout(jakarta.servlet.http.HttpServletResponse); target is of class [com.tenxengage.app.controller.AuthController]
+2026-04-30 10:28:04.687 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] DEBUG c.tenxengage.app.audit.AuditAspect - SpEL evaluation failed for 'User logged out': Expression [User logged out] @5: EL1041E: After parsing a valid expression, there is still more data in the expression: 'logged'
+2026-04-30 10:28:04.952 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] INFO  c.t.a.security.RequestLoggingFilter - Request completed: POST /api/v1/auth/logout status=200 duration=708ms
+2026-04-30 10:28:05.217 [-] [-] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=13h24m58s989ms842µs800ns).
+2026-04-30 10:28:05.336 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] DEBUG org.hibernate.SQL - 
+    select
+        u1_0.id,
+        u1_0.avatar,
+        u1_0.client_id,
+        u1_0.client_role_id,
+        u1_0.country_code,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.external_user_id,
+        u1_0.first_name,
+        u1_0.last_name,
+        u1_0.metadata,
+        u1_0.onboarding_completed_at,
+        u1_0.organization_id,
+        u1_0.partner_company_id,
+        u1_0.password_hash,
+        u1_0.phone,
+        u1_0.status,
+        u1_0.updated_at 
+    from
+        users u1_0 
+    where
+        u1_0.id=?
+2026-04-30 10:28:05.336 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:UUID) <- [a4f0169e-a731-46f3-83d4-1e715092b4e0]
+2026-04-30 10:28:05.675 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] DEBUG org.hibernate.SQL - 
+    insert 
+    into
+        audit_logs
+        (action, actor_email, actor_id, actor_name, actor_type, client_id, company_name, created_at, description, ip_address, metadata, request_id, resource_id, resource_name, resource_type, user_type, id) 
+    values
+        (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+2026-04-30 10:28:05.676 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (1:VARCHAR) <- [LOGGED_OUT]
+2026-04-30 10:28:05.676 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (2:VARCHAR) <- [clientadmin@acme.com]
+2026-04-30 10:28:05.677 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (3:UUID) <- [a4f0169e-a731-46f3-83d4-1e715092b4e0]
+2026-04-30 10:28:05.678 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (4:VARCHAR) <- [Alice Admin]
+2026-04-30 10:28:05.678 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (5:VARCHAR) <- [USER]
+2026-04-30 10:28:05.679 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (6:UUID) <- [a0000000-0000-0000-0000-000000000001]
+2026-04-30 10:28:05.679 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (7:VARCHAR) <- [null]
+2026-04-30 10:28:05.682 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (8:TIMESTAMP_UTC) <- [2026-04-30T04:58:05.410284600Z]
+2026-04-30 10:28:05.685 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (9:VARCHAR) <- [User logged out]
+2026-04-30 10:28:05.685 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (10:VARCHAR) <- [null]
+2026-04-30 10:28:05.685 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (11:JSON) <- [null]
+2026-04-30 10:28:05.686 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (12:UUID) <- [b77c567e-1bd9-438d-afd4-9d6ce423fe1b]
+2026-04-30 10:28:05.686 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (13:UUID) <- [null]
+2026-04-30 10:28:05.687 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (14:VARCHAR) <- [null]
+2026-04-30 10:28:05.687 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (15:VARCHAR) <- [AUTH]
+2026-04-30 10:28:05.690 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (16:VARCHAR) <- [Internal]
+2026-04-30 10:28:05.690 [b77c567e-1bd9-438d-afd4-9d6ce423fe1b] [a4f0169e-a731-46f3-83d4-1e715092b4e0] TRACE org.hibernate.orm.jdbc.bind - binding parameter (17:UUID) <- [f6490236-33c5-41ee-b956-891b89f36f2c]
+2026-04-30 10:30:14.330 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-approval: partitions revoked: [approval-events-0, approval-events-1, approval-events-2]
+2026-04-30 10:30:14.330 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-journey: partitions revoked: [completion-events-0, completion-events-1, completion-events-2]
+2026-04-30 10:30:14.331 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-notifications: partitions revoked: [notification-events-0, notification-events-1, notification-events-2]
+2026-04-30 10:30:14.331 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-training: partitions revoked: [training-sync-events-0, training-sync-events-1, training-sync-events-2]
+2026-04-30 10:30:14.340 [-] [-] INFO  o.s.k.c.DefaultKafkaConsumerFactory$ExtendedKafkaConsumer - [Consumer clientId=consumer-tenxengage-notifications-1, groupId=tenxengage-notifications] Unsubscribed all topics or patterns and assigned partitions
+2026-04-30 10:30:14.340 [-] [-] INFO  o.s.k.c.DefaultKafkaConsumerFactory$ExtendedKafkaConsumer - [Consumer clientId=consumer-tenxengage-approval-3, groupId=tenxengage-approval] Unsubscribed all topics or patterns and assigned partitions
+2026-04-30 10:30:14.340 [-] [-] INFO  o.s.k.c.DefaultKafkaConsumerFactory$ExtendedKafkaConsumer - [Consumer clientId=consumer-tenxengage-journey-4, groupId=tenxengage-journey] Unsubscribed all topics or patterns and assigned partitions
+2026-04-30 10:30:14.340 [-] [-] INFO  o.s.k.c.DefaultKafkaConsumerFactory$ExtendedKafkaConsumer - [Consumer clientId=consumer-tenxengage-training-2, groupId=tenxengage-training] Unsubscribed all topics or patterns and assigned partitions
+2026-04-30 10:30:14.935 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-approval: Consumer stopped
+2026-04-30 10:30:14.935 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-training: Consumer stopped
+2026-04-30 10:30:14.935 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-journey: Consumer stopped
+2026-04-30 10:30:14.939 [-] [-] INFO  o.s.k.l.KafkaMessageListenerContainer - tenxengage-notifications: Consumer stopped
+2026-04-30 10:30:15.779 [-] [-] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-04-30 10:30:15.842 [-] [-] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-04-30 10:30:15.877 [-] [-] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
